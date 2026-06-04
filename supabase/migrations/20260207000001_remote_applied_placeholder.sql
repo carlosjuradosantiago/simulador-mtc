@@ -1,0 +1,2 @@
+-- Remote migration already applied before this workspace was initialized.
+-- Placeholder keeps local migration history aligned with Supabase.

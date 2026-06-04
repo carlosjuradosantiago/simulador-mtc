@@ -1,0 +1,42 @@
+export const classes = [
+  {
+    id: 'senales-transito',
+    title: 'Señales de tránsito',
+    description: 'Reconoce señales preventivas, reglamentarias e informativas en situaciones reales.',
+    duration: '42 min',
+    progress: 78,
+    lessons: 9,
+  },
+  {
+    id: 'normas-prioridad',
+    title: 'Normas de prioridad',
+    description: 'Aprende derecho de paso, intersecciones, giros y preferencias de circulación.',
+    duration: '36 min',
+    progress: 52,
+    lessons: 7,
+  },
+  {
+    id: 'seguridad-vial',
+    title: 'Seguridad vial',
+    description: 'Refuerza conducción defensiva, distancia segura y hábitos de prevención.',
+    duration: '48 min',
+    progress: 64,
+    lessons: 8,
+  },
+  {
+    id: 'primeros-auxilios',
+    title: 'Primeros auxilios',
+    description: 'Protocolos básicos ante accidentes, emergencias y asistencia inicial.',
+    duration: '28 min',
+    progress: 44,
+    lessons: 6,
+  },
+  {
+    id: 'mecanica-basica',
+    title: 'Mecánica básica',
+    description: 'Elementos del vehículo, mantenimiento preventivo y revisión antes de conducir.',
+    duration: '31 min',
+    progress: 35,
+    lessons: 5,
+  },
+];
