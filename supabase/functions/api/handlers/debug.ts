@@ -45,7 +45,7 @@ export async function handleDeleteMembership(req: Request): Promise<Response> {
 
 /**
  * DELETE /debug/exam-attempts - Eliminar todos los intentos de examen del usuario
- * Esto resetea el contador de exámenes gratuitos
+ * Esto resetea el contador de exámenes completados
  */
 export async function handleDeleteExamAttempts(req: Request): Promise<Response> {
   const user = await getUserFromToken(req);

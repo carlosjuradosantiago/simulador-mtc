@@ -88,7 +88,7 @@ export async function enviarCodigoVerificacionCorreo(data) {
           <p style="margin:8px 0 0;font-size:14px;">Simulador MTC</p>
         </td></tr>
         <tr><td style="padding:28px;">
-          <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Hola ${data.nombre || 'estudiante'}, usa este codigo para validar tu correo y activar tus 3 simulacros gratis.</p>
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Hola ${data.nombre || 'estudiante'}, usa este codigo para validar tu correo y activar tu cuenta.</p>
           <p style="margin:0 auto 18px;padding:18px 24px;max-width:220px;border-radius:10px;background:#eef5ff;color:#0f55e8;font-size:32px;font-weight:800;letter-spacing:6px;text-align:center;">${data.codigo}</p>
           <p style="margin:0;font-size:14px;line-height:1.6;color:#475569;">El codigo vence en ${data.expiraMinutos} minutos. Si no creaste una cuenta, puedes ignorar este correo.</p>
         </td></tr>

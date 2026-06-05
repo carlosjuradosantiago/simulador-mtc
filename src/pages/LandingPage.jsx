@@ -92,7 +92,7 @@ export default function LandingPage() {
                 Prepárate con preguntas actualizadas y simulacros por categoría para licencias A1, A2A, A2B, A3A, A3B y más.
               </p>
               <div className="mt-5 flex flex-wrap gap-4">
-                <Button size="lg" onClick={() => openAuthModal('register')}>Empieza gratis <ArrowRight className="h-5 w-5" /></Button>
+                <Button size="lg" onClick={() => openAuthModal('register')}>Comenzar ahora <ArrowRight className="h-5 w-5" /></Button>
                 <Button variant="secondary" size="lg" onClick={() => openAuthModal('login')}><PlayCircle className="h-5 w-5" /> Ver demo</Button>
               </div>
               <div className="mt-6 grid gap-4 text-sm text-slate-600 sm:grid-cols-3">

@@ -233,7 +233,7 @@ Deno.serve(async (req)=>{
       return await withLogging(req, path, 'handleSubscribePlan', () => handleSubscribePlan(req));
     }
     
-    // GET /user/exam-count - Check how many exams user has taken (for free tier logic)
+    // GET /user/exam-count - Check how many completed exams the user has
     if (path === '/user/exam-count' && method === 'GET') {
       const { handleGetUserExamCount } = await import('./handlers/membership.ts');
       return await withLogging(req, path, 'handleGetUserExamCount', () => handleGetUserExamCount(req));

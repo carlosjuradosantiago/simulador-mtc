@@ -1,7 +1,9 @@
 // handlers/preguntas.ts - VERSIÓN CORREGIDA CON AUTH UNIFICADO
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getUserFromToken } from '../_shared/auth.ts';
-const FREE_EXAMS_LIMIT = 3; // 3 exámenes gratuitos
+
+const EXAM_ACCESS_LIMITS_ENABLED = false;
+const LEGACY_EXAM_LIMIT = 3;
 // Headers CORS para todas las respuestas
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -119,7 +121,7 @@ function jsonResponse(data: unknown, status = 200) {
   console.log('✅ Usuario ID:', userId);
 
   // ============ PASO 3: VERIFICAR INTENTOS Y MEMBRESÍA ============
-  console.log('\n📊 PASO 3: Verificando intentos y membresía...');
+  console.log('\n📊 PASO 3: Registrando intentos del usuario...');
   // Contar sesiones de práctica del usuario (sesion_practica es la tabla que se llena al iniciar cada examen)
   const { count: attemptCount, error: attemptError } = await supabase
     .from('sesion_practica')
@@ -130,34 +132,39 @@ function jsonResponse(data: unknown, status = 200) {
     throw new Error(`[PASO 3] Error al contar sesiones del usuario ${userId}: ${attemptError.message} (code: ${attemptError.code}, details: ${attemptError.details})`);
   }
   const totalAttempts = attemptCount || 0;
-  console.log(`📝 Sesiones completadas: ${totalAttempts}/${FREE_EXAMS_LIMIT}`);
+  console.log(`📝 Sesiones completadas: ${totalAttempts}`);
 
-  // Verificar membresía activa
-  const { data: activeMembership, error: membershipError } = await supabase
-    .from('membresias_usuario')
-    .select('*')
-    .eq('id_usuario', userId)
-    .eq('esta_activa', true)
-    .gte('fecha_fin', new Date().toISOString())
-    .maybeSingle();
-  if (membershipError) {
-    console.error('❌ Error al verificar membresía:', membershipError.message);
-    // No lanzar error aquí - la membresía es opcional
+  let hasActiveMembership = false;
+  if (EXAM_ACCESS_LIMITS_ENABLED) {
+    // Verificar membresía activa solo cuando se reactiven los límites de acceso.
+    const { data: activeMembership, error: membershipError } = await supabase
+      .from('membresias_usuario')
+      .select('*')
+      .eq('id_usuario', userId)
+      .eq('esta_activa', true)
+      .gte('fecha_fin', new Date().toISOString())
+      .maybeSingle();
+    if (membershipError) {
+      console.error('❌ Error al verificar membresía:', membershipError.message);
+      // No lanzar error aquí - la membresía es opcional
+    }
+    hasActiveMembership = !!activeMembership;
+    console.log(`💳 Membresía activa: ${hasActiveMembership}`);
   }
-  const hasActiveMembership = !!activeMembership;
-  console.log(`💳 Membresía activa: ${hasActiveMembership}`);
 
   // ============ PASO 4: VALIDAR ACCESO ============
   console.log('\n✅ PASO 4: Validando acceso...');
-  if (totalAttempts < FREE_EXAMS_LIMIT) {
-    console.log(`✅ Acceso permitido: Examen gratuito ${totalAttempts + 1}/${FREE_EXAMS_LIMIT}`);
+  if (!EXAM_ACCESS_LIMITS_ENABLED) {
+    console.log('✅ Acceso permitido: límites de acceso desactivados temporalmente');
+  } else if (totalAttempts < LEGACY_EXAM_LIMIT) {
+    console.log(`✅ Acceso permitido: intento ${totalAttempts + 1}/${LEGACY_EXAM_LIMIT}`);
   } else if (hasActiveMembership) {
     console.log('✅ Acceso permitido: Usuario con membresía activa');
   } else {
-    console.log('❌ Acceso denegado: Límite de exámenes gratuitos alcanzado sin membresía');
+    console.log('❌ Acceso denegado: límite de intentos alcanzado sin membresía');
     return jsonResponse({
       type: 'UltraSimple',
-      message: 'Se requiere membresía premium para acceder a este contenido.'
+      message: 'No pudimos iniciar el simulacro en este momento.'
     }, 401);
   }
 

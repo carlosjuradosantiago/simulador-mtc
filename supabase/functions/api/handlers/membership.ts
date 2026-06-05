@@ -281,11 +281,11 @@ export async function handleSubscribePlan(req: Request) {
   }
 }
 
-// ============ EXAM COUNT FOR FREE TIER ============
+// ============ EXAM COUNT ============
 
 /**
  * GET /api/user/exam-count - Get the number of completed exams for the user
- * Used to enforce the 3 free exams limit
+ * Access limits are disabled while payments are not active.
  */
 export async function handleGetUserExamCount(req: Request) {
   try {
@@ -308,16 +308,14 @@ export async function handleGetUserExamCount(req: Request) {
     }
 
     const examCount = count || 0;
-    const FREE_EXAM_LIMIT = 3;
-    const hasActiveMembership = await checkUserHasActiveMembership(supabase, user.userId);
 
     return jsonResponse({
       examCount,
-      freeExamLimit: FREE_EXAM_LIMIT,
-      remainingFreeExams: Math.max(0, FREE_EXAM_LIMIT - examCount),
-      canTakeExam: hasActiveMembership || examCount < FREE_EXAM_LIMIT,
-      hasActiveMembership,
-      requiresPayment: !hasActiveMembership && examCount >= FREE_EXAM_LIMIT
+      freeExamLimit: null,
+      remainingFreeExams: null,
+      canTakeExam: true,
+      hasActiveMembership: false,
+      requiresPayment: false
     });
   } catch (err) {
     console.error('Get user exam count error:', err);

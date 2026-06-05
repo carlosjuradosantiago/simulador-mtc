@@ -12,7 +12,7 @@ type AuthCodePurpose = (typeof AUTH_CODE_PURPOSE)[keyof typeof AUTH_CODE_PURPOSE
 
 const AUTH_CODE_TTL_MINUTES = 15;
 const MAX_AUTH_CODE_ATTEMPTS = 5;
-const FREE_EXAM_LIMIT = 3;
+const FREE_EXAM_LIMIT = null;
 
 function normalizeEmail(email: string) {
   return String(email || '').trim().toLowerCase();
@@ -446,7 +446,7 @@ export async function handleRegister(req: Request) {
       emailSent: emailResult.success === true,
       freeExamLimit: FREE_EXAM_LIMIT,
       message: emailResult.success === true
-        ? 'Registro creado. Te enviamos un codigo para validar tu correo y activar tus 3 simulacros gratis.'
+        ? 'Registro creado. Te enviamos un codigo para validar tu correo y activar tu cuenta.'
         : 'Registro creado, pero no pudimos enviar el codigo de validacion.'
     }, 201);
   } catch (err) {

@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle2, KeyRound, Mail, RefreshCw, ShieldCheck, User, X } from 'lucide-react';
+import { ArrowRight, KeyRound, Mail, RefreshCw, ShieldCheck, User, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../ui/Button.jsx';
@@ -8,6 +8,10 @@ import { BRAND_NAME } from '../../data/brand.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { api, getGoogleOAuthUrl } from '../../services/api.js';
 import { cn } from '../../utils/cn.js';
+
+const AUTH_CALLBACK_ORIGIN_BY_HOST = {
+  'simuladormtc.com': 'https://www.simuladormtc.com',
+};
 
 const titleByMode = {
   login: 'Iniciar sesión',
@@ -98,7 +102,8 @@ export default function AuthModal() {
     setError('');
     setNotice('');
     setGoogleLoading(true);
-    const callbackUrl = `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`;
+    const callbackOrigin = AUTH_CALLBACK_ORIGIN_BY_HOST[window.location.hostname] || window.location.origin;
+    const callbackUrl = `${callbackOrigin}/auth/callback?next=${encodeURIComponent(redirectTo)}`;
     try {
       const googleUrl = await getGoogleOAuthUrl({ redirectTo: callbackUrl });
       window.location.assign(googleUrl);
@@ -267,9 +272,6 @@ export default function AuthModal() {
             <Button type="button" variant="secondary" className="w-full" disabled={busy} onClick={handleGoogleLogin}>
               <Mail className="h-5 w-5" /> {googleLoading ? 'Abriendo selector de Google...' : 'Crear con Google'}
             </Button>
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">
-              <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4" /> Incluye 3 simulacros gratis al validar tu correo.</span>
-            </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Input label="Nombre completo" value={registerForm.name} onChange={(event) => setRegisterForm({ ...registerForm, name: event.target.value })} required />
               <Input label="Correo" type="email" value={registerForm.email} onChange={(event) => setRegisterForm({ ...registerForm, email: event.target.value })} required />
