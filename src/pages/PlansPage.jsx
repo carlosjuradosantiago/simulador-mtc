@@ -208,7 +208,7 @@ export default function PlansPage() {
       </aside>
 
       <Modal open={successOpen} title="Suscripción activada correctamente" onClose={() => setSuccessOpen(false)} actionLabel="Continuar">
-        Tu plan {selectedPlan.name} quedó activo en Supabase y asociado a tu usuario.
+        Tu plan {selectedPlan.name} quedó activo y asociado a tu usuario.
       </Modal>
     </div>
   );

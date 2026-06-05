@@ -1,5 +1,6 @@
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import DashboardLayout from '../layouts/DashboardLayout.jsx';
+import AdminDashboardPage from '../pages/AdminDashboardPage.jsx';
 import PublicLayout from '../layouts/PublicLayout.jsx';
 import CheckoutPage from '../pages/CheckoutPage.jsx';
 import ClassesPage from '../pages/ClassesPage.jsx';
@@ -13,6 +14,7 @@ import QuestionBankPage from '../pages/QuestionBankPage.jsx';
 import ResultsPage from '../pages/ResultsPage.jsx';
 import SimulatorPage from '../pages/SimulatorPage.jsx';
 import { useAuth } from '../hooks/useAuth.js';
+import { isAdminUser } from '../utils/admin.js';
 
 function ProtectedRoute() {
   const { isAuthenticated, loading } = useAuth();
@@ -29,6 +31,16 @@ function ProtectedRoute() {
   return <Outlet />;
 }
 
+function AdminRoute() {
+  const { user } = useAuth();
+
+  if (!isAdminUser(user)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <AdminDashboardPage />;
+}
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -42,6 +54,7 @@ export default function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route path="/simulacro/:categoria" element={<SimulatorPage />} />
         <Route element={<DashboardLayout />}>
+          <Route path="/admin" element={<AdminRoute />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/banco-preguntas" element={<QuestionBankPage />} />
           <Route path="/clases" element={<ClassesPage />} />

@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import Button from '../ui/Button.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
+import { isAdminUser } from '../../utils/admin.js';
 
 export default function Topbar({ onMenu }) {
   const { user, logout } = useAuth();
@@ -16,6 +17,7 @@ export default function Topbar({ onMenu }) {
   const isResults = pathname.startsWith('/resultados');
   const isComplaint = pathname === '/libro-reclamaciones';
   const showStartButton = isDashboard || isComplaint;
+  const adminUser = isAdminUser(user);
 
   const handleSearch = (event) => {
     event.preventDefault();
@@ -100,7 +102,7 @@ export default function Topbar({ onMenu }) {
               </span>
               <span className="hidden text-left sm:block">
                 <span className="block max-w-[220px] truncate text-sm font-bold text-ink">{user?.name ?? 'Carlos Mendoza'}</span>
-                <span className="block text-xs text-slate-500">Estudiante</span>
+                <span className="block text-xs text-slate-500">{adminUser ? 'Administrador' : 'Estudiante'}</span>
               </span>
               <ChevronDown className="h-4 w-4 text-ink" />
             </button>
@@ -115,6 +117,12 @@ export default function Topbar({ onMenu }) {
                   <UserRound className="h-4 w-4" />
                   Perfil
                 </Link>
+                {adminUser ? (
+                  <Link to="/admin" className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-brand">
+                    <CircleGauge className="h-4 w-4" />
+                    Panel admin
+                  </Link>
+                ) : null}
                 <button type="button" className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-danger hover:bg-red-50" onClick={handleLogout}>
                   <LogOut className="h-4 w-4" />
                   Cerrar sesión
