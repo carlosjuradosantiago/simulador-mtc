@@ -1,8 +1,10 @@
-import { BarChart3, BookOpenCheck, Car, Home, User, ClipboardList, CreditCard, FileText, X } from 'lucide-react';
+import { BarChart3, BookOpenCheck, Car, Home, User, ClipboardList, CreditCard, FileText, ShieldCheck, X } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import BrandLogo from './BrandLogo.jsx';
 import SidebarPromo from './SidebarPromo.jsx';
 import { cn } from '../../utils/cn.js';
+import { useAuth } from '../../hooks/useAuth.js';
+import { isAdminUser } from '../../utils/admin.js';
 
 const navItems = [
   { label: 'Dashboard', to: '/dashboard', icon: Home },
@@ -16,6 +18,11 @@ const navItems = [
 ];
 
 export default function Sidebar({ open, onClose }) {
+  const { user } = useAuth();
+  const visibleNavItems = isAdminUser(user)
+    ? [{ label: 'Admin', to: '/admin', icon: ShieldCheck }, ...navItems]
+    : navItems;
+
   return (
     <aside
       className={cn(
@@ -31,7 +38,7 @@ export default function Sidebar({ open, onClose }) {
       </div>
 
       <nav className="grid gap-2">
-        {navItems.map((item) => (
+        {visibleNavItems.map((item) => (
           <NavLink
             key={item.label}
             to={item.to}

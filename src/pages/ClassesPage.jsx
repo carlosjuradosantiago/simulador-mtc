@@ -288,7 +288,7 @@ export default function ClassesPage() {
       });
       setNotice('Avance guardado. Sigue con la siguiente lección cuando estés listo.');
     } catch {
-      setNotice('El avance quedó marcado en pantalla, pero no se pudo guardar en Supabase.');
+      setNotice('El avance quedó marcado en pantalla, pero no se pudo guardar tu progreso.');
     } finally {
       setSaving(false);
     }
@@ -378,7 +378,7 @@ export default function ClassesPage() {
         </div>
       </div>
 
-      {loading ? <Card className="p-5 text-center font-bold text-slate-500">Cargando clases desde Supabase...</Card> : null}
+      {loading ? <Card className="p-5 text-center font-bold text-slate-500">Cargando clases...</Card> : null}
 
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {enrichedClasses.map((course) => <CourseCard key={course.id} course={course} onOpen={openCourse} />)}

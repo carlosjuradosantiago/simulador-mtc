@@ -1,4 +1,4 @@
-import { BookOpenCheck, Clock, FileText, Star, Target, TrendingUp, Trophy } from 'lucide-react';
+import { ArrowRight, BookOpenCheck, CheckCircle2, Clock, FileText, Star, Target, TrendingUp } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ProgressChart from '../components/charts/ProgressChart.jsx';
@@ -74,9 +74,9 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={BookOpenCheck} label="Simulacros rendidos" value={stats?.totalIntentos ?? 0} delta="Historial en Supabase" tone="green" />
+        <StatCard icon={BookOpenCheck} label="Simulacros rendidos" value={stats?.totalIntentos ?? 0} delta="Historial actualizado" tone="green" />
         <StatCard icon={Star} label="Promedio" value={`${stats?.promedioGeneral ?? 0}%`} delta={`${stats?.intentosAprobados ?? 0} aprobados`} tone="orange" />
-        <StatCard icon={FileText} label="Preguntas resueltas" value={resolvedQuestions || (stats?.totalIntentos ?? 0) * 40} delta="Banco real conectado" tone="blue" />
+        <StatCard icon={FileText} label="Preguntas resueltas" value={resolvedQuestions || (stats?.totalIntentos ?? 0) * 40} delta="Banco oficial activo" tone="blue" />
         <StatCard icon={Clock} label="Tiempo de estudio" value={user?.stats?.studyTime ?? '0h 00m'} delta="Sesión sincronizada" tone="violet" />
       </section>
 
@@ -150,12 +150,22 @@ export default function DashboardPage() {
         </Card>
 
         <Card className="bg-emerald-50 p-4 ring-1 ring-emerald-100">
-          <h2 className="flex items-center gap-2 text-lg font-black"><Target className="h-5 w-5 text-danger" /> Próximo objetivo</h2>
-          <div className="mt-3 text-center">
-            <Trophy className="mx-auto h-14 w-14 text-warning" />
-            <p className="mt-3 font-bold">Alcanza 85% en A1 para desbloquear el simulacro final.</p>
-            <p className="mt-2 text-sm text-slate-600">Te faltan 13 puntos para tu objetivo.</p>
-            <Button as={Link} to={`/simulacro/${categories[0]?.id ?? 25}`} variant="success" className="mt-3 w-full">Ir a {categories[0]?.title ?? 'A-I'}</Button>
+          <h2 className="flex items-center gap-2 text-lg font-black"><Target className="h-5 w-5 text-success" /> Plan de estudio</h2>
+          <div className="mt-3 grid gap-3">
+            <div className="rounded-lg border border-emerald-100 bg-white/80 p-3">
+              <p className="text-xs font-black uppercase text-emerald-700">Tema prioritario</p>
+              <p className="mt-1 text-base font-black text-ink">{weakTopics[0]?.topic ?? 'Normas de circulacion'}</p>
+              <p className="mt-1 text-sm leading-6 text-slate-600">Practica unas preguntas de este bloque antes de rendir otro simulacro. Es la forma mas rapida de subir tu promedio.</p>
+            </div>
+            <div className="grid gap-2 text-sm font-semibold text-slate-700">
+              <span className="inline-flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Revisa primero tus preguntas incorrectas.</span>
+              <span className="inline-flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Luego responde un bloque corto por tema.</span>
+              <span className="inline-flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Termina con un simulacro cronometrado.</span>
+            </div>
+            <Button as={Link} to="/banco-preguntas" variant="success" className="w-full">
+              Practicar temas
+              <ArrowRight className="h-4 w-4" />
+            </Button>
           </div>
         </Card>
 

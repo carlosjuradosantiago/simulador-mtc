@@ -65,6 +65,18 @@ Deno.serve(async (req)=>{
       const { handleMtcImportUpdateQuestions } = await import('./handlers/mtc_import.ts');
       return await withLogging(req, path, 'handleMtcImportUpdateQuestions', () => handleMtcImportUpdateQuestions(req));
     }
+    if (path === '/admin/overview' && method === 'GET') {
+      const { handleGetAdminOverview } = await import('./handlers/admin.ts');
+      return await withLogging(req, path, 'handleGetAdminOverview', () => handleGetAdminOverview(req));
+    }
+    if (path === '/admin/export' && method === 'GET') {
+      const { handleExportAdminReport } = await import('./handlers/admin.ts');
+      return await withLogging(req, path, 'handleExportAdminReport', () => handleExportAdminReport(req));
+    }
+    if (path === '/analytics/event' && method === 'POST') {
+      const { handleTrackEvent } = await import('./handlers/analytics.ts');
+      return await withLogging(req, path, 'handleTrackEvent', () => handleTrackEvent(req));
+    }
     // ============ AUTH ROUTES ============
     if (path === '/auth/login' && method === 'POST') {
       const { handleLogin } = await import('./handlers/auth.ts');
@@ -310,6 +322,9 @@ Deno.serve(async (req)=>{
       message: `Ruta no encontrada: ${method} ${path}`,
       availableRoutes: [
         'GET /health',
+        'GET /admin/overview',
+        'GET /admin/export',
+        'POST /analytics/event',
         'POST /auth/login',
         'POST /auth/register',
         'POST /auth/verify-email',

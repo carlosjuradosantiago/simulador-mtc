@@ -122,7 +122,7 @@ export default function ResultsPage() {
       <div className="grid gap-4 pt-2">
         <div>
           <h1 className="text-4xl font-black">Resultado del simulacro</h1>
-          <p className="mt-1 text-lg text-slate-600">Cargando resultado desde Supabase...</p>
+          <p className="mt-1 text-lg text-slate-600">Cargando resultado...</p>
         </div>
         <Card className="p-8 text-center font-bold text-slate-500">Buscando tu último intento...</Card>
       </div>
@@ -140,7 +140,7 @@ export default function ResultsPage() {
         <Card className="grid gap-4 p-8 text-center">
           <div>
             <h2 className="text-2xl font-black">{missingAttempt ? 'Resultado no disponible' : 'Rinde tu primer simulacro'}</h2>
-            <p className="mt-2 text-slate-600">{missingAttempt ? 'El enlace puede estar vencido, pertenecer a otro usuario o haber sido eliminado.' : 'Cuando termines un intento, tus resultados aparecerán aquí con el puntaje real guardado en Supabase.'}</p>
+            <p className="mt-2 text-slate-600">{missingAttempt ? 'El enlace puede estar vencido, pertenecer a otro usuario o haber sido eliminado.' : 'Cuando termines un intento, tus resultados aparecerán aquí con el puntaje guardado en tu historial.'}</p>
           </div>
           {loadError ? <p className="rounded-lg bg-red-50 p-3 text-sm font-bold text-danger">{loadError}</p> : null}
           <div className="flex flex-wrap justify-center gap-3">
@@ -162,7 +162,7 @@ export default function ResultsPage() {
     <div className="grid gap-4 pt-2">
       <div>
         <h1 className="text-4xl font-black">Resultado del simulacro</h1>
-        <p className="mt-1 text-lg text-slate-600">{loading ? 'Cargando resultado desde Supabase...' : 'Revisa tu desempeño y los temas que debes reforzar antes del siguiente intento.'}</p>
+        <p className="mt-1 text-lg text-slate-600">{loading ? 'Cargando resultado...' : 'Revisa tu desempeño y los temas que debes reforzar antes del siguiente intento.'}</p>
       </div>
 
       <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_420px] 2xl:grid-cols-[minmax(0,1fr)_520px]">

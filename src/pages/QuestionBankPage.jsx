@@ -290,7 +290,7 @@ export default function QuestionBankPage() {
       </div>
 
       <div className="grid gap-4">
-        {loading ? <Card className="p-5 text-center font-bold text-slate-500">Cargando preguntas desde Supabase...</Card> : null}
+        {loading ? <Card className="p-5 text-center font-bold text-slate-500">Cargando preguntas...</Card> : null}
         {!loading && !questions.length ? (
           <Card className="p-8 text-center">
             <h2 className="text-xl font-black">No encontramos preguntas</h2>

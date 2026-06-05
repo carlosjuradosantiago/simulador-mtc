@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { DEFAULT_LEARNING_TOPIC, deriveLearningTopic, getLearningTopicById } from '../utils/learningTopics.js';
+import { isAdminEmail } from '../utils/admin.js';
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://wazikdsfacrawhphzltn.supabase.co/functions/v1/api';
 export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? 'https://wazikdsfacrawhphzltn.supabase.co';
@@ -110,6 +111,37 @@ export async function apiRequest(path, { method = 'GET', body, token = getStored
   return data;
 }
 
+export async function apiTextRequest(path, { method = 'GET', token = getStoredToken(), auth = false, headers = {} } = {}) {
+  const requestHeaders = { ...headers };
+
+  if ((auth || token) && token) {
+    requestHeaders.Authorization = `Bearer ${token}`;
+    requestHeaders['X-Auth-Token'] = token;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method,
+    headers: requestHeaders,
+  });
+
+  const text = await response.text();
+
+  if (!response.ok) {
+    let message = `Error HTTP ${response.status}`;
+    try {
+      const data = JSON.parse(text);
+      message = data?.error || data?.message || message;
+    } catch {
+      if (text) message = text;
+    }
+    const requestError = new Error(message);
+    requestError.status = response.status;
+    throw requestError;
+  }
+
+  return text;
+}
+
 export async function getGoogleOAuthUrl({ redirectTo } = {}) {
   window.localStorage.removeItem('simulamanejo:supabase-auth-code-verifier');
 
@@ -157,11 +189,13 @@ function initialsFromName(name) {
 export function toFrontendUser(user, extra = {}) {
   if (!user) return null;
   const name = [user.firstName ?? user.nombre, user.lastName ?? user.apellido].filter(Boolean).join(' ') || user.username || user.email;
+  const email = user.email ?? user.correoElectronico ?? user.correo_electronico ?? '';
   return {
     id: user.id,
     username: user.username,
     name,
-    email: user.email,
+    email,
+    isAdmin: isAdminEmail(email),
     category: extra.category ?? user.category ?? user.categoriaPreferidaId ?? 25,
     avatar: user.avatar ?? initialsFromName(name),
     registeredAt: (user.createdAt || user.registeredAt || new Date().toISOString()).slice(0, 10),
@@ -469,4 +503,7 @@ export const api = {
   getComplaintInfo: () => apiRequest('/libro-reclamaciones/info'),
   submitComplaint: (payload) => apiRequest('/libro-reclamaciones', { method: 'POST', body: payload, token: null }),
   getComplaint: (number) => apiRequest(`/libro-reclamaciones/${number}`, { token: null }),
+  trackEvent: (payload) => apiRequest('/analytics/event', { method: 'POST', body: payload }).catch(() => null),
+  getAdminOverview: () => apiRequest('/admin/overview', { auth: true }),
+  exportAdminReport: (type = 'summary') => apiTextRequest(`/admin/export?type=${encodeURIComponent(type)}`, { auth: true }),
 };
