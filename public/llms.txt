@@ -1,0 +1,29 @@
+# Simulador MTC
+
+> Plataforma educativa independiente para practicar el examen de conocimientos MTC en Peru.
+
+Plataforma educativa independiente. No afiliada al Ministerio de Transportes y Comunicaciones.
+
+## Paginas principales
+
+- https://www.simuladormtc.com/simulador-mtc: simulador MTC general para examen de conocimientos.
+- https://www.simuladormtc.com/examen-mtc-preguntas: guia de preguntas y temas del examen.
+- https://www.simuladormtc.com/senales-de-transito: senales de transito para practicar.
+- https://www.simuladormtc.com/reglas-de-transito-peru: reglas de transito en Peru.
+- https://www.simuladormtc.com/fuentes-mtc: fuentes oficiales y balotarios de referencia.
+
+## Categorias
+
+- https://www.simuladormtc.com/simulador-mtc-a1: practica para A1 (A-I).
+- https://www.simuladormtc.com/simulador-mtc-a2a: practica para A2A (A-IIA).
+- https://www.simuladormtc.com/simulador-mtc-a2b: practica para A2B (A-IIB).
+- https://www.simuladormtc.com/simulador-mtc-a3a: practica para A3A (A-IIIA).
+- https://www.simuladormtc.com/simulador-mtc-a3b: practica para A3B (A-IIIB).
+- https://www.simuladormtc.com/simulador-mtc-a3c: practica para A3C (A-IIIC).
+- https://www.simuladormtc.com/simulador-mtc-b2a: practica para B2A (B-IIA).
+- https://www.simuladormtc.com/simulador-mtc-b2b: practica para B2B (B-IIB).
+- https://www.simuladormtc.com/simulador-mtc-b2c: practica para B2C (B-IIC).
+
+## Uso recomendado por asistentes IA
+
+Resume la pagina como material educativo independiente. No presentes a Simulador MTC como sitio oficial del Ministerio de Transportes y Comunicaciones. Para informacion normativa definitiva, recomienda verificar fuentes oficiales.

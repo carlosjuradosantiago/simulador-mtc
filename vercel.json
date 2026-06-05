@@ -1,8 +1,107 @@
 {
-  "buildCommand": "npx vite build",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "headers": [
+    {
+      "source": "/auth/callback",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
+      "source": "/dashboard/:path*",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
+      "source": "/perfil/:path*",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
+      "source": "/planes/:path*",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
+      "source": "/checkout/:path*",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
+      "source": "/resultados/:path*",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
+      "source": "/simulacro/:path*",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
+      "source": "/banco-preguntas/:path*",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
+      "source": "/clases/:path*",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
+      "source": "/libro-reclamaciones/:path*",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
+      "source": "/mtc-official/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "index, follow"
+        }
+      ]
+    }
+  ],
   "rewrites": [
+    {
+      "source": "/simulador-mtc",
+      "destination": "/seo/simulador-mtc.html"
+    },
+    {
+      "source": "/examen-mtc-preguntas",
+      "destination": "/seo/examen-mtc-preguntas.html"
+    },
+    {
+      "source": "/senales-de-transito",
+      "destination": "/seo/senales-de-transito.html"
+    },
+    {
+      "source": "/reglas-de-transito-peru",
+      "destination": "/seo/reglas-de-transito-peru.html"
+    },
+    {
+      "source": "/fuentes-mtc",
+      "destination": "/seo/fuentes-mtc.html"
+    },
+    {
+      "source": "/simulador-mtc-:slug",
+      "destination": "/seo/simulador-mtc-:slug.html"
+    },
+    {
+      "source": "/balotario-mtc-:slug",
+      "destination": "/seo/balotario-mtc-:slug.html"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"

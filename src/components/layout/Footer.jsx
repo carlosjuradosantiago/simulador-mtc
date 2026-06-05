@@ -11,6 +11,9 @@ const footerLinks = {
   Recursos: [
     { label: 'Banco de preguntas', to: '/banco-preguntas' },
     { label: 'Clases', to: '/clases' },
+    { label: 'Simulador MTC', href: '/simulador-mtc' },
+    { label: 'Balotario MTC A1', href: '/balotario-mtc-a1' },
+    { label: 'Fuentes MTC', href: '/fuentes-mtc' },
   ],
   Empresa: [
     { label: 'Planes', to: '/planes' },
@@ -36,7 +39,11 @@ export default function Footer() {
           <div key={section}>
             <h3 className="mb-3 font-bold text-ink">{section}</h3>
             <div className="grid gap-2">
-              {links.map((link) => <Link key={link.label} to={link.to} className="hover:text-brand">{link.label}</Link>)}
+              {links.map((link) => (
+                link.href
+                  ? <a key={link.label} href={link.href} className="hover:text-brand">{link.label}</a>
+                  : <Link key={link.label} to={link.to} className="hover:text-brand">{link.label}</Link>
+              ))}
             </div>
           </div>
         ))}

@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "build": "node tools/generate-seo-assets.mjs && vite build",
     "dev": "vite",
     "preview": "vite preview"
   },

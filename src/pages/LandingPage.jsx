@@ -97,7 +97,7 @@ export default function LandingPage() {
               </div>
               <div className="mt-6 grid gap-4 text-sm text-slate-600 sm:grid-cols-3">
                 <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-brand" /> +100 mil estudiantes</span>
-                <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-brand" /> Contenido oficial</span>
+                <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-brand" /> Balotarios oficiales</span>
                 <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-brand" /> Actualizaciones constantes</span>
               </div>
             </div>
