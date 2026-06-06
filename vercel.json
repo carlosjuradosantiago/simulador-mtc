@@ -95,6 +95,78 @@
       "destination": "/seo/fuentes-mtc.html"
     },
     {
+      "source": "/como-aprobar-examen-mtc",
+      "destination": "/seo/como-aprobar-examen-mtc.html"
+    },
+    {
+      "source": "/cuantas-preguntas-tiene-examen-mtc",
+      "destination": "/seo/cuantas-preguntas-tiene-examen-mtc.html"
+    },
+    {
+      "source": "/balotario-mtc-pdf",
+      "destination": "/seo/balotario-mtc-pdf.html"
+    },
+    {
+      "source": "/balotario-mtc-a1-pdf",
+      "destination": "/seo/balotario-mtc-a1-pdf.html"
+    },
+    {
+      "source": "/examen-conocimientos-mtc-a1",
+      "destination": "/seo/examen-conocimientos-mtc-a1.html"
+    },
+    {
+      "source": "/preguntas-frecuentes-examen-mtc",
+      "destination": "/seo/preguntas-frecuentes-examen-mtc.html"
+    },
+    {
+      "source": "/senales-reglamentarias-mtc",
+      "destination": "/seo/senales-reglamentarias-mtc.html"
+    },
+    {
+      "source": "/senales-preventivas-mtc",
+      "destination": "/seo/senales-preventivas-mtc.html"
+    },
+    {
+      "source": "/preguntas-mtc-semaforo",
+      "destination": "/seo/preguntas-mtc-semaforo.html"
+    },
+    {
+      "source": "/prioridad-de-paso-examen-mtc",
+      "destination": "/seo/prioridad-de-paso-examen-mtc.html"
+    },
+    {
+      "source": "/adelantamiento-linea-continua-mtc",
+      "destination": "/seo/adelantamiento-linea-continua-mtc.html"
+    },
+    {
+      "source": "/manejo-defensivo-examen-mtc",
+      "destination": "/seo/manejo-defensivo-examen-mtc.html"
+    },
+    {
+      "source": "/mecanica-basica-examen-mtc",
+      "destination": "/seo/mecanica-basica-examen-mtc.html"
+    },
+    {
+      "source": "/primeros-auxilios-examen-mtc",
+      "destination": "/seo/primeros-auxilios-examen-mtc.html"
+    },
+    {
+      "source": "/licencia-a1-peru-examen",
+      "destination": "/seo/licencia-a1-peru-examen.html"
+    },
+    {
+      "source": "/revalidacion-licencia-mtc-examen",
+      "destination": "/seo/revalidacion-licencia-mtc-examen.html"
+    },
+    {
+      "source": "/simulacro-mtc-con-respuestas",
+      "destination": "/seo/simulacro-mtc-con-respuestas.html"
+    },
+    {
+      "source": "/temas-mas-dificiles-examen-mtc",
+      "destination": "/seo/temas-mas-dificiles-examen-mtc.html"
+    },
+    {
       "source": "/simulador-mtc-:slug",
       "destination": "/seo/simulador-mtc-:slug.html"
     },
