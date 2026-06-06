@@ -48,13 +48,15 @@ const emptyOverview = {
     conservativeMarket: 230880,
     broadMarket: 522000,
     conversionRate: 1,
-    monthlyPlanPrice: 29.9,
+    monthlyPlanPrice: 12,
     conservativeSubscribers: 2309,
     broadSubscribers: 5220,
-    conservativeOneMonthRevenue: 69039.1,
-    broadOneMonthRevenue: 156078,
-    conservativeAnnualizedRevenue: 828469.2,
-    broadAnnualizedRevenue: 1872936,
+    conservativeMonthlySubscribers: 192.42,
+    broadMonthlySubscribers: 435,
+    conservativeMonthlyRevenue: 2309,
+    broadMonthlyRevenue: 5220,
+    conservativeAnnualRevenue: 27708,
+    broadAnnualRevenue: 62640,
   },
   recentUsers: [],
   recentPayments: [],
@@ -279,15 +281,15 @@ export default function AdminDashboardPage() {
               <p className="text-sm font-bold text-slate-500">Mercado conservador</p>
               <strong className="mt-2 block text-3xl font-black">{formatNumber(projection.conservativeSubscribers)}</strong>
               <p className="mt-1 text-sm text-slate-600">1% de {formatNumber(projection.conservativeMarket)} licencias nuevas/año.</p>
-              <p className="mt-3 font-black text-success">{formatPEN(projection.conservativeOneMonthRevenue)} si compran 1 mes</p>
-              <p className="text-sm font-semibold text-slate-500">{formatPEN(projection.conservativeAnnualizedRevenue)} anualizado si retienen 12 meses.</p>
+              <p className="mt-3 font-black text-success">{formatNumber(projection.conservativeMonthlySubscribers)} usuarios/mes promedio</p>
+              <p className="text-sm font-semibold text-slate-500">{formatPEN(projection.conservativeMonthlyRevenue)} mensuales promedio; {formatPEN(projection.conservativeAnnualRevenue)} al año si todos pagan 1 mes.</p>
             </div>
             <div className="rounded-lg border border-line bg-slate-50 p-4">
               <p className="text-sm font-bold text-slate-500">Mercado amplio</p>
               <strong className="mt-2 block text-3xl font-black">{formatNumber(projection.broadSubscribers)}</strong>
               <p className="mt-1 text-sm text-slate-600">1% de {formatNumber(projection.broadMarket)} licencias clase A emitidas/año.</p>
-              <p className="mt-3 font-black text-success">{formatPEN(projection.broadOneMonthRevenue)} si compran 1 mes</p>
-              <p className="text-sm font-semibold text-slate-500">{formatPEN(projection.broadAnnualizedRevenue)} anualizado si retienen 12 meses.</p>
+              <p className="mt-3 font-black text-success">{formatNumber(projection.broadMonthlySubscribers)} usuarios/mes promedio</p>
+              <p className="text-sm font-semibold text-slate-500">{formatPEN(projection.broadMonthlyRevenue)} mensuales promedio; {formatPEN(projection.broadAnnualRevenue)} al año si todos pagan 1 mes.</p>
             </div>
           </div>
           <p className="mt-3 text-xs font-semibold text-slate-500">Cálculo basado en ticket mensual de {formatPEN(projection.monthlyPlanPrice)} y cifras MTC 2024.</p>

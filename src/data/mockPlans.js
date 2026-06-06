@@ -2,37 +2,19 @@ export const plans = [
   {
     id: 'mensual',
     name: 'Mensual',
-    subtitle: 'Ideal para empezar',
-    price: 29900,
+    subtitle: 'Acceso completo para prepararte',
+    price: 1200,
     period: '/mes',
     savings: null,
-    recommended: false,
-  },
-  {
-    id: 'trimestral',
-    name: 'Trimestral',
-    subtitle: 'Ahorra 12%',
-    price: 74900,
-    period: '/3 meses',
-    savings: 'Equivale a S/24.967 /mes',
     recommended: true,
-    discount: 9000,
-  },
-  {
-    id: 'anual',
-    name: 'Anual',
-    subtitle: 'Ahorra 25%',
-    price: 239900,
-    period: '/año',
-    savings: 'Equivale a S/19.992 /mes',
-    recommended: false,
+    discount: 0,
   },
 ];
 
 export const planBenefits = [
-  'Acceso a todas las categorías',
+  'Acceso a todas las categorias',
   'Simulacros ilimitados',
-  'Estadísticas de rendimiento',
+  'Estadisticas de rendimiento',
   'Banco de preguntas completo',
   'Soporte por chat',
 ];

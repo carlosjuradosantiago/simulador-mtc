@@ -5,6 +5,7 @@ import { getSupabaseClient } from '../_shared/supabase.ts';
 
 const DEFAULT_ADMIN_EMAILS = ['ivan.carlos23@gmail.com'];
 const SUCCESSFUL_PAYMENT_STATUSES = new Set(['exitoso', 'exitosa', 'pagado', 'pagada', 'aprobado', 'aprobada', 'success', 'succeeded']);
+const DEFAULT_MONTHLY_PRICE = 12;
 
 function getAdminEmails() {
   const configured = Deno.env.get('ADMIN_EMAILS');
@@ -154,11 +155,13 @@ function buildSeries(payments: any[]) {
 
 function buildMarketProjection(plans: any[]) {
   const monthlyPlan = plans.find((plan) => Number(plan.duracion_meses) === 1) || plans[0];
-  const monthlyPrice = Number(monthlyPlan?.precio || 29.9);
+  const monthlyPrice = Number(monthlyPlan?.precio || DEFAULT_MONTHLY_PRICE);
   const conservativeMarket = 230880;
   const broadMarket = 522000;
   const conservativeSubscribers = Math.round(conservativeMarket * 0.01);
   const broadSubscribers = Math.round(broadMarket * 0.01);
+  const conservativeMonthlySubscribers = conservativeSubscribers / 12;
+  const broadMonthlySubscribers = broadSubscribers / 12;
 
   return {
     sourceYear: 2024,
@@ -169,10 +172,12 @@ function buildMarketProjection(plans: any[]) {
     monthlyPlanPrice: money(monthlyPrice),
     conservativeSubscribers,
     broadSubscribers,
-    conservativeOneMonthRevenue: money(conservativeSubscribers * monthlyPrice),
-    broadOneMonthRevenue: money(broadSubscribers * monthlyPrice),
-    conservativeAnnualizedRevenue: money(conservativeSubscribers * monthlyPrice * 12),
-    broadAnnualizedRevenue: money(broadSubscribers * monthlyPrice * 12),
+    conservativeMonthlySubscribers: money(conservativeMonthlySubscribers),
+    broadMonthlySubscribers: money(broadMonthlySubscribers),
+    conservativeMonthlyRevenue: money(conservativeMonthlySubscribers * monthlyPrice),
+    broadMonthlyRevenue: money(broadMonthlySubscribers * monthlyPrice),
+    conservativeAnnualRevenue: money(conservativeSubscribers * monthlyPrice),
+    broadAnnualRevenue: money(broadSubscribers * monthlyPrice),
   };
 }
 
