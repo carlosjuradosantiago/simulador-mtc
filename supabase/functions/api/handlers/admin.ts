@@ -5,7 +5,6 @@ import { getSupabaseClient } from '../_shared/supabase.ts';
 
 const DEFAULT_ADMIN_EMAILS = ['ivan.carlos23@gmail.com'];
 const SUCCESSFUL_PAYMENT_STATUSES = new Set(['exitoso', 'exitosa', 'pagado', 'pagada', 'aprobado', 'aprobada', 'success', 'succeeded']);
-const DEFAULT_MONTHLY_PRICE = 12;
 
 function getAdminEmails() {
   const configured = Deno.env.get('ADMIN_EMAILS');
@@ -153,34 +152,6 @@ function buildSeries(payments: any[]) {
   return { dailyRevenue, monthlyRevenue };
 }
 
-function buildMarketProjection(plans: any[]) {
-  const monthlyPlan = plans.find((plan) => Number(plan.duracion_meses) === 1) || plans[0];
-  const monthlyPrice = Number(monthlyPlan?.precio || DEFAULT_MONTHLY_PRICE);
-  const conservativeMarket = 230880;
-  const broadMarket = 522000;
-  const conservativeSubscribers = Math.round(conservativeMarket * 0.01);
-  const broadSubscribers = Math.round(broadMarket * 0.01);
-  const conservativeMonthlySubscribers = conservativeSubscribers / 12;
-  const broadMonthlySubscribers = broadSubscribers / 12;
-
-  return {
-    sourceYear: 2024,
-    source: 'MTC: licencias clase A emitidas',
-    conservativeMarket,
-    broadMarket,
-    conversionRate: 1,
-    monthlyPlanPrice: money(monthlyPrice),
-    conservativeSubscribers,
-    broadSubscribers,
-    conservativeMonthlySubscribers: money(conservativeMonthlySubscribers),
-    broadMonthlySubscribers: money(broadMonthlySubscribers),
-    conservativeMonthlyRevenue: money(conservativeMonthlySubscribers * monthlyPrice),
-    broadMonthlyRevenue: money(broadMonthlySubscribers * monthlyPrice),
-    conservativeAnnualRevenue: money(conservativeSubscribers * monthlyPrice),
-    broadAnnualRevenue: money(broadSubscribers * monthlyPrice),
-  };
-}
-
 async function buildAdminOverview(supabase: any) {
   const today = startOfToday();
   const monthStart = startOfMonth();
@@ -195,7 +166,6 @@ async function buildAdminOverview(supabase: any) {
     sessionsResult,
     transactionsResult,
     membershipsResult,
-    plansResult,
     recentUsersResult,
   ] = await Promise.all([
     countRows(supabase, 'usuarios'),
@@ -205,18 +175,16 @@ async function buildAdminOverview(supabase: any) {
     supabase.from('sesion_practica').select('id, id_usuario, estado, id_categoria, creado_en, created_at, fecha_fin').order('creado_en', { ascending: false }).limit(10000),
     supabase.from('transacciones_pago').select('id, id_usuario, id_plan_membresia, monto, moneda, metodo_pago, estado, fecha_pago, creado_en, correo_cliente, planes_membresia:id_plan_membresia(nombre, precio, duracion_meses), usuarios:id_usuario(correo_electronico, primer_nombre, apellido, nombre_usuario)').order('creado_en', { ascending: false }).limit(10000),
     supabase.from('membresias_usuario').select('id_usuario, fecha_inicio, fecha_fin, esta_activa').eq('esta_activa', true).gte('fecha_fin', new Date().toISOString()).limit(10000),
-    supabase.from('planes_membresia').select('id, nombre, precio, duracion_meses, esta_activo').eq('esta_activo', true).order('precio', { ascending: true }),
     supabase.from('usuarios').select('id, correo_electronico, nombre_usuario, primer_nombre, apellido, creado_en').order('creado_en', { ascending: false }).limit(25),
   ]);
 
-  for (const result of [sessionsResult, transactionsResult, membershipsResult, plansResult, recentUsersResult]) {
+  for (const result of [sessionsResult, transactionsResult, membershipsResult, recentUsersResult]) {
     if (result.error) throw result.error;
   }
 
   const sessions = sessionsResult.data || [];
   const transactions = transactionsResult.data || [];
   const activeMemberships = membershipsResult.data || [];
-  const plans = plansResult.data || [];
   const recentUsers = recentUsersResult.data || [];
   const successfulPayments = transactions.filter(isSuccessfulPayment);
   const sessionsToday = sessions.filter((session) => new Date(session.creado_en || session.created_at || 0) >= today);
@@ -273,7 +241,6 @@ async function buildAdminOverview(supabase: any) {
       dailyRevenue,
       monthlyRevenue,
     },
-    marketProjection: buildMarketProjection(plans),
     recentUsers: recentUsers.map((user: any) => ({
       id: user.id,
       name: [user.primer_nombre, user.apellido].filter(Boolean).join(' ') || user.nombre_usuario || user.correo_electronico,

@@ -3,7 +3,6 @@ import {
   CalendarDays,
   Download,
   FileSpreadsheet,
-  LineChart,
   MousePointerClick,
   RefreshCw,
   TrendingUp,
@@ -43,20 +42,6 @@ const emptyOverview = {
   series: {
     dailyRevenue: [],
     monthlyRevenue: [],
-  },
-  marketProjection: {
-    conservativeMarket: 230880,
-    broadMarket: 522000,
-    conversionRate: 1,
-    monthlyPlanPrice: 12,
-    conservativeSubscribers: 2309,
-    broadSubscribers: 5220,
-    conservativeMonthlySubscribers: 192.42,
-    broadMonthlySubscribers: 435,
-    conservativeMonthlyRevenue: 2309,
-    broadMonthlyRevenue: 5220,
-    conservativeAnnualRevenue: 27708,
-    broadAnnualRevenue: 62640,
   },
   recentUsers: [],
   recentPayments: [],
@@ -153,7 +138,6 @@ export default function AdminDashboardPage() {
   const [exporting, setExporting] = useState('');
 
   const metrics = overview.metrics ?? emptyOverview.metrics;
-  const projection = overview.marketProjection ?? emptyOverview.marketProjection;
   const dailyRevenue = overview.series?.dailyRevenue ?? [];
   const monthlyRevenue = overview.series?.monthlyRevenue ?? [];
 
@@ -270,31 +254,7 @@ export default function AdminDashboardPage() {
         <RevenueBars title="Ingresos mensuales" items={monthlyRevenue} emptyLabel="Aún no hay pagos mensuales registrados." />
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        <Card className="p-4 shadow-sm">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 text-lg font-black"><LineChart className="h-5 w-5 text-brand" /> Proyección de mercado</h2>
-            <Badge variant="green">1% de conversión</Badge>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded-lg border border-line bg-slate-50 p-4">
-              <p className="text-sm font-bold text-slate-500">Mercado conservador</p>
-              <strong className="mt-2 block text-3xl font-black">{formatNumber(projection.conservativeSubscribers)}</strong>
-              <p className="mt-1 text-sm text-slate-600">1% de {formatNumber(projection.conservativeMarket)} licencias nuevas/año.</p>
-              <p className="mt-3 font-black text-success">{formatNumber(projection.conservativeMonthlySubscribers)} usuarios/mes promedio</p>
-              <p className="text-sm font-semibold text-slate-500">{formatPEN(projection.conservativeMonthlyRevenue)} mensuales promedio; {formatPEN(projection.conservativeAnnualRevenue)} al año si todos pagan 1 mes.</p>
-            </div>
-            <div className="rounded-lg border border-line bg-slate-50 p-4">
-              <p className="text-sm font-bold text-slate-500">Mercado amplio</p>
-              <strong className="mt-2 block text-3xl font-black">{formatNumber(projection.broadSubscribers)}</strong>
-              <p className="mt-1 text-sm text-slate-600">1% de {formatNumber(projection.broadMarket)} licencias clase A emitidas/año.</p>
-              <p className="mt-3 font-black text-success">{formatNumber(projection.broadMonthlySubscribers)} usuarios/mes promedio</p>
-              <p className="text-sm font-semibold text-slate-500">{formatPEN(projection.broadMonthlyRevenue)} mensuales promedio; {formatPEN(projection.broadAnnualRevenue)} al año si todos pagan 1 mes.</p>
-            </div>
-          </div>
-          <p className="mt-3 text-xs font-semibold text-slate-500">Cálculo basado en ticket mensual de {formatPEN(projection.monthlyPlanPrice)} y cifras MTC 2024.</p>
-        </Card>
-
+      <section>
         <Card className="p-4 shadow-sm">
           <h2 className="flex items-center gap-2 text-lg font-black"><FileSpreadsheet className="h-5 w-5 text-brand" /> Control contable</h2>
           <div className="mt-4 grid gap-3">
