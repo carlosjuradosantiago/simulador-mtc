@@ -9,7 +9,7 @@ const endpoint = 'https://api.indexnow.org/indexnow';
 function extractSitemapUrls(xml) {
   return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)]
     .map((match) => match[1].trim())
-    .filter((url) => url.startsWith(`${siteUrl}/`));
+    .filter((url) => url === siteUrl || url.startsWith(`${siteUrl}/`));
 }
 
 async function main() {
