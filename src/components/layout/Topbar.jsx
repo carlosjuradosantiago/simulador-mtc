@@ -1,13 +1,13 @@
-import { BarChart3, BookOpen, CarFront, ChevronDown, CircleUserRound, HelpCircle, Home, LogOut, ShieldCheck, UserRound } from 'lucide-react';
+import { BarChart3, BookOpen, ChevronDown, CircleUserRound, Clock3, HelpCircle, Home, LogOut, ShieldCheck, UserRound } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import { isAdminUser } from '../../utils/admin.js';
 import BrandLogo from './BrandLogo.jsx';
 
-function isActivePath(pathname, item) {
+function isActivePath(pathname, search, item) {
   if (item.id === 'home') return pathname === '/dashboard';
-  if (item.id === 'practice') return pathname.startsWith('/simulacro');
+  if (item.id === 'exam') return pathname.startsWith('/simulacro') && new URLSearchParams(search).get('mode') === 'exam';
   if (item.id === 'learn') return pathname.startsWith('/banco-preguntas') || pathname.startsWith('/clases');
   if (item.id === 'progress') return pathname.startsWith('/resultados');
   return false;
@@ -16,21 +16,21 @@ function isActivePath(pathname, item) {
 export default function Topbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const userMenuRef = useRef(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const category = user?.category ?? 25;
   const adminUser = isAdminUser(user);
   const navItems = [
     { id: 'home', label: 'Inicio', icon: Home, to: '/dashboard' },
-    { id: 'practice', label: 'Practicar', icon: CarFront, to: `/simulacro/${category}?mode=quick` },
+    { id: 'exam', label: 'Examen real', icon: Clock3, to: `/simulacro/${category}?mode=exam` },
     { id: 'learn', label: 'Aprender', icon: BookOpen, to: '/banco-preguntas' },
     { id: 'progress', label: 'Mi avance', icon: BarChart3, to: '/resultados' },
   ];
 
   useEffect(() => {
     setUserMenuOpen(false);
-  }, [pathname]);
+  }, [pathname, search]);
 
   useEffect(() => {
     if (!userMenuOpen) return undefined;
@@ -63,7 +63,7 @@ export default function Topbar() {
 
           <nav aria-label="Navegación principal" className="mx-auto hidden h-[72px] items-stretch gap-1 lg:flex">
             {navItems.map((item) => {
-              const active = isActivePath(pathname, item);
+              const active = isActivePath(pathname, search, item);
               return (
                 <Link
                   key={item.id}
@@ -135,7 +135,7 @@ export default function Topbar() {
 
       <nav aria-label="Navegación móvil" className="fixed inset-x-0 bottom-0 z-40 grid h-[72px] grid-cols-4 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
         {navItems.map((item) => {
-          const active = isActivePath(pathname, item);
+          const active = isActivePath(pathname, search, item);
           return (
             <Link
               key={item.id}

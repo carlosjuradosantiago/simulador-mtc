@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   addCalendarMonths,
+  filterOfficialExamAttempts,
   isFullExamFree,
   isRealPayment,
   partitionAttempts,
@@ -17,6 +18,20 @@ assert.equal(isFullExamFree(undefined), true);
 assert.equal(isFullExamFree('true'), true);
 assert.equal(isFullExamFree('FALSE'), false);
 assert.equal(FULL_EXAM_IS_FREE, true);
+
+const historyFilters = [];
+const fakeQuery = {
+  eq(column, value) {
+    historyFilters.push([column, value]);
+    return this;
+  },
+};
+assert.equal(filterOfficialExamAttempts(fakeQuery, 42), fakeQuery);
+assert.deepEqual(historyFilters, [
+  ['id_usuario', 42],
+  ['tipo_intento', 'CRONOMETRADO'],
+  ['total_preguntas', 40],
+]);
 
 assert.equal(addCalendarMonths('2026-01-31T12:00:00.000Z', 1).toISOString(), '2026-02-28T12:00:00.000Z');
 assert.equal(addCalendarMonths('2026-07-25T12:00:00.000Z', 1).toISOString(), '2026-08-25T12:00:00.000Z');

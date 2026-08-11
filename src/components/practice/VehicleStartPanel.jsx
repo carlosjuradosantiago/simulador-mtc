@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import yellowRoute from '../../assets/decorative/yellow-route.webp';
 import { OFFICIAL_EXAM_RULES } from '../../data/examRules.js';
 import { fallbackLicenseCategories, getCategoryById, getVehicleChoice, vehicleChoices } from '../../data/vehicleChoices.js';
 import { cn } from '../../utils/cn.js';
@@ -67,6 +66,11 @@ export default function VehicleStartPanel({
   const priceLabel = `S/${Math.round(Number(fullExamPrice || 1200) / 100)}`;
   const canStartFullExam = fullExamIsFree || fullExamHasAccess;
   const isCheckingFullExamAccess = !fullExamIsFree && fullExamAccessLoading;
+  const fullExamAccessLabel = fullExamIsFree
+    ? 'Gratis por ahora'
+    : fullExamHasAccess
+      ? `Acceso activo${membershipEndDate ? ` hasta ${new Date(membershipEndDate).toLocaleDateString('es-PE')}` : ''}`
+      : `${priceLabel} por 1 mes de acceso`;
 
   useEffect(() => {
     speechRef.current = null;
@@ -125,7 +129,7 @@ export default function VehicleStartPanel({
   const startHref = selectedCategory && startTo
     ? `${startTo}${startTo.includes('?') ? '&' : '?'}strategy=${practiceMode}`
     : null;
-  const startButtonClass = 'relative z-10 inline-flex min-h-16 w-full items-center justify-center gap-3 rounded-lg bg-traffic-yellow px-4 text-center font-display text-xl font-black text-ink shadow-[0_7px_0_#d99b19] transition hover:-translate-y-0.5 hover:bg-[#ffc94f] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-brand active:translate-y-1 active:shadow-[0_3px_0_#d99b19] sm:gap-4 sm:px-6 sm:text-2xl';
+  const startButtonClass = 'inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-lg border-2 border-brand bg-white px-4 text-center font-display text-lg font-black text-brand transition hover:bg-blue-50 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-brand sm:px-6 sm:text-xl';
 
   return (
     <section className="mx-auto w-full max-w-[1280px] px-4 pb-10 pt-4 sm:px-6 lg:px-8 lg:pb-14 lg:pt-5">
@@ -173,6 +177,7 @@ export default function VehicleStartPanel({
               className={cn(
                 'relative flex min-h-[300px] min-w-0 flex-col rounded-lg border-2 bg-white p-4 text-center transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-brand sm:min-h-[330px] lg:min-h-[350px] lg:p-5',
                 selected ? 'border-brand bg-blue-50/40 shadow-[0_8px_0_#cfe0ff]' : 'border-line',
+                selectedCategory && !selected ? 'hidden md:flex' : null,
               )}
             >
               {selected ? (
@@ -199,6 +204,24 @@ export default function VehicleStartPanel({
       </div>
 
       {selectedCategory ? (
+        <div className="mx-auto mt-3 grid max-w-6xl grid-cols-2 gap-2 md:hidden" aria-label="Cambiar de vehículo">
+          {vehicleChoices
+            .filter((choice) => choice.id !== selectedVehicle?.id)
+            .map((choice) => (
+              <button
+                key={choice.id}
+                type="button"
+                onClick={() => chooseVehicle(choice)}
+                className="inline-flex min-h-12 min-w-0 items-center justify-center gap-1 rounded-lg border border-line bg-white px-2 text-sm font-bold text-brand"
+              >
+                <span className="text-center leading-4">Cambiar a {choice.subtitle}</span>
+                <ArrowRight className="h-4 w-4 shrink-0" />
+              </button>
+            ))}
+        </div>
+      ) : null}
+
+      {selectedCategory ? (
         <>
           <div className="mx-auto mt-4 max-w-5xl border-l-4 border-brand bg-blue-50 px-4 py-3">
             <p className="font-display text-base font-black text-ink sm:text-lg">
@@ -207,117 +230,124 @@ export default function VehicleStartPanel({
             <p className="mt-1 text-sm leading-5 text-slate-600">{selectedCategory.description}</p>
           </div>
 
-          <fieldset className="mx-auto mt-3 max-w-5xl">
-        <legend className="mb-1 font-display text-base font-black text-ink sm:text-lg">¿Qué quieres practicar?</legend>
-        <div className="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1">
-          <button
-            type="button"
-            aria-pressed={practiceMode === 'random'}
-            onClick={() => setPracticeMode('random')}
-            className={cn(
-              'flex min-h-14 items-center justify-center gap-2 rounded-lg px-2 py-2 text-left transition focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-brand sm:px-4',
-              practiceMode === 'random' ? 'bg-white text-brand shadow-sm' : 'text-slate-600 hover:bg-white/70',
-            )}
-          >
-            <Shuffle className="h-6 w-6 shrink-0" />
-            <span>
-              <strong className="block text-sm sm:text-base">Preguntas aleatorias</strong>
-              <span className="hidden text-xs sm:block">Mezcla toda la categoría</span>
-            </span>
-          </button>
-          <button
-            type="button"
-            aria-pressed={practiceMode === 'weak'}
-            onClick={() => setPracticeMode('weak')}
-            className={cn(
-              'flex min-h-14 items-center justify-center gap-2 rounded-lg px-2 py-2 text-left transition focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-brand sm:px-4',
-              practiceMode === 'weak' ? 'bg-white text-brand shadow-sm' : 'text-slate-600 hover:bg-white/70',
-            )}
-          >
-            <Target className="h-6 w-6 shrink-0" />
-            <span>
-              <strong className="block text-sm sm:text-base">Reforzar mis errores</strong>
-              <span className="hidden text-xs sm:block">Primero lo que más fallaste</span>
-            </span>
-          </button>
-        </div>
-      </fieldset>
+          {fullExamTo ? (
+            <section
+              className="mx-auto mt-4 max-w-5xl overflow-hidden rounded-lg border-2 border-brand bg-brand-deep text-white"
+              aria-labelledby="official-exam-title"
+            >
+              <div className="grid gap-5 p-5 sm:grid-cols-[minmax(0,1fr)_240px] sm:items-center sm:p-6">
+                <div className="min-w-0">
+                  <p className="flex items-center gap-2 text-sm font-black uppercase text-traffic-yellow">
+                    <Clock3 className="h-5 w-5" />
+                    Examen real
+                  </p>
+                  <h2 id="official-exam-title" className="mt-1 font-display text-2xl font-black sm:text-3xl">
+                    40 preguntas con cronómetro
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-blue-100 sm:text-base">
+                    Esta es la prueba que mide tu preparación y actualiza tus estadísticas.
+                  </p>
+                  <div className="mt-4 grid grid-cols-3 divide-x divide-blue-400 border-y border-blue-400/60 py-3 text-center">
+                    <span>
+                      <strong className="block font-display text-2xl font-black">{OFFICIAL_EXAM_RULES.questionCount}</strong>
+                      <span className="text-xs text-blue-100">preguntas</span>
+                    </span>
+                    <span>
+                      <strong className="block font-display text-2xl font-black">{OFFICIAL_EXAM_RULES.durationMinutes} min</strong>
+                      <span className="text-xs text-blue-100">tiempo máximo</span>
+                    </span>
+                    <span>
+                      <strong className="block font-display text-2xl font-black">{OFFICIAL_EXAM_RULES.minimumCorrectAnswers}/40</strong>
+                      <span className="text-xs text-blue-100">para aprobar</span>
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm font-bold text-blue-100">Sí cuenta en Mi avance · {fullExamAccessLabel}</p>
+                </div>
+                {isCheckingFullExamAccess ? (
+                  <button type="button" disabled className="inline-flex min-h-16 items-center justify-center gap-2 rounded-lg bg-white/10 px-5 font-bold text-blue-100">
+                    Revisando acceso...
+                  </button>
+                ) : (
+                  <Link
+                    to={fullExamTo}
+                    className={cn(
+                      'inline-flex min-h-16 items-center justify-center gap-2 rounded-lg px-5 text-center font-display text-lg font-black transition focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-white',
+                      canStartFullExam
+                        ? 'bg-traffic-yellow text-ink shadow-[0_5px_0_#d99b19] hover:bg-[#ffc94f]'
+                        : 'bg-white text-brand hover:bg-blue-50',
+                    )}
+                  >
+                    {canStartFullExam ? <CircleGauge className="h-7 w-7" /> : <LockKeyhole className="h-6 w-6" />}
+                    {canStartFullExam ? 'Comenzar examen real' : 'Activar para rendir'}
+                    <ArrowRight className="h-6 w-6" />
+                  </Link>
+                )}
+              </div>
+            </section>
+          ) : null}
 
-      <div className="relative mx-auto mt-4 max-w-5xl">
-        <img
-          src={yellowRoute}
-          alt=""
-          width="1400"
-          height="280"
-          aria-hidden="true"
-          className="pointer-events-none absolute -top-16 left-10 z-0 hidden h-24 w-[62%] object-contain object-left mix-blend-multiply lg:block"
-        />
+          <section className="mx-auto mt-6 max-w-5xl border-t border-line pt-5" aria-labelledby="quick-practice-title">
+            <div>
+              <p className="text-sm font-bold text-slate-500">Práctica corta</p>
+              <h2 id="quick-practice-title" className="font-display text-xl font-black text-ink sm:text-2xl">Practicar sin presión</h2>
+              <p className="mt-1 text-sm leading-5 text-slate-600">5 preguntas sin cronómetro. Sirve para aprender y no cambia tus estadísticas.</p>
+            </div>
 
-        {startHref ? (
-          <Link to={startHref} className={startButtonClass}>
-            <CircleGauge className="h-8 w-8 shrink-0 sm:h-9 sm:w-9" />
-            Empezar práctica {selectedCategory.title}
-            <ArrowRight className="h-8 w-8 shrink-0 sm:h-9 sm:w-9" />
-          </Link>
-        ) : (
-          <button type="button" onClick={() => onStart?.(practiceMode)} className={startButtonClass}>
-            <CircleGauge className="h-8 w-8 shrink-0 sm:h-9 sm:w-9" />
-            Empezar práctica {selectedCategory.title}
-            <ArrowRight className="h-8 w-8 shrink-0 sm:h-9 sm:w-9" />
-          </button>
-        )}
+            <fieldset className="mt-3">
+              <legend className="mb-1 font-display text-base font-black text-ink">Elige qué practicar</legend>
+              <div className="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1">
+                <button
+                  type="button"
+                  aria-pressed={practiceMode === 'random'}
+                  onClick={() => setPracticeMode('random')}
+                  className={cn(
+                    'flex min-h-14 items-center justify-center gap-2 rounded-lg px-2 py-2 text-left transition focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-brand sm:px-4',
+                    practiceMode === 'random' ? 'bg-white text-brand shadow-sm' : 'text-slate-600 hover:bg-white/70',
+                  )}
+                >
+                  <Shuffle className="h-6 w-6 shrink-0" />
+                  <span>
+                    <strong className="block text-sm sm:text-base">Preguntas aleatorias</strong>
+                    <span className="hidden text-xs sm:block">Mezcla toda la categoría</span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={practiceMode === 'weak'}
+                  onClick={() => setPracticeMode('weak')}
+                  className={cn(
+                    'flex min-h-14 items-center justify-center gap-2 rounded-lg px-2 py-2 text-left transition focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-brand sm:px-4',
+                    practiceMode === 'weak' ? 'bg-white text-brand shadow-sm' : 'text-slate-600 hover:bg-white/70',
+                  )}
+                >
+                  <Target className="h-6 w-6 shrink-0" />
+                  <span>
+                    <strong className="block text-sm sm:text-base">Reforzar mis errores</strong>
+                    <span className="hidden text-xs sm:block">Primero lo que más fallaste</span>
+                  </span>
+                </button>
+              </div>
+            </fieldset>
 
-        <p className="mt-1 text-center text-sm text-slate-600">
-          5 preguntas de {selectedCategory.title} · gratis siempre · {practiceMode === 'weak' ? 'refuerzo de errores' : 'selección aleatoria'}
-        </p>
-      </div>
-
-      {fullExamTo ? (
-        <section className="mx-auto mt-7 grid max-w-5xl gap-4 border-y border-line py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center" aria-labelledby="official-exam-title">
-          <div className="flex min-w-0 items-start gap-3">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-blue-50 text-brand">
-              <Clock3 className="h-6 w-6" />
-            </span>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-brand">La prueba que mide tu preparación</p>
-              <h2 id="official-exam-title" className="font-display text-xl font-black text-ink sm:text-2xl">
-                Simulacro completo
-              </h2>
-              <p className="mt-1 text-sm leading-5 text-slate-600 sm:text-base">
-                {OFFICIAL_EXAM_RULES.questionCount} preguntas · {OFFICIAL_EXAM_RULES.durationMinutes} minutos · apruebas con {OFFICIAL_EXAM_RULES.minimumCorrectAnswers} correctas
-              </p>
-              <p className="mt-1 text-sm font-bold text-slate-700">
-                {fullExamIsFree
-                  ? 'Gratis por ahora'
-                  : isCheckingFullExamAccess
-                  ? 'Revisando tu acceso...'
-                  : fullExamHasAccess
-                    ? `Acceso activo${membershipEndDate ? ` hasta ${new Date(membershipEndDate).toLocaleDateString('es-PE')}` : ''}`
-                    : `${priceLabel} por 1 mes de acceso`}
+            <div className="mt-3">
+              {startHref ? (
+                <Link to={startHref} className={startButtonClass}>
+                  <CircleGauge className="h-6 w-6 shrink-0" />
+                  Practicar 5 preguntas
+                  <ArrowRight className="h-6 w-6 shrink-0" />
+                </Link>
+              ) : (
+                <button type="button" onClick={() => onStart?.(practiceMode)} className={startButtonClass}>
+                  <CircleGauge className="h-6 w-6 shrink-0" />
+                  Practicar 5 preguntas
+                  <ArrowRight className="h-6 w-6 shrink-0" />
+                </button>
+              )}
+              <p className="mt-1 text-center text-sm text-slate-600">
+                {selectedCategory.title} · {practiceMode === 'weak' ? 'refuerzo de errores' : 'selección aleatoria'}
               </p>
             </div>
-          </div>
-          {isCheckingFullExamAccess ? (
-            <button type="button" disabled className="inline-flex min-h-14 items-center justify-center gap-2 rounded-lg bg-slate-100 px-5 font-bold text-slate-500">
-              Revisando acceso...
-            </button>
-          ) : (
-            <Link
-              to={fullExamTo}
-              className={cn(
-                'inline-flex min-h-14 items-center justify-center gap-2 rounded-lg px-5 font-bold transition focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-brand',
-                canStartFullExam
-                  ? 'bg-brand text-white shadow-[0_4px_0_#0f4eae] hover:bg-blue-700'
-                  : 'border-2 border-brand bg-white text-brand hover:bg-blue-50',
-              )}
-            >
-              {canStartFullExam ? <CircleGauge className="h-6 w-6" /> : <LockKeyhole className="h-5 w-5" />}
-              {canStartFullExam ? 'Rendir simulacro' : 'Activar y rendir'}
-              <ArrowRight className="h-5 w-5" />
-            </Link>
-          )}
-        </section>
-      ) : null}
+          </section>
         </>
       ) : (
         <p className="mx-auto mt-5 max-w-2xl text-center text-base font-bold text-slate-600">
@@ -332,12 +362,12 @@ export default function VehicleStartPanel({
               <div>
                 <div className="flex items-end justify-between gap-4">
                   <div>
-                    <p className="text-sm font-bold text-brand">Preparación para el examen</p>
+                    <p className="text-sm font-bold text-brand">Preparación según tus exámenes reales</p>
                     <h2 id="progress-title" className="font-display text-2xl font-black text-ink">
                       {progress.promedioGeneral}% de aciertos
                     </h2>
                   </div>
-                  <p className="shrink-0 text-sm font-bold text-slate-600">{progress.totalIntentos} simulacros</p>
+                  <p className="shrink-0 text-sm font-bold text-slate-600">{progress.totalIntentos} exámenes de 40</p>
                 </div>
                 <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-200" aria-label={`${progress.promedioGeneral}% de progreso`}>
                   <div className="h-full rounded-full bg-brand" style={{ width: `${Math.min(progress.promedioGeneral, 100)}%` }} />
@@ -360,7 +390,7 @@ export default function VehicleStartPanel({
               <div className="flex-1">
                 <h2 id="progress-title" className="font-display text-xl font-black text-ink">Aún no medimos tu preparación</h2>
                 <p className="text-sm text-slate-600">
-                  Se calcula al terminar un simulacro completo de 40 preguntas.
+                  Se calcula al terminar un examen real de 40 preguntas con cronómetro.
                   {progress.freePracticeCount > 0 ? ` Ya completaste ${progress.freePracticeCount} prácticas libres.` : ''}
                 </p>
               </div>

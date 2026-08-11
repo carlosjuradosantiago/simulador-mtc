@@ -8,6 +8,13 @@ export function isFullExamFree(value?: string | null) {
   return String(value ?? '').trim().toLowerCase() !== 'false';
 }
 
+export function filterOfficialExamAttempts(query: any, userId: number) {
+  return query
+    .eq('id_usuario', userId)
+    .eq('tipo_intento', TIMED_SESSION_TYPE)
+    .eq('total_preguntas', OFFICIAL_EXAM_QUESTION_COUNT);
+}
+
 export function addCalendarMonths(value: Date | string, months: number) {
   const result = new Date(value);
   const originalDay = result.getUTCDate();
