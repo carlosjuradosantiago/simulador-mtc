@@ -25,7 +25,8 @@ Fecha de medición: 11 de agosto de 2026
 
 - Contenido único para A1, A2A, A2B, A3A, A3B, A3C, B2A, B2B y B2C.
 - Cuatro páginas de preguntas oficiales con enunciado y alternativas completas, respuesta explicada y fuente primaria.
-- Veintisiete preguntas completas de muestra en las nueve páginas de categoría, comparadas con la extracción de los PDF sin diferencias.
+- Trescientas sesenta preguntas completas en las nueve páginas de categoría, 40 por licencia, comparadas con la extracción de los PDF sin diferencias.
+- Cada pregunta de categoría muestra el balotario, número, página del PDF y tema de origen; se excluyen las que requieren una imagen ausente.
 - Doce páginas por tema con 293 preguntas seleccionadas de un banco deduplicado de 655 registros.
 - El generador exige enunciado, cuatro alternativas no vacías, una clave válida y ausencia de imágenes faltantes.
 - Las pruebas comparan el texto visible y el schema `Quiz` con el banco fuente para impedir alteraciones silenciosas.

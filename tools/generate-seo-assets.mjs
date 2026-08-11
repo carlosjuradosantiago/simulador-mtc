@@ -2,8 +2,11 @@ import { readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-const categoryQuestionSamples = JSON.parse(
-  readFileSync(new URL('./seo-category-question-samples.json', import.meta.url), 'utf8'),
+const categoryQuestionBank = JSON.parse(
+  readFileSync(new URL('./seo-category-question-bank.json', import.meta.url), 'utf8'),
+);
+const categoryQuestionsBySlug = new Map(
+  categoryQuestionBank.categories.map((category) => [category.slug, category.questions]),
 );
 const topicQuestionBank = JSON.parse(
   readFileSync(new URL('./seo-topic-question-bank.json', import.meta.url), 'utf8'),
@@ -149,7 +152,7 @@ const corePages = [
     ctaText: 'Revisar fuentes oficiales',
     keywords: ['metodologia simulador mtc', 'fuentes simulador mtc', 'preguntas oficiales mtc', 'revision balotario mtc'],
     sections: [
-      ['Preguntas sin recortes', 'Las páginas de categoría muestran tres preguntas de muestra y las páginas temáticas publican hasta cuarenta preguntas completas. Cuando una pregunta depende de una imagen, no se publica sin ese recurso.'],
+      ['Preguntas sin recortes', 'Cada página de categoría muestra cuarenta preguntas completas y las páginas temáticas publican hasta cuarenta preguntas. Cuando una pregunta depende de una imagen, no se publica sin ese recurso.'],
       ['Separación por licencia', 'A1, A2A, A2B, A3 y las categorías B no comparten exactamente el mismo banco. Cada práctica se filtra por la licencia elegida por la persona.'],
       ['Revisión y correcciones', 'Contrastamos formato, categorías y balotarios con publicaciones del MTC. Si una fuente cambia, se revisa el contenido afectado antes de modificar su fecha editorial.'],
     ],
@@ -909,16 +912,20 @@ function renderCategorySamples(page) {
   const letters = ['A', 'B', 'C', 'D'];
   return `<section class="sample-section" aria-labelledby="preguntas-${page.categorySlug}">
         <div class="wrap">
-          <h2 id="preguntas-${page.categorySlug}">3 preguntas completas del balotario ${escapeHtml(page.sampleSourceCode)}</h2>
-          <p class="section-intro">Lee el enunciado y las cuatro alternativas sin recortes. La respuesta marcada corresponde al PDF oficial enlazado en esta página.</p>
+          <h2 id="preguntas-${page.categorySlug}">${page.sampleQuestions.length} preguntas completas del balotario ${escapeHtml(page.sampleSourceCode)}</h2>
+          <p class="section-intro">Selección de la licencia elegida, sin recortes ni preguntas que dependan de imágenes. Cada respuesta conserva su referencia al PDF correspondiente.</p>
           <div class="sample-list">
-            ${page.sampleQuestions.map((question) => `<article class="sample-question">
-              <p class="quiz-source">Balotario ${escapeHtml(page.sampleSourceCode)} · pregunta ${question.number}</p>
+            ${page.sampleQuestions.map((question, index) => `<article class="sample-question" id="pregunta-${page.categorySlug}-${index + 1}">
+              <p class="quiz-source">Balotario ${escapeHtml(page.sampleSourceCode)} · pregunta ${question.number} · página ${question.sourcePage}</p>
+              <p class="topic-meta">Tema: ${escapeHtml(question.topicName)}</p>
               <h3>${escapeRawHtml(question.text)}</h3>
               <ol class="quiz-options">
                 ${question.options.map((option, index) => `<li><span>${letters[index]}</span>${escapeRawHtml(option)}</li>`).join('')}
               </ol>
-              <div class="sample-answer"><strong>Respuesta correcta:</strong> ${escapeRawHtml(question.correctAnswer)}</div>
+              <div class="sample-answer">
+                <strong>Respuesta correcta:</strong> ${escapeRawHtml(question.correctAnswer)}
+                ${question.fundamento ? `<p><strong>Fundamento:</strong> ${escapeRawHtml(question.fundamento)}</p>` : ''}
+              </div>
             </article>`).join('')}
           </div>
         </div>
@@ -1446,7 +1453,7 @@ function simulatorPageFor(category) {
     secondaryCta: `/?auth=register&category=${category.categoryId}&next=${encodeURIComponent(examDestination)}`,
     secondaryCtaText: 'Rendir simulacro de 40',
     sampleSourceCode: category.code,
-    sampleQuestions: categoryQuestionSamples[category.slug],
+    sampleQuestions: categoryQuestionsBySlug.get(category.slug),
     keywords: [`simulador mtc ${category.common}`, `simulador mtc ${category.code}`, `examen mtc ${category.common}`, `licencia ${category.common}`],
     sections: [
       [`Qué vehículos cubre ${category.code}`, category.scope],
@@ -1606,7 +1613,7 @@ ${disclaimer}
 - El MTC informa que el examen de reglas tiene 40 preguntas y una duración máxima de 40 minutos.
 - La publicación del MTC indica que se requieren al menos 35 respuestas correctas para aprobar.
 - Las preguntas y balotarios se organizan según la categoría de licencia elegida.
-- Cada página de categoría publica tres preguntas completas de muestra, con cuatro alternativas y la respuesta del balotario correspondiente.
+- Cada página de categoría publica cuarenta preguntas completas, con cuatro alternativas, respuesta y referencia al balotario correspondiente.
 - Fuente del formato oficial: ${officialSources.find((source) => source.id === 'exam-format').url}
 - Balotarios oficiales: ${officialMtcSource}
 
