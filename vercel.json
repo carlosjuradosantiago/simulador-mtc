@@ -213,6 +213,10 @@
       "destination": "/seo/balotario-mtc-:slug.html"
     },
     {
+      "source": "/preguntas-:slug-mtc",
+      "destination": "/seo/preguntas-:slug-mtc.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

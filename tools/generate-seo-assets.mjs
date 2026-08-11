@@ -5,6 +5,9 @@ import path from 'node:path';
 const categoryQuestionSamples = JSON.parse(
   readFileSync(new URL('./seo-category-question-samples.json', import.meta.url), 'utf8'),
 );
+const topicQuestionBank = JSON.parse(
+  readFileSync(new URL('./seo-topic-question-bank.json', import.meta.url), 'utf8'),
+);
 
 const siteUrl = 'https://www.simuladormtc.com';
 const brandName = 'Simulador MTC';
@@ -146,7 +149,7 @@ const corePages = [
     ctaText: 'Revisar fuentes oficiales',
     keywords: ['metodologia simulador mtc', 'fuentes simulador mtc', 'preguntas oficiales mtc', 'revision balotario mtc'],
     sections: [
-      ['Preguntas sin recortes', 'Las páginas de categoría muestran tres preguntas de muestra con sus cuatro alternativas y respuesta. Cuando existe una imagen asociada, forma parte de la pregunta y no se sustituye por una descripción inventada.'],
+      ['Preguntas sin recortes', 'Las páginas de categoría muestran tres preguntas de muestra y las páginas temáticas publican hasta cuarenta preguntas completas. Cuando una pregunta depende de una imagen, no se publica sin ese recurso.'],
       ['Separación por licencia', 'A1, A2A, A2B, A3 y las categorías B no comparten exactamente el mismo banco. Cada práctica se filtra por la licencia elegida por la persona.'],
       ['Revisión y correcciones', 'Contrastamos formato, categorías y balotarios con publicaciones del MTC. Si una fuente cambia, se revisa el contenido afectado antes de modificar su fecha editorial.'],
     ],
@@ -852,9 +855,20 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
-function jsonLdScript(data) {
+function escapeRawHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function jsonLdScript(data, rawValues = []) {
+  const preservedValues = new Set(rawValues);
   const json = JSON.stringify(data, (_key, value) => {
     if (typeof value !== 'string' || /^(https?:\/\/|\/|#)/.test(value)) return value;
+    if (preservedValues.has(value)) return value;
     return normalizeSpanish(value);
   });
   return `<script type="application/ld+json">${json.replaceAll('</', '<\\/')}</script>`;
@@ -875,14 +889,14 @@ function renderQuestion(page) {
   return `<section class="quiz-section" aria-labelledby="pregunta-oficial">
         <div class="wrap quiz-panel">
           <p class="quiz-source">Balotario A-I · pregunta ${page.question.number}</p>
-          <h2 id="pregunta-oficial">${escapeHtml(page.question.text)}</h2>
+          <h2 id="pregunta-oficial">${escapeRawHtml(page.question.text)}</h2>
           <h3>Opciones de respuesta</h3>
           <ol class="quiz-options">
-            ${page.question.options.map((option, index) => `<li><span>${letters[index]}</span>${escapeHtml(option)}</li>`).join('')}
+            ${page.question.options.map((option, index) => `<li><span>${letters[index]}</span>${escapeRawHtml(option)}</li>`).join('')}
           </ol>
           <div class="quiz-answer">
             <strong>Respuesta correcta</strong>
-            <p>${escapeHtml(page.question.correctAnswer)}</p>
+            <p>${escapeRawHtml(page.question.correctAnswer)}</p>
             <p>${escapeHtml(page.question.explanation)}</p>
           </div>
         </div>
@@ -900,11 +914,37 @@ function renderCategorySamples(page) {
           <div class="sample-list">
             ${page.sampleQuestions.map((question) => `<article class="sample-question">
               <p class="quiz-source">Balotario ${escapeHtml(page.sampleSourceCode)} · pregunta ${question.number}</p>
-              <h3>${escapeHtml(question.text)}</h3>
+              <h3>${escapeRawHtml(question.text)}</h3>
               <ol class="quiz-options">
-                ${question.options.map((option, index) => `<li><span>${letters[index]}</span>${escapeHtml(option)}</li>`).join('')}
+                ${question.options.map((option, index) => `<li><span>${letters[index]}</span>${escapeRawHtml(option)}</li>`).join('')}
               </ol>
-              <div class="sample-answer"><strong>Respuesta correcta:</strong> ${escapeHtml(question.correctAnswer)}</div>
+              <div class="sample-answer"><strong>Respuesta correcta:</strong> ${escapeRawHtml(question.correctAnswer)}</div>
+            </article>`).join('')}
+          </div>
+        </div>
+      </section>`;
+}
+
+function renderTopicQuestions(page) {
+  if (!page.topicQuestions?.length) return '';
+
+  const letters = ['A', 'B', 'C', 'D'];
+  return `<section class="topic-section" aria-labelledby="banco-${page.topicSlug}">
+        <div class="wrap">
+          <h2 id="banco-${page.topicSlug}">${page.topicQuestions.length} preguntas completas de ${escapeHtml(page.topicName)}</h2>
+          <p class="section-intro">Los enunciados, las cuatro alternativas y la respuesta se muestran completos. Esta selección excluye preguntas que dependen de una imagen.</p>
+          <div class="topic-list">
+            ${page.topicQuestions.map((question, index) => `<article class="topic-question" id="pregunta-${index + 1}">
+              <p class="quiz-source">Balotario ${escapeHtml(question.sourceCode)} · pregunta ${question.number}</p>
+              <p class="topic-meta">También aparece en: ${question.balotarios.map(escapeHtml).join(', ')}</p>
+              <h3>${escapeRawHtml(question.text)}</h3>
+              <ol class="quiz-options">
+                ${question.options.map((option, optionIndex) => `<li><span>${letters[optionIndex]}</span>${escapeRawHtml(option)}</li>`).join('')}
+              </ol>
+              <div class="sample-answer">
+                <strong>Respuesta correcta:</strong> ${escapeRawHtml(question.correctAnswer)}
+                ${question.fundamento ? `<p><strong>Fundamento indicado en el balotario:</strong> ${escapeRawHtml(question.fundamento)}</p>` : ''}
+              </div>
             </article>`).join('')}
           </div>
         </div>
@@ -990,6 +1030,15 @@ function renderGuideLinks(page) {
             </a>`).join('');
 }
 
+function renderTopicLinks(page) {
+  if (!(page.topicSlug || ['simulador-mtc', 'examen-mtc-preguntas'].includes(page.slug))) return '';
+  return topicPages.map((topic) => `
+            <a class="${page.slug === topic.slug ? 'active' : ''}" href="/${topic.slug}">
+              <strong>${escapeHtml(topic.topicName)}</strong>
+              <span>${topic.topicQuestions.length} preguntas completas</span>
+            </a>`).join('');
+}
+
 function relatedQuestionsFor(page) {
   if (page.type === 'Quiz') {
     return questionPages.filter((question) => question.slug !== page.slug).slice(0, 3);
@@ -1015,7 +1064,7 @@ function shouldShowCategories(page) {
 function renderHtml(page) {
   const canonical = pageUrl(page.slug);
   const pageSources = sourcesForPage(page);
-  const schemaQuestions = page.question ? [page.question] : page.sampleQuestions || [];
+  const schemaQuestions = page.question ? [page.question] : page.sampleQuestions || page.topicQuestions || [];
   const faqSchema = {
     '@type': 'FAQPage',
     '@id': `${canonical}#faq`,
@@ -1054,7 +1103,7 @@ function renderHtml(page) {
     inLanguage: 'es-PE',
     datePublished: contentPublished,
     dateModified: contentLastReviewed,
-    learningResourceType: page.type === 'Article' ? 'Guía de estudio' : page.type === 'Quiz' ? 'Pregunta explicada' : 'Práctica educativa',
+    learningResourceType: page.type === 'Article' ? 'Guía de estudio' : page.topicQuestions ? 'Banco temático de preguntas' : page.type === 'Quiz' ? 'Pregunta explicada' : 'Práctica educativa',
     educationalUse: ['autoestudio', 'práctica'],
     teaches: page.keywords,
     audience: {
@@ -1138,6 +1187,7 @@ function renderHtml(page) {
   };
   const pdfLinks = renderPdfLinks(page);
   const questionLinks = renderQuestionLinks(page);
+  const topicLinks = renderTopicLinks(page);
   const secondaryCta = page.secondaryCta || (page.categorySlug ? `/mtc-official/${categories.find((category) => category.slug === page.categorySlug)?.pdf}` : '/examen-mtc-preguntas');
   const secondaryCtaText = page.secondaryCtaText || (page.categorySlug ? 'Abrir balotario PDF' : 'Ver preguntas y temas');
 
@@ -1166,7 +1216,7 @@ function renderHtml(page) {
     <meta name="twitter:title" content="${escapeHtml(page.title)}">
     <meta name="twitter:description" content="${escapeHtml(page.description)}">
     <meta name="theme-color" content="#0f55e8">
-    ${jsonLdScript(structuredData)}
+    ${jsonLdScript(structuredData, schemaQuestions.flatMap((question) => [question.text, question.correctAnswer]))}
     <style>
       :root { color-scheme: light; --brand:#0f55e8; --deep:#071f45; --ink:#071537; --soft:#f3f7fc; --line:#d7e2f0; --ok:#00a86b; }
       * { box-sizing: border-box; }
@@ -1215,6 +1265,11 @@ function renderHtml(page) {
       .sample-question h3 { margin:0; font-size:22px; line-height:1.35; }
       .sample-answer { margin-top:14px; padding:14px 16px; border-left:5px solid var(--ok); background:#f1fbf7; line-height:1.6; }
       .sample-answer strong { color:#08794e; }
+      .sample-answer p { margin:8px 0 0; color:#31445f; line-height:1.6; }
+      .topic-list { margin-top:12px; border-top:1px solid var(--line); }
+      .topic-question { padding:30px 0; border-bottom:1px solid var(--line); scroll-margin-top:90px; }
+      .topic-question h3 { margin:8px 0 0; max-width:900px; font-size:24px; line-height:1.4; }
+      .topic-meta { margin:0; color:#5f718c; font-size:13px; line-height:1.5; }
       .grid { display:grid; gap:16px; }
       .grid.three { grid-template-columns: repeat(3, minmax(0,1fr)); }
       .info-card, details, .download-card { border:1px solid var(--line); border-radius:10px; padding:18px; background:#fff; }
@@ -1224,10 +1279,10 @@ function renderHtml(page) {
       .category-strip a, .pdf-strip a { border:1px solid var(--line); border-radius:8px; padding:12px; background:#fff; display:grid; gap:4px; }
       .category-strip a.active, .category-strip a:hover, .pdf-strip a:hover { border-color:var(--brand); background:#f2f7ff; }
       .category-strip span, .pdf-strip span { color:#5f718c; font-size:13px; line-height:1.35; }
-      .guide-strip { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap:10px; }
-      .guide-strip a { border:1px solid var(--line); border-radius:8px; padding:14px; background:#fff; display:grid; gap:8px; }
-      .guide-strip a.active, .guide-strip a:hover { border-color:var(--brand); background:#f2f7ff; }
-      .guide-strip span { color:#5f718c; font-size:13px; line-height:1.45; }
+      .guide-strip, .topic-strip { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap:10px; }
+      .guide-strip a, .topic-strip a { border:1px solid var(--line); border-radius:8px; padding:14px; background:#fff; display:grid; gap:8px; }
+      .guide-strip a.active, .guide-strip a:hover, .topic-strip a.active, .topic-strip a:hover { border-color:var(--brand); background:#f2f7ff; }
+      .guide-strip span, .topic-strip span { color:#5f718c; font-size:13px; line-height:1.45; }
       .source-list { margin:16px 0 0; padding:0; list-style:none; display:grid; gap:12px; }
       .source-list li { border-top:1px solid var(--line); padding-top:12px; display:grid; gap:4px; }
       .source-list a { width:fit-content; color:var(--brand); font-weight:900; text-decoration:underline; text-underline-offset:3px; }
@@ -1301,11 +1356,20 @@ function renderHtml(page) {
         </div>
       </section>
       ${renderCategorySamples(page)}
+      ${renderTopicQuestions(page)}
       ${shouldShowCategories(page) ? `<section>
         <div class="wrap">
           <h2>Categorías de licencia para practicar</h2>
           <div class="category-strip">
             ${renderCategoryLinks(page.categorySlug)}
+          </div>
+        </div>
+      </section>` : ''}
+      ${topicLinks ? `<section>
+        <div class="wrap">
+          <h2>Preguntas del examen MTC por tema</h2>
+          <div class="topic-strip">
+            ${topicLinks}
           </div>
         </div>
       </section>` : ''}
@@ -1424,12 +1488,45 @@ function balotarioPageFor(category) {
   };
 }
 
+function topicPageFor(topic) {
+  const count = topic.questions.length;
+  return {
+    slug: topic.slug,
+    topicSlug: topic.slug,
+    topicName: topic.name,
+    topicQuestions: topic.questions,
+    type: 'TopicQuiz',
+    title: `${count} preguntas MTC con respuestas: ${topic.name}`,
+    description: topic.description,
+    h1: `${count} preguntas de ${topic.name} para el examen MTC`,
+    intro: topic.intro,
+    primaryCta: '/?auth=register',
+    ctaText: 'Practicar en el simulador',
+    secondaryCta: officialMtcSource,
+    secondaryCtaText: 'Ver fuente oficial',
+    keywords: topic.keywords,
+    sections: [
+      ['Selección verificable', `Esta página publica ${count} de ${topic.sourceQuestionCount} preguntas clasificadas en este tema. La selección se genera desde el banco deduplicado y conserva el texto de la fuente.`],
+      ['Cuatro alternativas completas', 'Cada pregunta incluye sus cuatro opciones y la respuesta marcada en el balotario. No se resumen los enunciados ni se completan textos por inferencia.'],
+      ['Cómo aprovechar este bloque', 'Responde primero sin mirar la solución, comprueba la alternativa correcta y anota el fundamento normativo cuando esté disponible. Después mide tu nivel con un simulacro de 40 preguntas.'],
+    ],
+    faqs: [
+      [`Las ${count} preguntas están completas?`, 'Sí. El generador exige enunciado, cuatro alternativas, una clave válida y ausencia de recursos visuales faltantes.'],
+      ['Se modificaron las preguntas para SEO?', 'No. El contenido de cada enunciado, alternativa y respuesta se conserva desde el banco deduplicado extraído de los balotarios.'],
+      ['Dónde puedo comprobar la fuente?', 'En la publicación oficial del MTC enlazada en esta página y en los PDF de cada categoría.'],
+    ],
+  };
+}
+
+const topicPages = topicQuestionBank.topics.map(topicPageFor);
+
 const pages = [
   ...corePages,
   ...articlePages,
   ...questionPages,
   ...categories.map(simulatorPageFor),
   ...categories.map(balotarioPageFor),
+  ...topicPages,
 ];
 
 async function main() {
@@ -1534,6 +1631,10 @@ ${articlePages.map((page) => `- ${siteUrl}/${page.slug}: ${normalizeSpanish(page
 ## Preguntas oficiales explicadas
 
 ${questionPages.map((page) => `- ${siteUrl}/${page.slug}: ${normalizeSpanish(page.description)}`).join('\n')}
+
+## Preguntas completas por tema
+
+${topicPages.map((page) => `- ${siteUrl}/${page.slug}: ${page.topicQuestions.length} preguntas de ${page.topicName}, con cuatro alternativas y respuesta.`).join('\n')}
 
 ## Criterios editoriales
 
