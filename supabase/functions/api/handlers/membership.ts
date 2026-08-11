@@ -1,6 +1,8 @@
 import { getSupabaseClient } from '../_shared/supabase.ts';
 import { getUserFromToken } from '../_shared/auth.ts';
 import { jsonResponse, errorResponse, unauthorizedResponse } from '../_shared/response.ts';
+import { TIMED_SESSION_TYPE } from '../_shared/membership-access.ts';
+import { OFFICIAL_EXAM_QUESTION_COUNT } from '../_shared/exam-rules.ts';
 
 // Helper to parse features from DB (can be JSON array, string, or comma-separated)
 function parseFeatures(features: any): string[] {
@@ -200,92 +202,22 @@ export async function handleGetActiveMembership(req: Request) {
 }
 // POST /api/user/membership/subscribe - Subscribe to a plan
 export async function handleSubscribePlan(req: Request) {
-  try {
-    const user = await getUserFromToken(req);
-    if (!user) {
-      return unauthorizedResponse();
-    }
-    const body = await req.json();
-    const { planId } = body;
-    if (!planId) {
-      return errorResponse('Se requiere el ID del plan', 400);
-    }
-    const supabase = getSupabaseClient();
-
-    // Get plan details from planes_membresia
-    const { data: plan, error: planError } = await supabase
-      .from('planes_membresia')
-      .select('*')
-      .eq('id', planId)
-      .eq('esta_activo', true)
-      .single();
-
-    if (planError || !plan) {
-      return errorResponse('Plan de membresía no encontrado o no activo', 404);
-    }
-
-    // Check for existing active membership
-    const now = new Date();
-    const { data: existing } = await supabase
-      .from('membresias_usuario')
-      .select('id')
-      .eq('id_usuario', user.userId)
-      .eq('esta_activa', true)
-      .gte('fecha_fin', now.toISOString())
-      .limit(1)
-      .maybeSingle();
-
-    if (existing) {
-      return errorResponse('Ya tienes una membresía activa', 400);
-    }
-
-    // Create new membership using duracion_meses
-    const fechaInicio = now;
-    const fechaFin = new Date(now);
-    fechaFin.setMonth(fechaFin.getMonth() + (plan.duracion_meses || 1));
-
-    const { data: membership, error: createError } = await supabase
-      .from('membresias_usuario')
-      .insert({
-        id_usuario: user.userId,
-        id_plan_membresia: planId,
-        fecha_inicio: fechaInicio.toISOString(),
-        fecha_fin: fechaFin.toISOString(),
-        esta_activa: true
-      })
-      .select()
-      .single();
-
-    if (createError) {
-      console.error('Error creating membership:', createError);
-      return errorResponse('Error al crear membresía: ' + createError.message, 500);
-    }
-
-    return jsonResponse({
-      success: true,
-      membership: {
-        id: membership.id,
-        plan: {
-          id: plan.id,
-          nombre: plan.nombre
-        },
-        fechaInicio: membership.fecha_inicio,
-        fechaFin: membership.fecha_fin,
-        estaActiva: membership.esta_activa
-      },
-      mensaje: `Te has suscrito exitosamente al plan ${plan.nombre}`
-    });
-  } catch (err) {
-    console.error('Subscribe plan error:', err);
-    return errorResponse('Error interno del servidor', 500);
+  const user = await getUserFromToken(req);
+  if (!user) {
+    return unauthorizedResponse();
   }
+
+  return errorResponse(
+    'La activación directa fue deshabilitada. Usa el flujo de pago para activar una membresía.',
+    410,
+  );
 }
 
 // ============ EXAM COUNT ============
 
 /**
  * GET /api/user/exam-count - Get the number of completed exams for the user
- * Access limits are disabled while payments are not active.
+ * Only complete timed simulations count toward readiness.
  */
 export async function handleGetUserExamCount(req: Request) {
   try {
@@ -300,6 +232,8 @@ export async function handleGetUserExamCount(req: Request) {
       .from('sesion_practica')
       .select('*', { count: 'exact', head: true })
       .eq('id_usuario', user.userId)
+      .eq('tipo_sesion', TIMED_SESSION_TYPE)
+      .eq('total_preguntas', OFFICIAL_EXAM_QUESTION_COUNT)
       .eq('estado', 'FINALIZADO');
 
     if (error) {
@@ -308,14 +242,15 @@ export async function handleGetUserExamCount(req: Request) {
     }
 
     const examCount = count || 0;
+    const hasActiveMembership = await checkUserHasActiveMembership(supabase, user.userId);
 
     return jsonResponse({
       examCount,
-      freeExamLimit: null,
-      remainingFreeExams: null,
-      canTakeExam: true,
-      hasActiveMembership: false,
-      requiresPayment: false
+      freeExamLimit: 0,
+      remainingFreeExams: 0,
+      canTakeExam: hasActiveMembership,
+      hasActiveMembership,
+      requiresPayment: !hasActiveMembership
     });
   } catch (err) {
     console.error('Get user exam count error:', err);

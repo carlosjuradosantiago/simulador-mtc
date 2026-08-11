@@ -5,6 +5,7 @@ import Button from '../components/ui/Button.jsx';
 import Card from '../components/ui/Card.jsx';
 import { useAuth } from '../hooks/useAuth.js';
 import { exchangeSupabaseOAuthCode, getStoredToken, supabaseAuth } from '../services/api.js';
+import { safeInternalPath } from '../utils/navigation.js';
 
 const oauthCodeExchangePromises = new Map();
 
@@ -22,7 +23,7 @@ export default function AuthCallbackPage() {
       const accessToken = hashParams.get('access_token');
       const authCode = searchParams.get('code');
       const errorDescription = hashParams.get('error_description') || hashParams.get('error') || searchParams.get('error_description') || searchParams.get('error');
-      const nextPath = searchParams.get('next') || '/dashboard';
+      const nextPath = safeInternalPath(searchParams.get('next'));
       const loginPopupPath = `/?auth=login&next=${encodeURIComponent(nextPath)}`;
       const cleanParams = new URLSearchParams(window.location.search);
       cleanParams.delete('code');

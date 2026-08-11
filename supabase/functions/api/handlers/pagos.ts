@@ -6,6 +6,7 @@
 import { getSupabaseClient } from '../_shared/supabase.ts';
 import { getUserFromToken } from '../_shared/auth.ts';
 import { jsonResponse, errorResponse, unauthorizedResponse } from '../_shared/response.ts';
+import { addCalendarMonths, SIMULATED_PAYMENT_METHOD } from '../_shared/membership-access.ts';
 import { Resend } from 'npm:resend@2.0.0';
 
 // Configuración de Culqi
@@ -14,6 +15,7 @@ const CULQI_API_URL = 'https://api.culqi.com/v2';
 
 // Configuración de Resend
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || '';
+const PAYMENT_SIMULATION_ENABLED = Deno.env.get('PAYMENT_SIMULATION_ENABLED') !== 'false';
 
 interface PaymentRequest {
   token_id: string;
@@ -445,7 +447,13 @@ async function createCulqiCharge(chargeData: CulqiChargeRequest): Promise<CulqiC
 /**
  * Activar o renovar membresía del usuario
  */
-async function activateMembership(supabase: any, userId: number, planId: number, transactionId: number) {
+async function activateMembership(
+  supabase: any,
+  userId: number,
+  planId: number,
+  transactionId: number,
+  source = 'culqi',
+) {
   console.log('📝 [activateMembership] INICIO con parámetros:', {
     userId,
     userId_type: typeof userId,
@@ -482,25 +490,35 @@ async function activateMembership(supabase: any, userId: number, planId: number,
 
   const now = new Date();
   const fechaInicio = now;
-  const fechaFin = new Date(now);
-  fechaFin.setMonth(fechaFin.getMonth() + plan.duracion_meses);
+  const fechaFin = addCalendarMonths(now, plan.duracion_meses);
+  let fechaFinFinal = fechaFin;
+
+  await supabase
+    .from('membresias_usuario')
+    .update({ esta_activa: false, actualizado_en: now.toISOString() })
+    .eq('id_usuario', userId)
+    .eq('esta_activa', true)
+    .lt('fecha_fin', now.toISOString());
 
   // Verificar si ya tiene una membresía activa
   const { data: existingMembership } = await supabase
     .from('membresias_usuario')
     .select('id, fecha_fin')
     .eq('id_usuario', userId)
-    .eq('id_plan_membresia', planId)
+    .eq('id_plan_membresia', planIdNumber)
     .eq('esta_activa', true)
-    .single();
+    .gte('fecha_fin', now.toISOString())
+    .order('fecha_fin', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   let membershipId: number;
   let action: string;
 
   if (existingMembership) {
     // Renovar membresía existente
-    const nuevaFechaFin = new Date(existingMembership.fecha_fin);
-    nuevaFechaFin.setMonth(nuevaFechaFin.getMonth() + plan.duracion_meses);
+    const nuevaFechaFin = addCalendarMonths(existingMembership.fecha_fin, plan.duracion_meses);
+    fechaFinFinal = nuevaFechaFin;
 
     const { data: updated, error: updateError } = await supabase
       .from('membresias_usuario')
@@ -566,11 +584,164 @@ async function activateMembership(supabase: any, userId: number, planId: number,
     id_transaccion: transactionId,
     accion: action,
     fecha_inicio_nueva: fechaInicio.toISOString(),
-    fecha_fin_nueva: fechaFin.toISOString(),
-    notas: `Pago procesado exitosamente. Transaction ID: ${transactionId}`
+    fecha_fin_nueva: fechaFinFinal.toISOString(),
+    notas: source === 'simulacion'
+      ? `Activacion simulada sin cobro real. Transaction ID: ${transactionId}`
+      : `Pago procesado exitosamente. Transaction ID: ${transactionId}`
   });
 
-  return { membershipId, fechaInicio, fechaFin, planNombre: plan.nombre };
+  return { membershipId, fechaInicio, fechaFin: fechaFinFinal, planNombre: plan.nombre };
+}
+
+/**
+ * Simula el checkout completo sin recibir ni almacenar datos de tarjeta.
+ * Esta ruta se reemplazara por la tokenizacion de Culqi cuando el comercio este listo.
+ */
+export async function handleSimularPago(req: Request) {
+  try {
+    if (!PAYMENT_SIMULATION_ENABLED) {
+      return errorResponse('La simulacion de pagos esta deshabilitada', 503);
+    }
+
+    const user = await getUserFromToken(req);
+    if (!user) {
+      return unauthorizedResponse();
+    }
+
+    const body = await req.json();
+    const planId = Number(body?.plan_id);
+    if (!Number.isInteger(planId) || planId <= 0) {
+      return errorResponse('Se requiere un plan valido', 400);
+    }
+
+    const supabase = getSupabaseClient();
+    const now = new Date();
+    const [{ data: dbUser, error: userError }, { data: plan, error: planError }] = await Promise.all([
+      supabase
+        .from('usuarios')
+        .select('id, correo_electronico, primer_nombre, apellido')
+        .eq('id', user.userId)
+        .single(),
+      supabase
+        .from('planes_membresia')
+        .select('id, nombre, precio, duracion_meses')
+        .eq('id', planId)
+        .eq('esta_activo', true)
+        .single(),
+    ]);
+
+    if (userError || !dbUser) {
+      return errorResponse('Usuario no encontrado', 404);
+    }
+    if (planError || !plan) {
+      return errorResponse('Plan de membresia no encontrado', 404);
+    }
+
+    const { data: activeMembership } = await supabase
+      .from('membresias_usuario')
+      .select('id, fecha_inicio, fecha_fin')
+      .eq('id_usuario', dbUser.id)
+      .eq('esta_activa', true)
+      .gte('fecha_fin', now.toISOString())
+      .order('fecha_fin', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (activeMembership) {
+      return jsonResponse({
+        success: true,
+        already_active: true,
+        payment_mode: 'simulation',
+        membership: {
+          id: activeMembership.id,
+          fecha_inicio: activeMembership.fecha_inicio,
+          fecha_fin: activeMembership.fecha_fin,
+          plan_nombre: plan.nombre,
+        },
+      });
+    }
+
+    const simulationId = `sim_${crypto.randomUUID()}`;
+    const { data: transaction, error: transactionError } = await supabase
+      .from('transacciones_pago')
+      .insert({
+        id_usuario: dbUser.id,
+        id_plan_membresia: plan.id,
+        monto: Number(plan.precio),
+        moneda: 'PEN',
+        metodo_pago: SIMULATED_PAYMENT_METHOD,
+        estado: 'pendiente',
+        descripcion: `${plan.nombre} - simulacion sin cobro real`,
+        correo_cliente: dbUser.correo_electronico,
+        respuesta_culqi: {
+          simulated: true,
+          provider: 'pending_culqi',
+          simulation_id: simulationId,
+        },
+      })
+      .select()
+      .single();
+
+    if (transactionError || !transaction) {
+      console.error('[PAYMENT SIMULATION] Error creating transaction:', transactionError);
+      return errorResponse('No pudimos iniciar la simulacion del pago', 500);
+    }
+
+    try {
+      const membership = await activateMembership(
+        supabase,
+        dbUser.id,
+        plan.id,
+        transaction.id,
+        'simulacion',
+      );
+
+      const { error: updateError } = await supabase
+        .from('transacciones_pago')
+        .update({
+          estado: 'exitoso',
+          culqi_charge_id: simulationId,
+          respuesta_culqi: {
+            simulated: true,
+            provider: 'pending_culqi',
+            simulation_id: simulationId,
+            charged: false,
+          },
+          fecha_pago: new Date().toISOString(),
+          actualizado_en: new Date().toISOString(),
+        })
+        .eq('id', transaction.id);
+
+      if (updateError) throw updateError;
+
+      return jsonResponse({
+        success: true,
+        already_active: false,
+        charged: false,
+        payment_mode: 'simulation',
+        transaction_id: transaction.id,
+        membership: {
+          id: membership.membershipId,
+          fecha_inicio: membership.fechaInicio.toISOString(),
+          fecha_fin: membership.fechaFin.toISOString(),
+          plan_nombre: membership.planNombre,
+        },
+      });
+    } catch (activationError: any) {
+      await supabase
+        .from('transacciones_pago')
+        .update({
+          estado: 'fallido',
+          mensaje_error: activationError.message || 'Error activando membresia simulada',
+          actualizado_en: new Date().toISOString(),
+        })
+        .eq('id', transaction.id);
+      throw activationError;
+    }
+  } catch (error: any) {
+    console.error('[PAYMENT SIMULATION] Error:', error);
+    return errorResponse(error.message || 'Error interno del servidor', 500);
+  }
 }
 
 /**

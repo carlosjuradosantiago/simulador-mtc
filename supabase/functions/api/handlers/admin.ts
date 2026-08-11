@@ -2,59 +2,53 @@ import { getUserFromToken } from '../_shared/auth.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { errorResponse, jsonResponse, unauthorizedResponse } from '../_shared/response.ts';
 import { getSupabaseClient } from '../_shared/supabase.ts';
+import { isRealPayment } from '../_shared/membership-access.ts';
 
-const DEFAULT_ADMIN_EMAILS = ['ivan.carlos23@gmail.com'];
-const SUCCESSFUL_PAYMENT_STATUSES = new Set(['exitoso', 'exitosa', 'pagado', 'pagada', 'aprobado', 'aprobada', 'success', 'succeeded']);
+const ADMIN_ROLE = 'ADMIN';
+const PERU_OFFSET_MS = 5 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-function getAdminEmails() {
-  const configured = Deno.env.get('ADMIN_EMAILS');
-  const emails = configured
-    ? configured.split(',').map((email) => email.trim().toLowerCase()).filter(Boolean)
-    : DEFAULT_ADMIN_EMAILS;
-  return new Set(emails);
+function startOfToday(value = new Date()) {
+  const peruTime = new Date(value.getTime() - PERU_OFFSET_MS);
+  peruTime.setUTCHours(0, 0, 0, 0);
+  return new Date(peruTime.getTime() + PERU_OFFSET_MS);
 }
 
-function startOfToday() {
-  const date = new Date();
-  date.setHours(0, 0, 0, 0);
-  return date;
-}
-
-function startOfMonth() {
-  const date = new Date();
-  date.setDate(1);
-  date.setHours(0, 0, 0, 0);
-  return date;
+function startOfMonth(value = new Date()) {
+  const peruTime = new Date(value.getTime() - PERU_OFFSET_MS);
+  peruTime.setUTCDate(1);
+  peruTime.setUTCHours(0, 0, 0, 0);
+  return new Date(peruTime.getTime() + PERU_OFFSET_MS);
 }
 
 function addDays(date: Date, amount: number) {
-  const nextDate = new Date(date);
-  nextDate.setDate(nextDate.getDate() + amount);
-  return nextDate;
+  return new Date(date.getTime() + amount * DAY_MS);
 }
 
 function addMonths(date: Date, amount: number) {
   const nextDate = new Date(date);
-  nextDate.setMonth(nextDate.getMonth() + amount);
+  nextDate.setUTCDate(1);
+  nextDate.setUTCMonth(nextDate.getUTCMonth() + amount);
   return nextDate;
 }
 
-function dateKey(value: Date | string | null | undefined) {
+function peruDateKey(value: Date | string | null | undefined) {
   if (!value) return '';
-  return new Date(value).toISOString().slice(0, 10);
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Date(date.getTime() - PERU_OFFSET_MS).toISOString().slice(0, 10);
 }
 
-function monthKey(value: Date | string | null | undefined) {
-  if (!value) return '';
-  return new Date(value).toISOString().slice(0, 7);
+function peruMonthKey(value: Date | string | null | undefined) {
+  return peruDateKey(value).slice(0, 7);
+}
+
+function dateLabel(value: Date, options: Intl.DateTimeFormatOptions) {
+  return value.toLocaleDateString('es-PE', { ...options, timeZone: 'America/Lima' });
 }
 
 function money(value: number) {
   return Math.round((Number(value) || 0) * 100) / 100;
-}
-
-function isSuccessfulPayment(payment: any) {
-  return SUCCESSFUL_PAYMENT_STATUSES.has(String(payment?.estado ?? '').toLowerCase());
 }
 
 function sumPayments(payments: any[]) {
@@ -66,8 +60,44 @@ function percentage(part: number, total: number) {
   return Math.round((part / total) * 1000) / 10;
 }
 
-function uniqueCount(rows: any[], key: string) {
-  return new Set(rows.map((row) => row?.[key]).filter(Boolean)).size;
+function visitorKey(row: any) {
+  return row.visitor_id || (row.id_usuario ? 'user-' + row.id_usuario : null);
+}
+
+function uniqueVisitors(rows: any[]) {
+  return new Set(rows.map(visitorKey).filter(Boolean)).size;
+}
+
+function normalizeRoute(value: unknown) {
+  const route = String(value || '/').trim();
+  try {
+    return new URL(route, 'https://simuladormtc.pe').pathname || '/';
+  } catch {
+    return route.split('?')[0] || '/';
+  }
+}
+
+function firstRelation(value: any) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function isMembershipActive(membership: any, now = new Date()) {
+  const endDate = new Date(membership?.fecha_fin || 0);
+  return membership?.esta_activa === true
+    && !Number.isNaN(endDate.getTime())
+    && endDate >= now;
+}
+
+function membershipStatus(membership: any, now = new Date()) {
+  if (isMembershipActive(membership, now)) return 'Activa';
+  if (membership?.esta_activa === false && new Date(membership?.fecha_fin || 0) >= now) return 'Cancelada';
+  return 'Vencida';
+}
+
+function daysRemaining(value: unknown, now = new Date()) {
+  const endDate = new Date(String(value || ''));
+  if (Number.isNaN(endDate.getTime()) || endDate <= now) return 0;
+  return Math.ceil((endDate.getTime() - now.getTime()) / DAY_MS);
 }
 
 async function requireAdmin(req: Request) {
@@ -77,7 +107,7 @@ async function requireAdmin(req: Request) {
   const supabase = getSupabaseClient();
   const { data: dbUser, error } = await supabase
     .from('usuarios')
-    .select('id, correo_electronico, primer_nombre, apellido, nombre_usuario')
+    .select('id, correo_electronico, primer_nombre, apellido, nombre_usuario, rol')
     .eq('id', user.userId)
     .single();
 
@@ -85,8 +115,7 @@ async function requireAdmin(req: Request) {
     return { ok: false, response: unauthorizedResponse() };
   }
 
-  const isAdmin = getAdminEmails().has(String(dbUser.correo_electronico || '').toLowerCase());
-  if (!isAdmin) {
+  if (String(dbUser.rol || '').toUpperCase() !== ADMIN_ROLE) {
     return { ok: false, response: errorResponse('Acceso restringido al administrador', 403) };
   }
 
@@ -104,32 +133,41 @@ async function countRows(supabase: any, table: string, createdColumn = 'creado_e
 async function fetchAnalyticsRows(supabase: any, from: string) {
   const { data, error, count } = await supabase
     .from('eventos_analytics')
-    .select('visitor_id, id_usuario, tipo_evento, ruta, creado_en', { count: 'exact' })
+    .select('visitor_id, id_usuario, tipo_evento, ruta, referrer, creado_en', { count: 'exact' })
     .gte('creado_en', from)
     .order('creado_en', { ascending: false })
     .limit(10000);
 
   if (error) {
     if (error.code === '42P01') {
-      return { ready: false, rows: [], count: 0 };
+      return { ready: false, rows: [], count: 0, truncated: false };
     }
     throw error;
   }
 
-  return { ready: true, rows: data || [], count: count || 0 };
+  const rows = data || [];
+  return { ready: true, rows, count: count || 0, truncated: (count || 0) > rows.length };
 }
 
-function buildSeries(payments: any[]) {
-  const today = startOfToday();
+function buildRevenueSeries(payments: any[], today: Date, monthStart: Date) {
   const dailyRevenue = Array.from({ length: 14 }, (_, index) => {
     const date = addDays(today, index - 13);
-    return { key: dateKey(date), label: date.toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }), revenue: 0, payments: 0 };
+    return {
+      key: peruDateKey(date),
+      label: dateLabel(date, { day: '2-digit', month: 'short' }),
+      revenue: 0,
+      payments: 0,
+    };
   });
 
-  const monthStart = startOfMonth();
   const monthlyRevenue = Array.from({ length: 6 }, (_, index) => {
     const date = addMonths(monthStart, index - 5);
-    return { key: monthKey(date), label: date.toLocaleDateString('es-PE', { month: 'short', year: '2-digit' }), revenue: 0, payments: 0 };
+    return {
+      key: peruMonthKey(date),
+      label: dateLabel(date, { month: 'short', year: '2-digit' }),
+      revenue: 0,
+      payments: 0,
+    };
   });
 
   const dailyMap = new Map(dailyRevenue.map((item) => [item.key, item]));
@@ -137,8 +175,8 @@ function buildSeries(payments: any[]) {
 
   payments.forEach((payment) => {
     const paidAt = payment.fecha_pago || payment.creado_en;
-    const day = dailyMap.get(dateKey(paidAt));
-    const month = monthlyMap.get(monthKey(paidAt));
+    const day = dailyMap.get(peruDateKey(paidAt));
+    const month = monthlyMap.get(peruMonthKey(paidAt));
     if (day) {
       day.revenue = money(day.revenue + Number(payment.monto || 0));
       day.payments += 1;
@@ -152,9 +190,63 @@ function buildSeries(payments: any[]) {
   return { dailyRevenue, monthlyRevenue };
 }
 
+function buildTrafficSeries(pageViews: any[], today: Date) {
+  const series = Array.from({ length: 14 }, (_, index) => {
+    const date = addDays(today, index - 13);
+    return {
+      key: peruDateKey(date),
+      label: dateLabel(date, { day: '2-digit', month: 'short' }),
+      pageViews: 0,
+      visitors: 0,
+    };
+  });
+  const itemByDate = new Map(series.map((item) => [item.key, item]));
+  const visitorsByDate = new Map(series.map((item) => [item.key, new Set<string>()]));
+
+  pageViews.forEach((event) => {
+    const key = peruDateKey(event.creado_en);
+    const item = itemByDate.get(key);
+    if (!item) return;
+    item.pageViews += 1;
+    const keyForVisitor = visitorKey(event);
+    if (keyForVisitor) visitorsByDate.get(key)?.add(keyForVisitor);
+  });
+
+  series.forEach((item) => {
+    item.visitors = visitorsByDate.get(item.key)?.size || 0;
+  });
+
+  return series;
+}
+
+function buildTopPages(pageViews: any[]) {
+  const pageMap = new Map<string, { path: string; views: number; visitors: Set<string> }>();
+
+  pageViews.forEach((event) => {
+    const path = normalizeRoute(event.ruta);
+    const current = pageMap.get(path) || { path, views: 0, visitors: new Set<string>() };
+    current.views += 1;
+    const key = visitorKey(event);
+    if (key) current.visitors.add(key);
+    pageMap.set(path, current);
+  });
+
+  return Array.from(pageMap.values())
+    .sort((left, right) => right.views - left.views)
+    .slice(0, 12)
+    .map((page) => ({
+      path: page.path,
+      views: page.views,
+      visitors: page.visitors.size,
+      share: percentage(page.views, pageViews.length),
+    }));
+}
+
 async function buildAdminOverview(supabase: any) {
-  const today = startOfToday();
-  const monthStart = startOfMonth();
+  const now = new Date();
+  const today = startOfToday(now);
+  const monthStart = startOfMonth(now);
+  const analyticsStart = addDays(today, -29);
   const todayIso = today.toISOString();
   const monthIso = monthStart.toISOString();
 
@@ -171,11 +263,27 @@ async function buildAdminOverview(supabase: any) {
     countRows(supabase, 'usuarios'),
     countRows(supabase, 'usuarios', 'creado_en', todayIso),
     countRows(supabase, 'usuarios', 'creado_en', monthIso),
-    fetchAnalyticsRows(supabase, monthIso),
-    supabase.from('sesion_practica').select('id, id_usuario, estado, id_categoria, creado_en, created_at, fecha_fin').order('creado_en', { ascending: false }).limit(10000),
-    supabase.from('transacciones_pago').select('id, id_usuario, id_plan_membresia, monto, moneda, metodo_pago, estado, fecha_pago, creado_en, correo_cliente, planes_membresia:id_plan_membresia(nombre, precio, duracion_meses), usuarios:id_usuario(correo_electronico, primer_nombre, apellido, nombre_usuario)').order('creado_en', { ascending: false }).limit(10000),
-    supabase.from('membresias_usuario').select('id_usuario, fecha_inicio, fecha_fin, esta_activa').eq('esta_activa', true).gte('fecha_fin', new Date().toISOString()).limit(10000),
-    supabase.from('usuarios').select('id, correo_electronico, nombre_usuario, primer_nombre, apellido, creado_en').order('creado_en', { ascending: false }).limit(25),
+    fetchAnalyticsRows(supabase, analyticsStart.toISOString()),
+    supabase
+      .from('sesion_practica')
+      .select('id, id_usuario, estado, id_categoria, modo_practica, tipo_sesion, creado_en, created_at, fecha_fin')
+      .order('creado_en', { ascending: false })
+      .limit(10000),
+    supabase
+      .from('transacciones_pago')
+      .select('id, id_usuario, id_plan_membresia, monto, moneda, metodo_pago, estado, fecha_pago, creado_en, correo_cliente, planes_membresia:id_plan_membresia(nombre, precio, duracion_meses), usuarios:id_usuario(correo_electronico, primer_nombre, apellido, nombre_usuario)')
+      .order('creado_en', { ascending: false })
+      .limit(10000),
+    supabase
+      .from('membresias_usuario')
+      .select('id, id_usuario, id_plan_membresia, fecha_inicio, fecha_fin, esta_activa, creado_en, planes_membresia:id_plan_membresia(nombre, precio, duracion_meses), usuarios:id_usuario(correo_electronico, primer_nombre, apellido, nombre_usuario)')
+      .order('creado_en', { ascending: false })
+      .limit(1000),
+    supabase
+      .from('usuarios')
+      .select('id, correo_electronico, nombre_usuario, primer_nombre, apellido, rol, creado_en')
+      .order('creado_en', { ascending: false })
+      .limit(50),
   ]);
 
   for (const result of [sessionsResult, transactionsResult, membershipsResult, recentUsersResult]) {
@@ -184,90 +292,160 @@ async function buildAdminOverview(supabase: any) {
 
   const sessions = sessionsResult.data || [];
   const transactions = transactionsResult.data || [];
-  const activeMemberships = membershipsResult.data || [];
+  const memberships = membershipsResult.data || [];
   const recentUsers = recentUsersResult.data || [];
-  const successfulPayments = transactions.filter(isSuccessfulPayment);
-  const sessionsToday = sessions.filter((session) => new Date(session.creado_en || session.created_at || 0) >= today);
-  const sessionsMonth = sessions.filter((session) => new Date(session.creado_en || session.created_at || 0) >= monthStart);
-  const paymentsToday = successfulPayments.filter((payment) => new Date(payment.fecha_pago || payment.creado_en || 0) >= today);
-  const paymentsMonth = successfulPayments.filter((payment) => new Date(payment.fecha_pago || payment.creado_en || 0) >= monthStart);
-  const practiceUserIds = new Set(sessions.map((session) => session.id_usuario).filter(Boolean));
-  const payingUserIds = new Set([
-    ...successfulPayments.map((payment) => payment.id_usuario).filter(Boolean),
-    ...activeMemberships.map((membership) => membership.id_usuario).filter(Boolean),
-  ]);
-  const practicedUnpaidUserIds = Array.from(practiceUserIds).filter((userId) => !payingUserIds.has(userId));
-  const pageViews = analytics.rows.filter((row) => row.tipo_evento === 'page_view');
-  const pageViewsToday = pageViews.filter((event) => new Date(event.creado_en || 0) >= today);
-  const visitorKey = (row: any) => row.visitor_id || (row.id_usuario ? `user-${row.id_usuario}` : null);
-  const { dailyRevenue, monthlyRevenue } = buildSeries(successfulPayments);
+  const successfulPayments = transactions.filter(isRealPayment);
+  const activeMemberships = memberships.filter((membership: any) => isMembershipActive(membership, now));
+  const expiringMemberships = activeMemberships.filter((membership: any) => daysRemaining(membership.fecha_fin, now) <= 7);
+  const membershipsThisMonth = memberships.filter((membership: any) => new Date(membership.creado_en || 0) >= monthStart);
+  const sessionsToday = sessions.filter((session: any) => new Date(session.creado_en || session.created_at || 0) >= today);
+  const sessionsMonth = sessions.filter((session: any) => new Date(session.creado_en || session.created_at || 0) >= monthStart);
+  const timedSessionsMonth = sessionsMonth.filter((session: any) => String(session.tipo_sesion || session.modo_practica || '').toUpperCase() === 'CRONOMETRADO');
+  const paymentsToday = successfulPayments.filter((payment: any) => new Date(payment.fecha_pago || payment.creado_en || 0) >= today);
+  const paymentsMonth = successfulPayments.filter((payment: any) => new Date(payment.fecha_pago || payment.creado_en || 0) >= monthStart);
+  const practiceUserIds = new Set(sessions.map((session: any) => session.id_usuario).filter(Boolean));
+  const realPayingUserIds = new Set(successfulPayments.map((payment: any) => payment.id_usuario).filter(Boolean));
+  const activeMemberUserIds = new Set(activeMemberships.map((membership: any) => membership.id_usuario).filter(Boolean));
+  const subscribedUserIds = new Set([...realPayingUserIds, ...activeMemberUserIds]);
+  const practicedUnpaidUserIds = Array.from(practiceUserIds).filter((userId) => !subscribedUserIds.has(userId));
+
+  const allPageViews = analytics.rows.filter((row: any) => row.tipo_evento === 'page_view');
+  const pageViewsMonth = allPageViews.filter((event: any) => new Date(event.creado_en || 0) >= monthStart);
+  const pageViewsToday = allPageViews.filter((event: any) => new Date(event.creado_en || 0) >= today);
+  const signedInPageViewsMonth = pageViewsMonth.filter((event: any) => event.id_usuario);
+  const { dailyRevenue, monthlyRevenue } = buildRevenueSeries(successfulPayments, today, monthStart);
+  const trafficDaily = buildTrafficSeries(allPageViews, today);
 
   const paymentAmountByUser = new Map<number, number>();
-  successfulPayments.forEach((payment) => {
-    paymentAmountByUser.set(payment.id_usuario, money((paymentAmountByUser.get(payment.id_usuario) || 0) + Number(payment.monto || 0)));
+  successfulPayments.forEach((payment: any) => {
+    paymentAmountByUser.set(
+      payment.id_usuario,
+      money((paymentAmountByUser.get(payment.id_usuario) || 0) + Number(payment.monto || 0)),
+    );
   });
 
   const practiceCountByUser = new Map<number, number>();
-  sessions.forEach((session) => {
+  sessions.forEach((session: any) => {
     practiceCountByUser.set(session.id_usuario, (practiceCountByUser.get(session.id_usuario) || 0) + 1);
   });
 
+  const activeMembershipByUser = new Map<number, any>();
+  activeMemberships.forEach((membership: any) => {
+    if (!activeMembershipByUser.has(membership.id_usuario)) {
+      activeMembershipByUser.set(membership.id_usuario, membership);
+    }
+  });
+
+  const activePlanValue = activeMemberships.reduce((sum: number, membership: any) => {
+    const plan = firstRelation(membership.planes_membresia);
+    return sum + Number(plan?.precio || 0);
+  }, 0);
+
   return {
     generatedAt: new Date().toISOString(),
+    adminRole: ADMIN_ROLE,
     analyticsReady: analytics.ready,
+    analyticsTruncated: analytics.truncated,
     metrics: {
       totalUsers,
       usersToday,
       usersThisMonth,
-      pageViewsThisMonth: pageViews.length,
       pageViewsToday: pageViewsToday.length,
-      uniqueVisitorsThisMonth: new Set(pageViews.map(visitorKey).filter(Boolean)).size,
-      uniqueVisitorsToday: new Set(pageViewsToday.map(visitorKey).filter(Boolean)).size,
+      pageViewsThisMonth: pageViewsMonth.length,
+      pageViews30Days: allPageViews.length,
+      uniqueVisitorsToday: uniqueVisitors(pageViewsToday),
+      uniqueVisitorsThisMonth: uniqueVisitors(pageViewsMonth),
+      uniqueVisitors30Days: uniqueVisitors(allPageViews),
+      signedInVisitorsThisMonth: new Set(signedInPageViewsMonth.map((row: any) => row.id_usuario)).size,
       practiceSessionsTotal: sessions.length,
       practiceSessionsToday: sessionsToday.length,
       practiceSessionsThisMonth: sessionsMonth.length,
+      timedSessionsThisMonth: timedSessionsMonth.length,
       practicedUsers: practiceUserIds.size,
       practicedButUnpaidUsers: practicedUnpaidUserIds.length,
-      payingUsers: payingUserIds.size,
+      payingUsers: subscribedUserIds.size,
+      realPayingUsers: realPayingUserIds.size,
+      activeSubscriptions: activeMemberships.length,
+      expiredSubscriptions: Math.max(memberships.length - activeMemberships.length, 0),
+      subscriptionsThisMonth: membershipsThisMonth.length,
+      subscriptionsExpiring7Days: expiringMemberships.length,
+      activePlanValue: money(activePlanValue),
       revenueToday: sumPayments(paymentsToday),
       revenueThisMonth: sumPayments(paymentsMonth),
       revenueTotal: sumPayments(successfulPayments),
       paymentsToday: paymentsToday.length,
       paymentsThisMonth: paymentsMonth.length,
       paymentsTotal: successfulPayments.length,
-      conversionFromPractice: percentage(payingUserIds.size, practiceUserIds.size),
+      conversionFromPractice: percentage(subscribedUserIds.size, practiceUserIds.size),
+      registeredToPaidConversion: percentage(realPayingUserIds.size, totalUsers),
     },
     series: {
       dailyRevenue,
       monthlyRevenue,
+      trafficDaily,
     },
-    recentUsers: recentUsers.map((user: any) => ({
-      id: user.id,
-      name: [user.primer_nombre, user.apellido].filter(Boolean).join(' ') || user.nombre_usuario || user.correo_electronico,
-      email: user.correo_electronico,
-      registeredAt: user.creado_en,
-      practiceSessions: practiceCountByUser.get(user.id) || 0,
-      paidAmount: paymentAmountByUser.get(user.id) || 0,
-      status: payingUserIds.has(user.id) ? 'Pago' : practiceUserIds.has(user.id) ? 'Practico sin pagar' : 'Registro',
-    })),
-    recentPayments: successfulPayments.slice(0, 25).map((payment: any) => ({
-      id: payment.id,
-      userId: payment.id_usuario,
-      customer: payment.usuarios?.correo_electronico || payment.correo_cliente || '',
-      plan: payment.planes_membresia?.nombre || `Plan ${payment.id_plan_membresia}`,
-      method: payment.metodo_pago,
-      amount: Number(payment.monto || 0),
-      currency: payment.moneda || 'PEN',
-      status: payment.estado,
-      paidAt: payment.fecha_pago || payment.creado_en,
-    })),
+    topPages: buildTopPages(allPageViews),
+    recentUsers: recentUsers.map((user: any) => {
+      const activeMembership = activeMembershipByUser.get(user.id);
+      const hasPaid = realPayingUserIds.has(user.id);
+      const hasPracticed = practiceUserIds.has(user.id);
+      return {
+        id: user.id,
+        name: [user.primer_nombre, user.apellido].filter(Boolean).join(' ') || user.nombre_usuario || user.correo_electronico,
+        email: user.correo_electronico,
+        role: user.rol || 'USUARIO',
+        registeredAt: user.creado_en,
+        practiceSessions: practiceCountByUser.get(user.id) || 0,
+        paidAmount: paymentAmountByUser.get(user.id) || 0,
+        membershipEndsAt: activeMembership?.fecha_fin || null,
+        status: activeMembership
+          ? 'Suscripcion activa'
+          : hasPaid
+          ? 'Pago anterior'
+          : hasPracticed
+          ? 'Practico sin pagar'
+          : 'Registro',
+      };
+    }),
+    recentPayments: successfulPayments.slice(0, 50).map((payment: any) => {
+      const customer = firstRelation(payment.usuarios);
+      const plan = firstRelation(payment.planes_membresia);
+      return {
+        id: payment.id,
+        userId: payment.id_usuario,
+        customer: customer?.correo_electronico || payment.correo_cliente || '',
+        plan: plan?.nombre || 'Plan ' + payment.id_plan_membresia,
+        method: payment.metodo_pago,
+        amount: Number(payment.monto || 0),
+        currency: payment.moneda || 'PEN',
+        status: payment.estado,
+        paidAt: payment.fecha_pago || payment.creado_en,
+      };
+    }),
+    subscriptions: memberships.slice(0, 100).map((membership: any) => {
+      const customer = firstRelation(membership.usuarios);
+      const plan = firstRelation(membership.planes_membresia);
+      return {
+        id: membership.id,
+        userId: membership.id_usuario,
+        customer: customer?.correo_electronico || 'Usuario ' + membership.id_usuario,
+        customerName: [customer?.primer_nombre, customer?.apellido].filter(Boolean).join(' '),
+        plan: plan?.nombre || 'Plan ' + membership.id_plan_membresia,
+        amount: Number(plan?.precio || 0),
+        durationMonths: Number(plan?.duracion_meses || 1),
+        status: membershipStatus(membership, now),
+        startedAt: membership.fecha_inicio,
+        endsAt: membership.fecha_fin,
+        daysRemaining: daysRemaining(membership.fecha_fin, now),
+      };
+    }),
   };
 }
 
 function csvEscape(value: unknown) {
   const text = String(value ?? '');
   if (/[",\n\r]/.test(text)) {
-    return `"${text.replace(/"/g, '""')}"`;
+    return '"' + text.replace(/"/g, '""') + '"';
   }
   return text;
 }
@@ -291,7 +469,7 @@ function csvResponse(filename: string, rows: Record<string, unknown>[]) {
     headers: {
       ...corsHeaders,
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Disposition': 'attachment; filename="' + filename + '"',
     },
   });
 }
@@ -305,7 +483,7 @@ export async function handleGetAdminOverview(req: Request) {
     return jsonResponse(overview);
   } catch (error) {
     console.error('Admin overview error:', error);
-    return errorResponse('No se pudo cargar el dashboard admin', 500);
+    return errorResponse('No se pudo cargar el panel administrador', 500);
   }
 }
 
@@ -321,9 +499,14 @@ export async function handleExportAdminReport(req: Request) {
     if (type === 'users') {
       return csvResponse('usuarios-admin.csv', overview.recentUsers);
     }
-
     if (type === 'payments') {
       return csvResponse('pagos-admin.csv', overview.recentPayments);
+    }
+    if (type === 'subscriptions') {
+      return csvResponse('suscripciones-admin.csv', overview.subscriptions);
+    }
+    if (type === 'traffic') {
+      return csvResponse('trafico-admin.csv', overview.topPages);
     }
 
     const rows = Object.entries(overview.metrics).map(([metric, value]) => ({ metric, value }));

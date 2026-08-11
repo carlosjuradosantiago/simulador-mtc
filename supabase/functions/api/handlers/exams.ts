@@ -1,6 +1,12 @@
 import { getSupabaseClient } from '../_shared/supabase.ts';
 import { getUserFromToken } from '../_shared/auth.ts';
 import { jsonResponse, errorResponse, unauthorizedResponse } from '../_shared/response.ts';
+import { OFFICIAL_EXAM_QUESTION_COUNT, passesOfficialExam } from '../_shared/exam-rules.ts';
+import { TIMED_SESSION_TYPE } from '../_shared/membership-access.ts';
+import {
+  normalizeSessionQuestionIds,
+  normalizeSubmittedAnswers,
+} from '../_shared/exam-submission.ts';
 export async function handleSubmitExam(req) {
   try {
     const user = await getUserFromToken(req);
@@ -21,10 +27,20 @@ export async function handleSubmitExam(req) {
     if (session.estado === 'FINALIZADO') {
       return errorResponse('Esta sesión ya ha sido finalizada', 400);
     }
-    const answerQuestionIds = respuestas
-      .map((respuesta: any) => respuesta.idPregunta ?? respuesta.questionId ?? respuesta.id_pregunta)
-      .filter(Boolean);
-    const uniqueQuestionIds = Array.from(new Set(answerQuestionIds));
+    const uniqueQuestionIds = normalizeSessionQuestionIds(session.ids_preguntas);
+    if (!uniqueQuestionIds.length) {
+      return errorResponse('La sesión no tiene preguntas válidas', 400);
+    }
+    if (
+      session.tipo_sesion === TIMED_SESSION_TYPE
+      && uniqueQuestionIds.length !== OFFICIAL_EXAM_QUESTION_COUNT
+    ) {
+      return errorResponse('El simulacro cronometrado no contiene las 40 preguntas requeridas', 409);
+    }
+    const normalizedSubmission = normalizeSubmittedAnswers(uniqueQuestionIds, respuestas);
+    if (normalizedSubmission.outsideQuestionIds.length || normalizedSubmission.duplicateQuestionIds.length) {
+      return errorResponse('Las respuestas no coinciden con las preguntas de esta sesión', 400);
+    }
     const { data: preguntas } = uniqueQuestionIds.length
       ? await supabase
         .from('pregunta')
@@ -50,12 +66,16 @@ export async function handleSubmitExam(req) {
     let respuestasIncorrectas = 0;
     let sinResponder = 0;
     const respuestasDetalle = [];
-    for (const [index, respuesta] of respuestas.entries()){
-      const idPregunta = respuesta.idPregunta ?? respuesta.questionId ?? respuesta.id_pregunta;
-      const idOpcionSeleccionada = respuesta.idOpcionSeleccionada ?? respuesta.selectedOptionId ?? respuesta.id_opcion_seleccionada;
+    for (const [index, respuesta] of normalizedSubmission.answers.entries()){
+      const idPregunta = respuesta.idPregunta;
+      const idOpcionSeleccionada = respuesta.idOpcionSeleccionada;
       const pregunta = preguntasPorId.get(String(idPregunta));
       const opcionSeleccionada = idOpcionSeleccionada ? opcionesPorId.get(String(idOpcionSeleccionada)) : null;
       const opcionCorrecta = opcionCorrectaPorPregunta.get(String(idPregunta));
+
+      if (idOpcionSeleccionada && (!opcionSeleccionada || String(opcionSeleccionada.id_pregunta) !== String(idPregunta))) {
+        return errorResponse('Una opción seleccionada no pertenece a su pregunta', 400);
+      }
 
       if (!idOpcionSeleccionada) {
         sinResponder++;
@@ -127,9 +147,11 @@ export async function handleSubmitExam(req) {
         });
       }
     }
-    const totalPreguntas = session.total_preguntas || respuestas.length;
+    const totalPreguntas = uniqueQuestionIds.length;
     const porcentaje = totalPreguntas > 0 ? Math.round(respuestasCorrectas / totalPreguntas * 100) : 0;
-    const aprobado = porcentaje >= 80;
+    const aprobado = session.tipo_sesion === TIMED_SESSION_TYPE
+      ? passesOfficialExam(respuestasCorrectas)
+      : porcentaje >= 80;
     const now = new Date().toISOString();
     // Update session
     const { error: updateError } = await supabase.from('sesion_practica').update({
@@ -190,6 +212,7 @@ export async function handleSubmitExam(req) {
         porcentaje,
         aprobado,
         tipoSesion: session.tipo_sesion,
+        respuestasDetalle,
         mensaje: aprobado ? '¡Felicidades! Has aprobado el examen.' : 'No has aprobado. Sigue practicando.'
       }
     });
@@ -207,7 +230,15 @@ export async function handleSubmitAnswer(req) {
     }
     const body = await req.json();
     const { practiceSessionId, idPregunta, idOpcionSeleccionada } = body;
-    if (!practiceSessionId || !idPregunta || !idOpcionSeleccionada) {
+    const questionId = Number(idPregunta);
+    const selectedOptionId = Number(idOpcionSeleccionada);
+    if (
+      !practiceSessionId
+      || !Number.isInteger(questionId)
+      || questionId <= 0
+      || !Number.isInteger(selectedOptionId)
+      || selectedOptionId <= 0
+    ) {
       return errorResponse('Datos de respuesta inválidos', 400);
     }
     const supabase = getSupabaseClient();
@@ -219,14 +250,26 @@ export async function handleSubmitAnswer(req) {
     if (session.estado === 'FINALIZADO') {
       return errorResponse('Esta sesión ya ha sido finalizada', 400);
     }
+    const sessionQuestionIds = normalizeSessionQuestionIds(session.ids_preguntas);
+    if (!sessionQuestionIds.includes(questionId)) {
+      return errorResponse('La pregunta no pertenece a esta sesión', 400);
+    }
     // Check answer
-    const { data: opcion } = await supabase.from('opcion_pregunta').select('id, es_correcta, texto').eq('id', idOpcionSeleccionada).single();
+    const { data: opcion } = await supabase
+      .from('opcion_pregunta')
+      .select('id, id_pregunta, es_correcta, texto')
+      .eq('id', selectedOptionId)
+      .eq('id_pregunta', questionId)
+      .maybeSingle();
     if (!opcion) {
-      return errorResponse('Opción no encontrada', 404);
+      return errorResponse('La opción no pertenece a esta pregunta', 400);
+    }
+    if (session.tipo_sesion === TIMED_SESSION_TYPE) {
+      return jsonResponse({ saved: true });
     }
     const esCorrecta = opcion.es_correcta;
     // Get correct answer for feedback
-    const { data: correcta } = await supabase.from('opcion_pregunta').select('id, texto').eq('id_pregunta', idPregunta).eq('es_correcta', true).single();
+    const { data: correcta } = await supabase.from('opcion_pregunta').select('id, texto').eq('id_pregunta', questionId).eq('es_correcta', true).single();
     // Update session stats
     const newRespondidas = (session.preguntas_respondidas || 0) + 1;
     const newCorrectas = (session.respuestas_correctas || 0) + (esCorrecta ? 1 : 0);
@@ -238,7 +281,7 @@ export async function handleSubmitAnswer(req) {
       updated_at: new Date().toISOString()
     }).eq('id', practiceSessionId);
     // Get explanation
-    const { data: pregunta } = await supabase.from('pregunta').select('explicacion').eq('id', idPregunta).single();
+    const { data: pregunta } = await supabase.from('pregunta').select('explicacion').eq('id', questionId).single();
     return jsonResponse({
       esCorrecta,
       opcionSeleccionada: {

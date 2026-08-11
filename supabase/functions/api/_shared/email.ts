@@ -1,3 +1,5 @@
+import { resolveEmailRecipient } from './email-recipient.ts';
+
 /**
  * 📧 Servicio de Email usando Resend
  * 
@@ -32,6 +34,22 @@ const FROM_EMAIL_DEV = 'Simulador MTC <onboarding@resend.dev>';
       error: 'API key de Resend no configurada'
     };
   }
+
+  const recipient = resolveEmailRecipient(
+    to,
+    Deno.env.get('RESEND_QA_SOURCE_EMAIL'),
+    Deno.env.get('RESEND_QA_RECIPIENT'),
+    Deno.env.get('RESEND_ALLOWED_RECIPIENT'),
+  );
+
+  if (!recipient.allowed) {
+    console.warn('[EMAIL] Envio bloqueado por la lista permitida:', recipient.originalRecipient);
+    return {
+      success: false,
+      error: 'Destinatario no permitido en el modo de prueba'
+    };
+  }
+
   try {
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -42,7 +60,7 @@ const FROM_EMAIL_DEV = 'Simulador MTC <onboarding@resend.dev>';
       body: JSON.stringify({
         from: FROM_EMAIL_DEV,
         to: [
-          to
+          recipient.deliveryRecipient
         ],
         subject,
         html

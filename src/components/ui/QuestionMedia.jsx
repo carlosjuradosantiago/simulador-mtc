@@ -26,11 +26,11 @@ export function QuestionImage({ src, mediaType = 'image/png', alt = 'Imagen de l
 
 export function OptionContent({ option, className = '' }) {
   const imageSrc = normalizeImageSource(option?.mediaData, option?.mediaType);
-  const text = option?.texto?.trim();
+  const text = option?.texto;
 
   return (
     <span className={cn('flex min-w-0 flex-1 flex-col gap-3 font-medium', className)}>
-      {text ? <span className="leading-snug">{text}</span> : null}
+      {text ? <span className="whitespace-pre-wrap break-words leading-snug">{text}</span> : null}
       {imageSrc ? (
         <span className="inline-flex max-w-full rounded-lg border border-line bg-white p-2">
           <img src={imageSrc} alt={text || 'Opcion con imagen'} className="max-h-28 max-w-full object-contain" loading="lazy" />

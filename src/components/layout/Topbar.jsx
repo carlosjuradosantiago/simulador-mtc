@@ -1,37 +1,32 @@
-import { ArrowLeft, Bell, ChevronDown, CircleGauge, LogOut, Menu, Play, Search, UserRound } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { BarChart3, BookOpen, CarFront, ChevronDown, CircleUserRound, HelpCircle, Home, LogOut, ShieldCheck, UserRound } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import Button from '../ui/Button.jsx';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import { isAdminUser } from '../../utils/admin.js';
+import BrandLogo from './BrandLogo.jsx';
 
-export default function Topbar({ onMenu }) {
+function isActivePath(pathname, item) {
+  if (item.id === 'home') return pathname === '/dashboard';
+  if (item.id === 'practice') return pathname.startsWith('/simulacro');
+  if (item.id === 'learn') return pathname.startsWith('/banco-preguntas') || pathname.startsWith('/clases');
+  if (item.id === 'progress') return pathname.startsWith('/resultados');
+  return false;
+}
+
+export default function Topbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
-  const isDashboard = pathname === '/dashboard';
-  const isResults = pathname.startsWith('/resultados');
-  const isComplaint = pathname === '/libro-reclamaciones';
-  const showStartButton = isDashboard || isComplaint;
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const category = user?.category ?? 25;
   const adminUser = isAdminUser(user);
-
-  const handleSearch = (event) => {
-    event.preventDefault();
-    const nextSearch = searchTerm.trim();
-    if (nextSearch) {
-      navigate(`/banco-preguntas?search=${encodeURIComponent(nextSearch)}`);
-    }
-  };
-
-  const handleLogout = () => {
-    setUserMenuOpen(false);
-    logout();
-    navigate('/', { replace: true });
-  };
+  const navItems = [
+    { id: 'home', label: 'Inicio', icon: Home, to: '/dashboard' },
+    { id: 'practice', label: 'Practicar', icon: CarFront, to: `/simulacro/${category}?mode=quick` },
+    { id: 'learn', label: 'Aprender', icon: BookOpen, to: '/banco-preguntas' },
+    { id: 'progress', label: 'Mi avance', icon: BarChart3, to: '/resultados' },
+  ];
 
   useEffect(() => {
     setUserMenuOpen(false);
@@ -40,110 +35,122 @@ export default function Topbar({ onMenu }) {
   useEffect(() => {
     if (!userMenuOpen) return undefined;
 
-    const handlePointerDown = (event) => {
-      if (!userMenuRef.current?.contains(event.target)) {
-        setUserMenuOpen(false);
-      }
+    const closeMenu = (event) => {
+      if (event.type === 'keydown' && event.key !== 'Escape') return;
+      if (event.type === 'pointerdown' && userMenuRef.current?.contains(event.target)) return;
+      setUserMenuOpen(false);
     };
 
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        setUserMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-
+    document.addEventListener('pointerdown', closeMenu);
+    document.addEventListener('keydown', closeMenu);
     return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('pointerdown', closeMenu);
+      document.removeEventListener('keydown', closeMenu);
     };
   }, [userMenuOpen]);
 
-  return (
-    <header className="sticky top-0 z-30 border-b border-line bg-white/95 px-4 py-3 backdrop-blur lg:px-8">
-      <div className="flex h-12 items-center gap-4">
-        <button className="rounded-lg border border-line p-2 lg:hidden" onClick={onMenu} aria-label="Abrir menú">
-          <Menu className="h-5 w-5" />
-        </button>
-        {isDashboard ? (
-          <form onSubmit={handleSearch} className="hidden h-11 w-[410px] flex-none items-center gap-3 rounded-xl border border-line bg-white px-4 shadow-sm md:flex">
-            <Search className="h-5 w-5 text-slate-400" />
-            <input aria-label="Buscar temas, preguntas, clases" className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400" placeholder="Buscar temas, preguntas, clases..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
-            <button type="submit" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 transition hover:bg-blue-50 hover:text-brand" aria-label="Buscar">
-              <Search className="h-4 w-4" />
-            </button>
-          </form>
-        ) : null}
-        {isResults ? (
-          <div className="hidden h-11 min-w-64 items-center gap-3 rounded-xl border border-line bg-white px-5 font-bold shadow-sm md:flex">
-            <CircleGauge className="h-6 w-6 text-brand-dark" /> Resultado de simulacro <ChevronDown className="ml-auto h-4 w-4" />
-          </div>
-        ) : null}
-        {!isDashboard && !isResults ? <div className="min-w-0 flex-1" /> : null}
-        <div className="ml-auto flex items-center gap-3">
-          <button type="button" className="relative rounded-xl border border-line bg-white p-3 text-ink shadow-sm hover:bg-slate-50" aria-label="Notificaciones">
-            <Bell className="h-5 w-5" />
-            <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-danger text-xs font-bold text-white">3</span>
-          </button>
-          <div ref={userMenuRef} className="relative">
-            <button
-              type="button"
-              className="flex items-center gap-3 rounded-xl px-1 py-1 hover:bg-slate-50 sm:px-2"
-              onClick={() => setUserMenuOpen((open) => !open)}
-              aria-haspopup="menu"
-              aria-expanded={userMenuOpen}
-            >
-              <span className="relative grid h-11 w-11 overflow-hidden rounded-full bg-gradient-to-br from-sky-200 via-amber-100 to-blue-400 ring-4 ring-blue-50">
-                <span className="absolute left-1/2 top-2 h-4 w-4 -translate-x-1/2 rounded-full bg-amber-700" />
-                <span className="absolute left-1/2 top-5 h-5 w-7 -translate-x-1/2 rounded-t-full bg-white" />
-                <span className="absolute bottom-0 left-1/2 h-5 w-10 -translate-x-1/2 rounded-t-full bg-brand-dark" />
-              </span>
-              <span className="hidden text-left sm:block">
-                <span className="block max-w-[220px] truncate text-sm font-bold text-ink">{user?.name ?? 'Carlos Mendoza'}</span>
-                <span className="block text-xs text-slate-500">{adminUser ? 'Administrador' : 'Estudiante'}</span>
-              </span>
-              <ChevronDown className="h-4 w-4 text-ink" />
-            </button>
+  const handleLogout = () => {
+    logout();
+    navigate('/', { replace: true });
+  };
 
-            {userMenuOpen ? (
-              <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-line bg-white py-2 shadow-xl">
-                <div className="border-b border-line px-4 py-3">
-                  <p className="truncate text-sm font-black text-ink">{user?.name ?? 'Estudiante'}</p>
-                  <p className="truncate text-xs text-slate-500">{user?.email ?? 'Cuenta activa'}</p>
-                </div>
-                <Link to="/perfil" className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-brand">
-                  <UserRound className="h-4 w-4" />
-                  Perfil
+  return (
+    <>
+      <header className="sticky top-0 z-40 border-b border-line bg-white">
+        <div className="mx-auto flex min-h-[72px] max-w-[1440px] items-center gap-4 px-4 sm:px-6 lg:px-8">
+          <BrandLogo compact to="/dashboard" className="md:hidden" />
+          <BrandLogo to="/dashboard" className="hidden md:inline-flex" />
+
+          <nav aria-label="Navegación principal" className="mx-auto hidden h-[72px] items-stretch gap-1 lg:flex">
+            {navItems.map((item) => {
+              const active = isActivePath(pathname, item);
+              return (
+                <Link
+                  key={item.id}
+                  to={item.to}
+                  aria-current={active ? 'page' : undefined}
+                  className={`inline-flex min-w-28 items-center justify-center gap-2 border-b-4 px-4 font-bold transition ${
+                    active ? 'border-brand text-brand' : 'border-transparent text-slate-600 hover:border-blue-200 hover:text-brand'
+                  }`}
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.label}
                 </Link>
-                {adminUser ? (
-                  <Link to="/admin" className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-brand">
-                    <CircleGauge className="h-4 w-4" />
-                    Panel admin
+              );
+            })}
+          </nav>
+
+          <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <Link
+              to="/clases"
+              aria-label="Ayuda"
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line px-3 font-bold text-ink hover:border-brand hover:bg-blue-50"
+            >
+              <HelpCircle className="h-5 w-5 text-brand" />
+              <span className="hidden sm:inline">Ayuda</span>
+            </Link>
+
+            <div ref={userMenuRef} className="relative">
+              <button
+                type="button"
+                aria-label={`Abrir menú de ${user?.name ?? 'Estudiante'}`}
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 hover:bg-slate-50"
+                onClick={() => setUserMenuOpen((open) => !open)}
+                aria-haspopup="menu"
+                aria-expanded={userMenuOpen}
+              >
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-traffic-yellow text-ink">
+                  <CircleUserRound className="h-7 w-7" />
+                </span>
+                <span className="hidden max-w-48 truncate text-left font-bold xl:block">{user?.name ?? 'Estudiante'}</span>
+                <ChevronDown className="hidden h-4 w-4 sm:block" />
+              </button>
+
+              {userMenuOpen ? (
+                <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-lg border border-line bg-white py-2 shadow-xl" role="menu">
+                  <div className="border-b border-line px-4 py-3">
+                    <p className="truncate font-bold text-ink">{user?.name ?? 'Estudiante'}</p>
+                    <p className="truncate text-sm text-slate-500">{user?.email ?? 'Cuenta activa'}</p>
+                  </div>
+                  <Link to="/perfil" role="menuitem" className="flex min-h-12 items-center gap-3 px-4 font-bold text-slate-700 hover:bg-blue-50 hover:text-brand">
+                    <UserRound className="h-5 w-5" />
+                    Mi perfil
                   </Link>
-                ) : null}
-                <button type="button" className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-danger hover:bg-red-50" onClick={handleLogout}>
-                  <LogOut className="h-4 w-4" />
-                  Cerrar sesión
-                </button>
-              </div>
-            ) : null}
+                  {adminUser ? (
+                    <Link to="/admin" role="menuitem" className="flex min-h-12 items-center gap-3 px-4 font-bold text-slate-700 hover:bg-blue-50 hover:text-brand">
+                      <ShieldCheck className="h-5 w-5" />
+                      Administración
+                    </Link>
+                  ) : null}
+                  <button type="button" role="menuitem" className="flex min-h-12 w-full items-center gap-3 px-4 text-left font-bold text-danger hover:bg-red-50" onClick={handleLogout}>
+                    <LogOut className="h-5 w-5" />
+                    Cerrar sesión
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
-          {isResults ? (
-            <Button as={Link} to="/dashboard" className="hidden min-w-52 sm:inline-flex" size="md">
-              <ArrowLeft className="h-4 w-4" />
-              Volver al dashboard
-            </Button>
-          ) : null}
-          {showStartButton ? (
-            <Button as={Link} to={`/simulacro/${user?.category ?? 'A1'}`} className="hidden min-w-44 sm:inline-flex" size="md">
-              <Play className="h-4 w-4" />
-              Iniciar simulacro
-            </Button>
-          ) : null}
         </div>
-      </div>
-    </header>
+      </header>
+
+      <nav aria-label="Navegación móvil" className="fixed inset-x-0 bottom-0 z-40 grid h-[72px] grid-cols-4 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
+        {navItems.map((item) => {
+          const active = isActivePath(pathname, item);
+          return (
+            <Link
+              key={item.id}
+              to={item.to}
+              aria-current={active ? 'page' : undefined}
+              className={`grid min-w-0 place-items-center content-center gap-1 px-1 text-xs font-bold ${
+                active ? 'text-brand' : 'text-slate-500'
+              }`}
+            >
+              <item.icon className="h-6 w-6" />
+              <span className="max-w-full truncate">{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+    </>
   );
 }

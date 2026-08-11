@@ -1,6 +1,7 @@
 import { getSupabaseClient } from '../_shared/supabase.ts';
 import { getUserFromToken } from '../_shared/auth.ts';
 import { jsonResponse, errorResponse, unauthorizedResponse } from '../_shared/response.ts';
+import { selectPracticeQuestionIds, type PracticeSelectionMode } from '../_shared/practice-selection.ts';
 
 // Get category base - determines which questions to fetch
 async function getCategoriaBase(supabase, idCategoria) {
@@ -45,28 +46,15 @@ export async function handleIniciarPractica(req, idTipoExamen, idCategoria) {
     const requestBody = (!idTipoExamen || !idCategoria) ? await req.clone().json().catch(()=>({})) : {};
     const tipoExamenId = parseInt(idTipoExamen || requestBody.tipoExamenId || requestBody.idTipoExamen);
     const categoriaId = parseInt(idCategoria || requestBody.categoriaId || requestBody.idCategoria);
+    const cantidadSolicitada = Number(requestBody.cantidadPreguntas ?? requestBody.questionCount ?? 40);
+    const cantidadPreguntas = Math.min(Math.max(Number.isFinite(cantidadSolicitada) ? Math.trunc(cantidadSolicitada) : 40, 5), 40);
+    const modoSeleccion: PracticeSelectionMode = requestBody.modoSeleccion === 'weak' ? 'weak' : 'random';
     if (!tipoExamenId || !categoriaId) {
       return errorResponse('tipoExamenId y categoriaId son requeridos', 400);
     }
     // Get category base IDs
     const categoriaIds = await getCategoriaBase(supabase, categoriaId);
-    
-    // 🎯 PASO 1: Obtener preguntas que el usuario respondió INCORRECTAMENTE en intentos anteriores
-    const { data: preguntasFalladas } = await supabase
-      .from('respuesta_intento')
-      .select('id_pregunta, pregunta!inner(id, categoria_pregunta!inner(id_categoria))')
-      .eq('respuesta_intento.es_correcta', false)
-      .in('pregunta.categoria_pregunta.id_categoria', categoriaIds)
-      .order('respondido_en', { ascending: false });
-    
-    // Obtener IDs únicos de preguntas falladas (sin duplicados)
-    const preguntasIncorrectasIds = [...new Set(
-      (preguntasFalladas || []).map(r => r.id_pregunta)
-    )];
-    
-    console.log('Preguntas falladas anteriormente:', preguntasIncorrectasIds.length);
-    
-    // 🎯 PASO 2: Obtener TODAS las preguntas disponibles de esta categoría
+
     const { data: todasLasPreguntas, error: qError } = await supabase
       .from('categoria_pregunta')
       .select('id_pregunta')
@@ -76,27 +64,33 @@ export async function handleIniciarPractica(req, idTipoExamen, idCategoria) {
       console.error('Error fetching question IDs:', qError);
       return errorResponse('Error al obtener preguntas', 500);
     }
-    
-    const todosLosIds = (todasLasPreguntas || []).map(q => q.id_pregunta);
-    
-    // 🎯 PASO 3: Separar preguntas nuevas (nunca respondidas o respondidas correctamente)
-    const preguntasNuevas = todosLosIds.filter(id => !preguntasIncorrectasIds.includes(id));
-    
-    // 🎯 PASO 4: Mezclar y seleccionar
-    // Prioridad: primero las falladas, luego completar con nuevas
-    const preguntasIncorrectasMezcladas = preguntasIncorrectasIds.sort(() => Math.random() - 0.5);
-    const preguntasNuevasMezcladas = preguntasNuevas.sort(() => Math.random() - 0.5);
-    
-    // Combinar: hasta 40 preguntas (priorizando las falladas)
-    const shuffled = [
-      ...preguntasIncorrectasMezcladas.slice(0, 40),
-      ...preguntasNuevasMezcladas
-    ].slice(0, 40);
-    
-    console.log('Distribución final:', {
-      falladas: Math.min(preguntasIncorrectasMezcladas.length, 40),
-      nuevas: Math.max(0, 40 - preguntasIncorrectasMezcladas.length),
-      total: shuffled.length
+    const todosLosIds = [...new Set((todasLasPreguntas || []).map(q => q.id_pregunta))];
+
+    const { data: intentosPrevios } = modoSeleccion === 'weak'
+      ? await supabase
+        .from('intento')
+        .select('respuestas_detalle')
+        .eq('id_usuario', usuarioId)
+        .eq('id_categoria', categoriaId)
+        .order('created_at', { ascending: false })
+        .limit(100)
+      : { data: [] };
+    const respuestasPrevias = (intentosPrevios || []).flatMap((intento) => (
+      Array.isArray(intento.respuestas_detalle) ? intento.respuestas_detalle : []
+    ));
+    const selection = selectPracticeQuestionIds(
+      todosLosIds,
+      respuestasPrevias,
+      cantidadPreguntas,
+      modoSeleccion,
+    );
+    const shuffled = selection.ids;
+
+    console.log('Selección de práctica:', {
+      solicitado: modoSeleccion,
+      aplicado: selection.appliedMode,
+      falladasDisponibles: selection.failedAvailable,
+      total: shuffled.length,
     });
     if (shuffled.length === 0) {
       return errorResponse('No hay preguntas disponibles para esta categoría', 404);
@@ -125,7 +119,7 @@ export async function handleIniciarPractica(req, idTipoExamen, idCategoria) {
       respuestas_correctas: 0,
       respuestas_incorrectas: 0,
       ids_preguntas: shuffled,
-      tipo_sesion: 'PRACTICA',
+      tipo_sesion: cantidadPreguntas < 40 ? 'PRACTICA_CORTA' : 'PRACTICA',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }).select().single();
@@ -134,7 +128,8 @@ export async function handleIniciarPractica(req, idTipoExamen, idCategoria) {
       return errorResponse('Error al crear sesión de práctica', 500);
     }
     // Format response
-    const preguntasDto = (preguntas || []).map((p)=>({
+    const ordenPregunta = new Map(shuffled.map((id, index)=>[id, index]));
+    const preguntasDto = (preguntas || []).sort((left, right)=>(ordenPregunta.get(left.id) ?? 0) - (ordenPregunta.get(right.id) ?? 0)).map((p)=>({
         id: p.id,
         texto: p.texto,
         explicacion: p.explicacion,
@@ -160,12 +155,15 @@ export async function handleIniciarPractica(req, idTipoExamen, idCategoria) {
       }));
     return jsonResponse({
       practiceSessionId: session.id,
-      tipoSesion: 'PRACTICA',
+      tipoSesion: cantidadPreguntas < 40 ? 'PRACTICA_CORTA' : 'PRACTICA',
       estado: 'EN_PROGRESO',
       totalPreguntas: shuffled.length,
       preguntasRespondidas: 0,
       respuestasCorrectas: 0,
       respuestasIncorrectas: 0,
+      modoSeleccion,
+      modoSeleccionAplicado: selection.appliedMode,
+      preguntasFalladasDisponibles: selection.failedAvailable,
       preguntas: preguntasDto
     });
   } catch (err) {

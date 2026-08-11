@@ -1,6 +1,8 @@
 import { getSupabaseClient } from '../_shared/supabase.ts';
 import { getUserFromToken } from '../_shared/auth.ts';
 import { jsonResponse, errorResponse, unauthorizedResponse } from '../_shared/response.ts';
+import { OFFICIAL_EXAM_MIN_CORRECT } from '../_shared/exam-rules.ts';
+import { partitionAttempts } from '../_shared/membership-access.ts';
 
 async function getCanonicalUsuario(supabase: any, userId: number) {
   const { data, error } = await supabase
@@ -100,6 +102,7 @@ export async function handleGetProfile(req) {
     return jsonResponse({
       id: userData.id,
       email: userData.correo_electronico,
+      role: userData.rol || 'USUARIO',
       nombre: userData.primer_nombre,
       apellido: userData.apellido,
       username: userData.nombre_usuario,
@@ -384,6 +387,15 @@ export async function handleUpdateBillingData(req) {
   }
 }
 
+function simplifyStatsTopic(value: unknown) {
+  const topic = String(value || '')
+    .trim()
+    .replace(/^Materias?\s+(?:generales|espec[ií]ficas?)(?:\s+A-?[IVX]+[A-C]?)?\s*(?:[-–:]\s*)?/i, '')
+    .trim();
+
+  return topic || 'Reglas generales';
+}
+
 // GET /api/user/stats
 export async function handleGetUserStats(req) {
   try {
@@ -392,21 +404,104 @@ export async function handleGetUserStats(req) {
       return unauthorizedResponse();
     }
     const supabase = getSupabaseClient();
-    const { data: intentos } = await supabase
+    const { data: intentos, error } = await supabase
       .from('intento')
-      .select('puntuacion, porcentaje, aprobado')
+      .select(`
+        id_categoria,
+        tipo_intento,
+        puntuacion,
+        porcentaje,
+        aprobado,
+        total_preguntas,
+        respuestas_correctas,
+        respuestas_incorrectas,
+        sin_responder,
+        respuestas_detalle,
+        categoria:id_categoria(id, nombre)
+      `)
       .eq('id_usuario', user.userId);
-    if (!intentos || intentos.length === 0) {
+    if (error) {
+      console.error('Get user stats query error:', error);
+      return errorResponse('Error al obtener el progreso', 500);
+    }
+    const { timed: timedAttempts, quick: quickAttempts } = partitionAttempts(intentos || []);
+    if (timedAttempts.length === 0) {
       return jsonResponse({
         totalIntentos: 0,
-        promedioGeneral: 0
+        freePracticeCount: quickAttempts.length,
+        promedioGeneral: 0,
+        intentosAprobados: 0,
+        totalPreguntas: 0,
+        respuestasCorrectas: 0,
+        respuestasIncorrectas: 0,
+        sinResponder: 0,
+        weakTopics: [],
+        categoryStats: [],
       });
     }
-    const promedioGeneral = Math.round(intentos.reduce((sum, i)=>sum + (Number(i.porcentaje ?? i.puntuacion) || 0), 0) / intentos.length);
+
+    const topicStats = new Map<string, { topic: string; total: number; correct: number; incorrect: number }>();
+    const categoryStats = new Map<number, { categoryId: number; categoryName: string; attempts: number; percentageTotal: number }>();
+
+    timedAttempts.forEach((intento: any) => {
+      const category = Array.isArray(intento.categoria) ? intento.categoria[0] : intento.categoria;
+      const categoryId = Number(intento.id_categoria);
+      const currentCategory = categoryStats.get(categoryId) ?? {
+        categoryId,
+        categoryName: category?.nombre || `Categoría ${categoryId}`,
+        attempts: 0,
+        percentageTotal: 0,
+      };
+      currentCategory.attempts += 1;
+      currentCategory.percentageTotal += Number(intento.porcentaje ?? intento.puntuacion) || 0;
+      categoryStats.set(categoryId, currentCategory);
+
+      const details = Array.isArray(intento.respuestas_detalle) ? intento.respuestas_detalle : [];
+      details.forEach((answer: any) => {
+        const topic = simplifyStatsTopic(answer.temaOficial ?? answer.tema_oficial ?? answer.tema);
+        const currentTopic = topicStats.get(topic) ?? { topic, total: 0, correct: 0, incorrect: 0 };
+        const isCorrect = Boolean(answer.esCorrecta ?? answer.es_correcta);
+        currentTopic.total += 1;
+        currentTopic.correct += isCorrect ? 1 : 0;
+        currentTopic.incorrect += isCorrect ? 0 : 1;
+        topicStats.set(topic, currentTopic);
+      });
+    });
+
+    const promedioGeneral = Math.round(timedAttempts.reduce((sum, intento)=>(
+      sum + (Number(intento.porcentaje ?? intento.puntuacion) || 0)
+    ), 0) / timedAttempts.length);
+    const weakTopics = [...topicStats.values()]
+      .filter((topic) => topic.incorrect > 0)
+      .map((topic) => ({
+        ...topic,
+        accuracy: topic.total ? Math.round((topic.correct / topic.total) * 100) : 0,
+      }))
+      .sort((left, right) => (
+        left.accuracy - right.accuracy
+        || right.incorrect - left.incorrect
+        || right.total - left.total
+      ))
+      .slice(0, 3);
+
     return jsonResponse({
-      totalIntentos: intentos.length,
+      totalIntentos: timedAttempts.length,
+      freePracticeCount: quickAttempts.length,
       promedioGeneral,
-      intentosAprobados: intentos.filter((i)=>i.aprobado === true || Number(i.porcentaje ?? i.puntuacion) >= 80).length
+      intentosAprobados: timedAttempts.filter((i)=>(
+        i.aprobado === true || Number(i.respuestas_correctas) >= OFFICIAL_EXAM_MIN_CORRECT
+      )).length,
+      totalPreguntas: timedAttempts.reduce((sum, intento) => sum + (Number(intento.total_preguntas) || 0), 0),
+      respuestasCorrectas: timedAttempts.reduce((sum, intento) => sum + (Number(intento.respuestas_correctas) || 0), 0),
+      respuestasIncorrectas: timedAttempts.reduce((sum, intento) => sum + (Number(intento.respuestas_incorrectas) || 0), 0),
+      sinResponder: timedAttempts.reduce((sum, intento) => sum + (Number(intento.sin_responder) || 0), 0),
+      weakTopics,
+      categoryStats: [...categoryStats.values()].map((category) => ({
+        categoryId: category.categoryId,
+        categoryName: category.categoryName,
+        attempts: category.attempts,
+        average: Math.round(category.percentageTotal / category.attempts),
+      })),
     });
   } catch (err) {
     console.error('Get user stats error:', err);

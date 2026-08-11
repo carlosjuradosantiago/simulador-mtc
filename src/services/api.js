@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { DEFAULT_LEARNING_TOPIC, deriveLearningTopic, getLearningTopicById } from '../utils/learningTopics.js';
-import { isAdminEmail } from '../utils/admin.js';
+import { isAdminRole } from '../utils/admin.js';
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://wazikdsfacrawhphzltn.supabase.co/functions/v1/api';
 export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? 'https://wazikdsfacrawhphzltn.supabase.co';
@@ -190,12 +190,14 @@ export function toFrontendUser(user, extra = {}) {
   if (!user) return null;
   const name = [user.firstName ?? user.nombre, user.lastName ?? user.apellido].filter(Boolean).join(' ') || user.username || user.email;
   const email = user.email ?? user.correoElectronico ?? user.correo_electronico ?? '';
+  const role = String(user.role ?? user.rol ?? 'USUARIO').toUpperCase();
   return {
     id: user.id,
     username: user.username,
     name,
     email,
-    isAdmin: isAdminEmail(email),
+    role,
+    isAdmin: isAdminRole(role),
     category: extra.category ?? user.category ?? user.categoriaPreferidaId ?? 25,
     avatar: user.avatar ?? initialsFromName(name),
     registeredAt: (user.createdAt || user.registeredAt || new Date().toISOString()).slice(0, 10),
@@ -483,13 +485,26 @@ export const api = {
   getAttemptDetail: (id) => apiRequest(`/user/exam-history/${id}`, { auth: true }).then(toResult),
   getMemberships: () => apiRequest('/user/memberships', { auth: true }),
   getActiveMembership: () => apiRequest('/user/membership/active', { auth: true }),
-  subscribePlan: (planId) => apiRequest('/user/membership/subscribe', { method: 'POST', body: { planId }, auth: true }),
   getExamCount: () => apiRequest('/user/exam-count', { auth: true }),
   getPaymentConfig: () => apiRequest('/pagos/config'),
   getPaymentHistory: () => apiRequest('/pagos/historial', { auth: true }),
   processPayment: (payload) => apiRequest('/pagos/procesar', { method: 'POST', body: payload, auth: true }),
+  simulatePayment: (planId) => apiRequest('/pagos/simular', {
+    method: 'POST',
+    body: { plan_id: planId },
+    auth: true,
+  }),
   startTimedExam: (category) => apiRequest(`/preguntas/examen-cronometrado/tipo-examen/2/categoria/${resolveCategoryId(category)}`, { auth: true }),
-  startPractice: (category) => apiRequest('/practica-temporal/iniciar', { method: 'POST', body: { tipoExamenId: 2, categoriaId: resolveCategoryId(category) }, auth: true }),
+  startPractice: (category, questionCount = 5, strategy = 'random') => apiRequest('/practica-temporal/iniciar', {
+    method: 'POST',
+    body: {
+      tipoExamenId: 2,
+      categoriaId: resolveCategoryId(category),
+      cantidadPreguntas: Math.min(Math.max(Number(questionCount) || 5, 5), 40),
+      modoSeleccion: strategy === 'weak' ? 'weak' : 'random',
+    },
+    auth: true,
+  }),
   getPracticeState: (sessionId) => apiRequest(`/practica/estado/${sessionId}`, { auth: true }),
   savePracticeAnswer: (sessionId, questionId, optionId) => apiRequest(`/practica/${sessionId}/respuesta`, {
     method: 'POST',

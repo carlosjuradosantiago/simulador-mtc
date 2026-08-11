@@ -1,9 +1,13 @@
 // handlers/preguntas.ts - VERSIÓN CORREGIDA CON AUTH UNIFICADO
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getUserFromToken } from '../_shared/auth.ts';
+import {
+  OFFICIAL_EXAM_DURATION_SECONDS,
+  OFFICIAL_EXAM_MIN_CORRECT,
+  OFFICIAL_EXAM_QUESTION_COUNT,
+} from '../_shared/exam-rules.ts';
+import { TIMED_SESSION_TYPE } from '../_shared/membership-access.ts';
 
-const EXAM_ACCESS_LIMITS_ENABLED = false;
-const LEGACY_EXAM_LIMIT = 3;
 // Headers CORS para todas las respuestas
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -120,56 +124,33 @@ function jsonResponse(data: unknown, status = 200) {
   }
   console.log('✅ Usuario ID:', userId);
 
-  // ============ PASO 3: VERIFICAR INTENTOS Y MEMBRESÍA ============
-  console.log('\n📊 PASO 3: Registrando intentos del usuario...');
-  // Contar sesiones de práctica del usuario (sesion_practica es la tabla que se llena al iniciar cada examen)
-  const { count: attemptCount, error: attemptError } = await supabase
-    .from('sesion_practica')
-    .select('*', { count: 'exact', head: true })
+  // ============ PASO 3: VALIDAR MEMBRESÍA ============
+  console.log('\n💳 PASO 3: Verificando membresía para el simulacro completo...');
+  const { data: activeMembership, error: membershipError } = await supabase
+    .from('membresias_usuario')
+    .select('id, fecha_fin')
     .eq('id_usuario', userId)
-    .eq('estado', 'FINALIZADO');
-  if (attemptError) {
-    throw new Error(`[PASO 3] Error al contar sesiones del usuario ${userId}: ${attemptError.message} (code: ${attemptError.code}, details: ${attemptError.details})`);
-  }
-  const totalAttempts = attemptCount || 0;
-  console.log(`📝 Sesiones completadas: ${totalAttempts}`);
+    .eq('esta_activa', true)
+    .gte('fecha_fin', new Date().toISOString())
+    .order('fecha_fin', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  let hasActiveMembership = false;
-  if (EXAM_ACCESS_LIMITS_ENABLED) {
-    // Verificar membresía activa solo cuando se reactiven los límites de acceso.
-    const { data: activeMembership, error: membershipError } = await supabase
-      .from('membresias_usuario')
-      .select('*')
-      .eq('id_usuario', userId)
-      .eq('esta_activa', true)
-      .gte('fecha_fin', new Date().toISOString())
-      .maybeSingle();
-    if (membershipError) {
-      console.error('❌ Error al verificar membresía:', membershipError.message);
-      // No lanzar error aquí - la membresía es opcional
-    }
-    hasActiveMembership = !!activeMembership;
-    console.log(`💳 Membresía activa: ${hasActiveMembership}`);
+  if (membershipError) {
+    throw new Error(`[PASO 3] Error al verificar membresía: ${membershipError.message}`);
   }
-
-  // ============ PASO 4: VALIDAR ACCESO ============
-  console.log('\n✅ PASO 4: Validando acceso...');
-  if (!EXAM_ACCESS_LIMITS_ENABLED) {
-    console.log('✅ Acceso permitido: límites de acceso desactivados temporalmente');
-  } else if (totalAttempts < LEGACY_EXAM_LIMIT) {
-    console.log(`✅ Acceso permitido: intento ${totalAttempts + 1}/${LEGACY_EXAM_LIMIT}`);
-  } else if (hasActiveMembership) {
-    console.log('✅ Acceso permitido: Usuario con membresía activa');
-  } else {
-    console.log('❌ Acceso denegado: límite de intentos alcanzado sin membresía');
+  if (!activeMembership) {
+    console.log('❌ Acceso denegado: el simulacro completo requiere membresía');
     return jsonResponse({
-      type: 'UltraSimple',
-      message: 'No pudimos iniciar el simulacro en este momento.'
-    }, 401);
+      code: 'MEMBERSHIP_REQUIRED',
+      message: 'Activa tu acceso de 1 mes para rendir el simulacro completo de 40 preguntas.',
+      checkoutPath: `/checkout?category=${categoryIdNum}`,
+    }, 402);
   }
+  console.log('✅ Membresía activa hasta:', activeMembership.fecha_fin);
 
-  // ============ PASO 5: OBTENER PREGUNTAS ============
-  console.log('\n📚 PASO 5: Obteniendo preguntas del examen...');
+  // ============ PASO 4: OBTENER PREGUNTAS ============
+  console.log('\n📚 PASO 4: Obteniendo preguntas del examen...');
   
   // 5a: Obtener IDs de preguntas de la categoría
   const { data: categoriaPreguntas, error: categoriaPreguntaError } = await supabase
@@ -190,9 +171,9 @@ function jsonResponse(data: unknown, status = 200) {
   console.log(`✅ Se encontraron ${allPreguntaIds.length} IDs de preguntas para la categoría`);
   
   // 5b: Seleccionar 40 preguntas con distribución inteligente por tipo (general/específica)
-  const EXAM_QUESTION_LIMIT = 40;
-  const GENERAL_QUESTIONS = 20;
-  const SPECIFIC_QUESTIONS = 20;
+  const EXAM_QUESTION_LIMIT = OFFICIAL_EXAM_QUESTION_COUNT;
+  const GENERAL_QUESTIONS = OFFICIAL_EXAM_QUESTION_COUNT / 2;
+  const SPECIFIC_QUESTIONS = OFFICIAL_EXAM_QUESTION_COUNT / 2;
   
   // Obtener información de temas de todas las preguntas candidatas
   const { data: preguntasConTema, error: temaError } = await supabase
@@ -353,6 +334,12 @@ function jsonResponse(data: unknown, status = 200) {
       message: 'No hay preguntas disponibles para este examen.'
     }, 404);
   }
+  if (questions.length !== OFFICIAL_EXAM_QUESTION_COUNT) {
+    console.error(`❌ El banco devolvió ${questions.length} preguntas; se requieren ${OFFICIAL_EXAM_QUESTION_COUNT}`);
+    return jsonResponse({
+      message: 'Esta categoría todavía no tiene las 40 preguntas necesarias para un simulacro completo.'
+    }, 409);
+  }
   console.log(`✅ Se encontraron ${questions.length} preguntas`);
   
   // ============ PASO 6: TRANSFORMAR PREGUNTAS AL FORMATO ESPERADO ============
@@ -364,15 +351,12 @@ function jsonResponse(data: unknown, status = 200) {
     numeroPdf: q.numero_pdf || null,
     tipoSeccion: q.tipo_seccion || null,
     clase: q.clase || null,
-    fundamento: q.fundamento || '',
     opciones: (q.opcion_pregunta || []).map((op: any) => ({
       id: op.id,
       texto: op.texto,
-      isCorrect: op.es_correcta,
       mediaType: op.tipo_multimedia || 'Text',
       mediaData: op.datos_multimedia || null
     })),
-    explicacion: q.explicacion || '',
     mediaId: q.multimedia_pregunta?.[0]?.id || null,
     hasMedia: (q.multimedia_pregunta || []).length > 0,
     imagenBase64: q.multimedia_pregunta?.[0]?.datos || null
@@ -389,15 +373,16 @@ function jsonResponse(data: unknown, status = 200) {
       id_categoria: categoryIdNum,
       id_tipo_examen: examTypeIdNum,
       hora_inicio: new Date().toISOString(),
-      modo_practica: 'CRONOMETRADO',
-      tipo_sesion: 'CRONOMETRADO',
+      modo_practica: TIMED_SESSION_TYPE,
+      tipo_sesion: TIMED_SESSION_TYPE,
+      tiempo_total: OFFICIAL_EXAM_DURATION_SECONDS,
       estado: 'COMENZADO',
       total_preguntas: preguntasTransformadas.length,
       preguntas_respondidas: 0,
       respuestas_correctas: 0,
       respuestas_incorrectas: 0,
       sin_responder: preguntasTransformadas.length,
-      ids_preguntas: preguntaIds,
+      ids_preguntas: preguntasTransformadas.map((pregunta: any) => pregunta.id),
       respuestas_detalle: [],
       preguntas_marcadas: [],
       created_at: new Date().toISOString(),
@@ -427,6 +412,8 @@ function jsonResponse(data: unknown, status = 200) {
     correctAnswers: 0,
     precisionPercentage: 0,
     currentQuestionIndex: 0,
+    durationSeconds: OFFICIAL_EXAM_DURATION_SECONDS,
+    minimumCorrectAnswers: OFFICIAL_EXAM_MIN_CORRECT,
     preguntas: preguntasTransformadas
   });
 }
