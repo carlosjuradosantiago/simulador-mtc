@@ -14,7 +14,8 @@
     "check:admin-access": "node tools/check-admin-access.mjs",
     "check:navigation": "node tools/check-safe-navigation.mjs",
     "check:seo-bank": "node tools/build-seo-topic-bank.mjs --check",
-    "check:seo": "node tools/generate-seo-assets.mjs && node tools/check-seo-assets.mjs",
+    "check:seo-category-bank": "node tools/build-seo-category-bank.mjs --check",
+    "check:seo": "node tools/build-seo-category-bank.mjs --check && node tools/generate-seo-assets.mjs && node tools/check-seo-assets.mjs",
     "dev": "vite",
     "preview": "vite preview",
     "seo:indexnow": "node tools/submit-indexnow.mjs"

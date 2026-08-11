@@ -32,18 +32,44 @@ function escapeRawHtml(value) {
 }
 
 async function main() {
-  const [fileNames, sitemap, robots, llms, home, vercel, categorySamplesText, topicBankText] = await Promise.all([
+  const [fileNames, sitemap, robots, llms, home, vercel, categoryBankText, topicBankText] = await Promise.all([
     readdir(seoDir),
     readFile(path.resolve('public', 'sitemap.xml'), 'utf8'),
     readFile(path.resolve('public', 'robots.txt'), 'utf8'),
     readFile(path.resolve('public', 'llms.txt'), 'utf8'),
     readFile(path.resolve('index.html'), 'utf8'),
     readFile(path.resolve('vercel.json'), 'utf8'),
-    readFile(path.resolve('tools', 'seo-category-question-samples.json'), 'utf8'),
+    readFile(path.resolve('tools', 'seo-category-question-bank.json'), 'utf8'),
     readFile(path.resolve('tools', 'seo-topic-question-bank.json'), 'utf8'),
   ]);
-  const categorySamples = JSON.parse(categorySamplesText);
+  const categoryBank = JSON.parse(categoryBankText);
   const topicBank = JSON.parse(topicBankText);
+  assert.equal(categoryBank.meta.sourceQuestionCount, 655, 'El banco por categoría debe provenir de las 655 preguntas deduplicadas');
+  assert.equal(categoryBank.meta.questionsPerCategory, 40, 'Cada categoría debe publicar 40 preguntas');
+  assert.equal(categoryBank.categories.length, 9, 'Deben existir bancos para las 9 categorías');
+  assert.deepEqual(
+    categoryBank.categories.map((category) => category.slug).sort(),
+    ['a1', 'a2a', 'a2b', 'a3a', 'a3b', 'a3c', 'b2a', 'b2b', 'b2c'],
+    'El banco SEO debe cubrir exactamente las 9 categorías',
+  );
+  const categoryByFile = new Map(categoryBank.categories.map((category) => [`simulador-mtc-${category.slug}.html`, category]));
+  for (const category of categoryBank.categories) {
+    assert.equal(category.questions.length, 40, `${category.code}: deben existir 40 preguntas`);
+    assert(category.sourceQuestionCount >= category.questions.length, `${category.code}: la selección supera la fuente`);
+    assert(category.eligibleQuestionCount >= category.questions.length, `${category.code}: faltan preguntas elegibles`);
+    assert.equal(new Set(category.questions.map((question) => question.id)).size, 40, `${category.code}: preguntas duplicadas`);
+    for (const question of category.questions) {
+      assert.equal(question.sourceCode, category.code, `${category.code} #${question.number}: pertenece a otro balotario`);
+      assert(Number.isInteger(question.sourcePage) && question.sourcePage > 0, `${category.code} #${question.number}: falta la página del PDF`);
+      assert(question.topicName?.trim(), `${category.code} #${question.number}: falta el tema`);
+      assert(question.text.trim(), `${category.code} #${question.number}: falta el enunciado`);
+      assert.equal(question.options.length, 4, `${category.code} #${question.number}: se requieren 4 alternativas completas`);
+      assert(question.options.every((option) => option.trim()), `${category.code} #${question.number}: falta una alternativa`);
+      assert(question.options.includes(question.correctAnswer), `${category.code} #${question.number}: la respuesta correcta no coincide con las alternativas`);
+      assert(!question.text.includes('...'), `${category.code} #${question.number}: el enunciado parece truncado`);
+      assert(question.options.every((option) => !option.includes('...')), `${category.code} #${question.number}: una alternativa parece truncada`);
+    }
+  }
   assert.equal(topicBank.meta.sourceQuestionCount, 655, 'El banco temático debe provenir de las 655 preguntas deduplicadas');
   assert.equal(topicBank.meta.maxQuestionsPerTopic, 40, 'El límite editorial por tema debe ser 40');
   assert.equal(topicBank.topics.length, 12, 'Deben existir 12 páginas temáticas');
@@ -78,22 +104,6 @@ async function main() {
     redirects.some(({ source, destination, permanent }) => source === '/seo/:slug' && destination === '/:slug' && permanent),
     'vercel.json: las rutas internas sin extensión deben redirigir a su URL pública',
   );
-  assert.deepEqual(
-    Object.keys(categorySamples).sort(),
-    ['a1', 'a2a', 'a2b', 'a3a', 'a3b', 'a3c', 'b2a', 'b2b', 'b2c'],
-    'La muestra SEO debe cubrir exactamente las 9 categorías',
-  );
-  for (const [slug, questions] of Object.entries(categorySamples)) {
-    assert.equal(questions.length, 3, `${slug}: deben existir 3 preguntas de muestra`);
-    assert.equal(new Set(questions.map((question) => question.number)).size, 3, `${slug}: números de pregunta duplicados`);
-    for (const question of questions) {
-      assert.equal(question.options.length, 4, `${slug} #${question.number}: se requieren 4 alternativas completas`);
-      assert(question.options.includes(question.correctAnswer), `${slug} #${question.number}: la respuesta correcta no coincide con las alternativas`);
-      assert(!question.text.includes('...'), `${slug} #${question.number}: el enunciado parece truncado`);
-      assert(question.options.every((option) => !option.includes('...')), `${slug} #${question.number}: una alternativa parece truncada`);
-    }
-  }
-
   const htmlFiles = fileNames.filter((file) => file.endsWith('.html')).sort();
   assert(htmlFiles.length >= 58, `Se esperaban al menos 58 páginas SEO; se encontraron ${htmlFiles.length}`);
 
@@ -111,7 +121,9 @@ async function main() {
     assert(html.includes('https://www.gob.pe/institucion/mtc/'), `${file}: falta una fuente primaria del MTC`);
     assert(html.includes(repositoryUrl), `${file}: falta la referencia pública del proyecto`);
     assert(!html.includes('Práctica el simulador'), `${file}: uso verbal incorrecto de "practica"`);
-    const editorialHtml = html.replace(/<section class="topic-section"[\s\S]*?<\/section>/, ' ');
+    const editorialHtml = html
+      .replace(/<section class="topic-section"[\s\S]*?<\/section>/, ' ')
+      .replace(/<section class="sample-section"[\s\S]*?<\/section>/, ' ');
     const visibleText = editorialHtml
       .replace(/<script[\s\S]*?<\/script>/g, ' ')
       .replace(/<style[\s\S]*?<\/style>/g, ' ')
@@ -150,14 +162,33 @@ async function main() {
       assert(html.includes('Opciones'), `${file}: faltan las opciones completas visibles`);
     }
 
-    if (/^simulador-mtc-(?!con-respuestas)[a-z0-9]+\.html$/.test(file)) {
+    const category = categoryByFile.get(file);
+    if (category) {
       assert(html.includes('auth=register&amp;category='), `${file}: el CTA no conserva la categoría al registrar`);
       assert(html.includes('mode%3Dexam'), `${file}: falta el acceso directo al simulacro de 40 preguntas`);
-      assert(types.has('Quiz'), `${file}: falta schema Quiz para las preguntas de muestra`);
-      assert.equal((html.match(/class="sample-question"/g) || []).length, 3, `${file}: deben mostrarse 3 preguntas completas`);
+      assert(types.has('Quiz'), `${file}: falta schema Quiz para las preguntas`);
+      assert.equal((html.match(/class="sample-question"/g) || []).length, 40, `${file}: deben mostrarse 40 preguntas completas`);
       const sampleBlock = html.match(/<section class="sample-section"[\s\S]*?<\/section>/)?.[0] || '';
-      assert.equal((sampleBlock.match(/<li>/g) || []).length, 12, `${file}: deben mostrarse las 12 alternativas completas`);
-      assert.equal((sampleBlock.match(/Respuesta correcta:/g) || []).length, 3, `${file}: faltan respuestas oficiales visibles`);
+      assert.equal((sampleBlock.match(/<li>/g) || []).length, 160, `${file}: deben mostrarse las 160 alternativas completas`);
+      assert.equal((sampleBlock.match(/Respuesta correcta:/g) || []).length, 40, `${file}: faltan respuestas visibles`);
+      assert.equal((sampleBlock.match(/class="topic-meta"/g) || []).length, 40, `${file}: faltan temas visibles`);
+      const quiz = graph.find((item) => item['@type'] === 'Quiz');
+      assert.equal(quiz?.hasPart?.length, 40, `${file}: el schema no contiene las 40 preguntas`);
+      for (const [index, question] of category.questions.entries()) {
+        assert(sampleBlock.includes(escapeRawHtml(question.text)), `${file}: se alteró el enunciado ${question.id}`);
+        assert(sampleBlock.includes(escapeRawHtml(question.correctAnswer)), `${file}: se alteró la respuesta ${question.id}`);
+        assert(sampleBlock.includes(`página ${question.sourcePage}`), `${file}: falta la página de origen de ${question.id}`);
+        assert(sampleBlock.includes(escapeRawHtml(question.topicName)), `${file}: falta el tema de ${question.id}`);
+        for (const option of question.options) {
+          assert(sampleBlock.includes(escapeRawHtml(option)), `${file}: se alteró una alternativa de ${question.id}`);
+        }
+        if (question.fundamento) {
+          assert(sampleBlock.includes(escapeRawHtml(question.fundamento)), `${file}: se alteró el fundamento de ${question.id}`);
+        }
+        assert.equal(quiz.hasPart[index]?.name, question.text, `${file}: el schema alteró el enunciado ${question.id}`);
+        assert.equal(quiz.hasPart[index]?.text, question.text, `${file}: el schema alteró el texto ${question.id}`);
+        assert.equal(quiz.hasPart[index]?.acceptedAnswer?.text, question.correctAnswer, `${file}: el schema alteró la respuesta ${question.id}`);
+      }
     }
 
     const topic = topicByFile.get(file);
