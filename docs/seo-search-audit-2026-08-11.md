@@ -4,38 +4,54 @@ Fecha de medición: 11 de agosto de 2026
 
 ## Resumen
 
-- `simuladormtc.com` está indexado y aparece para consultas relacionadas con simulador MTC.
-- En la muestra independiente de resultados web y búsquedas asistidas por IA apareció aproximadamente entre las posiciones 4 y 5, detrás del MTC y otros simuladores. Esta referencia no equivale a una posición universal: cambia por buscador, ubicación, historial y fecha.
-- Google activó una comprobación de tráfico inusual durante la medición automatizada, por lo que no se registró una posición exacta de Google.
-- Las páginas estáticas responden con HTML completo a Googlebot, OAI-SearchBot, Claude-SearchBot y PerplexityBot.
-- No se encontraron menciones externas del dominio en la consulta de backlinks utilizada. La autoridad externa es hoy la mayor limitación.
+- `simuladormtc.com` está indexado. En la medición posterior a la publicación, la consulta exacta `simulador MTC` lo mostró como primer resultado del buscador web asistido por IA utilizado.
+- Ese puesto no equivale a una posición universal: cambia por buscador, ubicación, historial y fecha.
+- Google devolvió una página de redirección durante la medición automatizada, sin resultados verificables. Por ese motivo no se asignó una posición exacta de Google.
+- Las doce páginas temáticas nuevas fueron descubiertas y rastreadas por el buscador de IA desde los enlaces públicos de GitHub. Las leyó con las preguntas, cuatro alternativas y respuestas completas.
+- Las páginas temáticas todavía no aparecían como resultados para sus títulos exactos inmediatamente después del rastreo.
+- Googlebot, OAI-SearchBot, Claude-SearchBot y PerplexityBot reciben el mismo HTML completo.
+- La autoridad externa continúa siendo la principal limitación para consultas genéricas competidas.
 
 ## Problemas encontrados
 
 1. Las páginas de categorías tenían títulos y textos demasiado parecidos.
 2. Las búsquedas específicas por categoría tendían a mostrar la portada, no la página especializada.
-3. No existían páginas centradas en responder una pregunta oficial completa.
+3. Faltaban páginas extensas organizadas por los temas reales del banco de preguntas.
 4. Los CTA de páginas SEO enviaban a una ruta protegida antes del registro y podían perder la categoría elegida.
 5. Faltaba una página visible de metodología editorial.
+6. La portada estática no enlazaba las nuevas guías, por lo que un rastreador sin JavaScript debía descubrirlas desde otra página.
 
 ## Cambios aplicados
 
 - Contenido único para A1, A2A, A2B, A3A, A3B, A3C, B2A, B2B y B2C.
 - Cuatro páginas de preguntas oficiales con enunciado y alternativas completas, respuesta explicada y fuente primaria.
-- Veintisiete preguntas completas de muestra en las nueve páginas de categoría: tres enunciados, doce alternativas y tres respuestas por licencia, comparadas con la extracción de los PDF sin diferencias.
+- Veintisiete preguntas completas de muestra en las nueve páginas de categoría, comparadas con la extracción de los PDF sin diferencias.
+- Doce páginas por tema con 293 preguntas seleccionadas de un banco deduplicado de 655 registros.
+- El generador exige enunciado, cuatro alternativas no vacías, una clave válida y ausencia de imágenes faltantes.
+- Las pruebas comparan el texto visible y el schema `Quiz` con el banco fuente para impedir alteraciones silenciosas.
 - Schema `Quiz`, `Question`, `LearningResource`, `WebPage` y datos editoriales conectados.
 - Página de metodología, fuentes visibles, `publishingPrinciples`, `llms.txt` y permisos explícitos para rastreadores web y de IA.
-- Documentación pública en GitHub con enlace hacia la aplicación y referencia recíproca `sameAs` desde el sitio.
+- Enlaces internos desde la portada y enlaces públicos desde GitHub hacia las doce páginas temáticas.
 - Registro preseleccionado por categoría desde cada página SEO.
 - PDF oficiales con `noindex, follow` para concentrar la relevancia en páginas HTML explicativas y mantener los enlaces de consulta.
+- Sitemap con 59 URLs aceptado por IndexNow con estado HTTP 200.
+
+## Evidencia de despliegue
+
+- Las doce rutas temáticas responden con HTTP 200 y canonical propio.
+- La página de Reglamento de tránsito contiene 40 preguntas, 160 alternativas y 40 respuestas visibles.
+- Las variantes con barra final y las rutas internas `/seo/` redirigen con HTTP 308 a la URL canónica.
+- Los cuatro rastreadores comprobados reciben las 40 preguntas completas.
+- Las doce páginas fueron rastreadas por el buscador de IA el mismo día de la publicación.
 
 ## Próxima medición
 
-Revisar después del siguiente rastreo de buscadores:
+Revisar después del siguiente ciclo de indexación:
 
 - impresiones, clics, consultas y páginas en Google Search Console;
-- posición de marca y consultas A1/A2/A3 en una ventana sin sesión;
+- posición de marca y consultas A1, A2 y A3 en una ventana sin sesión;
+- aparición de las doce páginas temáticas por título y por consultas no de marca;
 - páginas citadas por ChatGPT Search, Perplexity y Claude Search;
 - dominios externos que enlazan o mencionan la plataforma.
 
-No se debe declarar una posición número uno sin evidencia reproducible. La publicación técnica ayuda a que el sitio pueda competir; la recrawl, la utilidad acumulada y las menciones externas determinan cuánto sube.
+No se debe declarar una posición número uno en Google sin evidencia reproducible. La publicación técnica permite competir; el nuevo rastreo, la utilidad acumulada y las menciones externas determinan cuánto sube.
