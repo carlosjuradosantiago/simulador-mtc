@@ -200,6 +200,7 @@ async function main() {
   assert(llms.includes('## Preguntas completas por tema'), 'llms.txt: faltan las páginas temáticas');
   for (const topic of topicBank.topics) {
     assert(llms.includes(`/${topic.slug}`), `llms.txt: falta ${topic.slug}`);
+    assert(home.includes(`href="/${topic.slug}"`), `index.html: falta enlace estático a ${topic.slug}`);
   }
   assert(llms.includes('/metodologia-simulador-mtc'), 'llms.txt: falta la metodología editorial');
   assert(llms.includes('## Criterios editoriales'), 'llms.txt: faltan criterios editoriales');
