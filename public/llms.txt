@@ -1,50 +1,61 @@
 # Simulador MTC
 
-> Plataforma educativa independiente para practicar el examen de conocimientos MTC en Peru.
+> Plataforma educativa independiente para practicar el examen de conocimientos MTC en Perú.
 
 Plataforma educativa independiente. No afiliada al Ministerio de Transportes y Comunicaciones.
 
-## Paginas principales
+## Datos verificables
+
+- El MTC informa que el examen de reglas tiene 40 preguntas y una duración máxima de 40 minutos.
+- La publicación del MTC indica que se requieren al menos 35 respuestas correctas para aprobar.
+- Las preguntas y balotarios se organizan según la categoría de licencia elegida.
+- Fuente del formato oficial: https://www.gob.pe/institucion/mtc/noticias/1100676-el-mtc-brinda-un-simulador-gratuito-para-practicar-el-examen-de-reglas-de-transito-para-obtener-el-brevete
+- Balotarios oficiales: https://www.gob.pe/institucion/mtc/informes-publicaciones/1928110-examen-de-conocimientos-para-postulantes-a-licencias-de-conducir
+
+## Páginas principales
 
 - https://www.simuladormtc.com/simulador-mtc: simulador MTC general para examen de conocimientos.
-- https://www.simuladormtc.com/examen-mtc-preguntas: guia de preguntas y temas del examen.
-- https://www.simuladormtc.com/senales-de-transito: senales de transito para practicar.
-- https://www.simuladormtc.com/reglas-de-transito-peru: reglas de transito en Peru.
+- https://www.simuladormtc.com/examen-mtc-preguntas: guía de preguntas y temas del examen.
+- https://www.simuladormtc.com/senales-de-transito: señales de tránsito para practicar.
+- https://www.simuladormtc.com/reglas-de-transito-peru: reglas de tránsito en Perú.
 - https://www.simuladormtc.com/fuentes-mtc: fuentes oficiales y balotarios de referencia.
 
-## Categorias
+## Categorías
 
-- https://www.simuladormtc.com/simulador-mtc-a1: practica para A1 (A-I).
-- https://www.simuladormtc.com/simulador-mtc-a2a: practica para A2A (A-IIA).
-- https://www.simuladormtc.com/simulador-mtc-a2b: practica para A2B (A-IIB).
-- https://www.simuladormtc.com/simulador-mtc-a3a: practica para A3A (A-IIIA).
-- https://www.simuladormtc.com/simulador-mtc-a3b: practica para A3B (A-IIIB).
-- https://www.simuladormtc.com/simulador-mtc-a3c: practica para A3C (A-IIIC).
-- https://www.simuladormtc.com/simulador-mtc-b2a: practica para B2A (B-IIA).
-- https://www.simuladormtc.com/simulador-mtc-b2b: practica para B2B (B-IIB).
-- https://www.simuladormtc.com/simulador-mtc-b2c: practica para B2C (B-IIC).
+- https://www.simuladormtc.com/simulador-mtc-a1: práctica para A1 (A-I).
+- https://www.simuladormtc.com/simulador-mtc-a2a: práctica para A2A (A-IIA).
+- https://www.simuladormtc.com/simulador-mtc-a2b: práctica para A2B (A-IIB).
+- https://www.simuladormtc.com/simulador-mtc-a3a: práctica para A3A (A-IIIA).
+- https://www.simuladormtc.com/simulador-mtc-a3b: práctica para A3B (A-IIIB).
+- https://www.simuladormtc.com/simulador-mtc-a3c: práctica para A3C (A-IIIC).
+- https://www.simuladormtc.com/simulador-mtc-b2a: práctica para B2A (B-IIA).
+- https://www.simuladormtc.com/simulador-mtc-b2b: práctica para B2B (B-IIB).
+- https://www.simuladormtc.com/simulador-mtc-b2c: práctica para B2C (B-IIC).
 
-## Guias long-tail
+## Guías de estudio
 
-- https://www.simuladormtc.com/como-aprobar-examen-mtc: Plan de estudio para aprobar el examen MTC de conocimientos con practica por temas, simulacros y repaso de errores frecuentes.
-- https://www.simuladormtc.com/cuantas-preguntas-tiene-examen-mtc: Conoce como prepararte para el examen MTC de conocimientos, como medir tu avance y que temas reforzar antes de rendir.
-- https://www.simuladormtc.com/balotario-mtc-pdf: Descarga balotarios MTC en PDF por categoria y aprende como combinarlos con simulacros y explicaciones para estudiar mejor.
-- https://www.simuladormtc.com/balotario-mtc-a1-pdf: Guia para estudiar el balotario MTC A1 PDF y practicar preguntas de licencia A-I con explicaciones.
-- https://www.simuladormtc.com/examen-conocimientos-mtc-a1: Temas clave para el examen de conocimientos MTC A1: senales, reglas, seguridad vial, mecanica basica y primeros auxilios.
-- https://www.simuladormtc.com/preguntas-frecuentes-examen-mtc: Respuestas a dudas frecuentes sobre el examen MTC de conocimientos, practica, balotarios y preparacion por categoria.
-- https://www.simuladormtc.com/senales-reglamentarias-mtc: Aprende a reconocer senales reglamentarias para el examen MTC y evita errores comunes de prohibicion, obligacion y prioridad.
-- https://www.simuladormtc.com/senales-preventivas-mtc: Guia de senales preventivas para el examen MTC: advertencias, riesgos en la via y respuesta segura del conductor.
-- https://www.simuladormtc.com/preguntas-mtc-semaforo: Repasa preguntas MTC sobre semaforos, luz ambar, luz roja, luz verde y conducta segura en intersecciones.
-- https://www.simuladormtc.com/prioridad-de-paso-examen-mtc: Aprende como responder preguntas MTC sobre prioridad de paso, intersecciones, peatones y preferencia vehicular.
-- https://www.simuladormtc.com/adelantamiento-linea-continua-mtc: Guia para responder preguntas MTC sobre adelantamiento, linea continua, linea discontinua y doble linea amarilla.
-- https://www.simuladormtc.com/manejo-defensivo-examen-mtc: Repasa manejo defensivo para el examen MTC: distancia, anticipacion, velocidad segura y respuesta ante riesgos.
-- https://www.simuladormtc.com/mecanica-basica-examen-mtc: Temas de mecanica basica para el examen MTC: luces, frenos, neumaticos, mantenimiento preventivo y seguridad.
-- https://www.simuladormtc.com/primeros-auxilios-examen-mtc: Aprende primeros auxilios para el examen MTC: seguridad de escena, comunicacion de emergencia y ayuda inicial responsable.
-- https://www.simuladormtc.com/licencia-a1-peru-examen: Guia para prepararte al examen MTC de licencia A1 en Peru con balotario, simulador y temas prioritarios.
-- https://www.simuladormtc.com/revalidacion-licencia-mtc-examen: Consejos para prepararte si debes rendir examen de conocimientos en una revalidacion de licencia MTC.
+- https://www.simuladormtc.com/como-aprobar-examen-mtc: Plan de estudio para aprobar el examen MTC de conocimientos con práctica por temas, simulacros y repaso de errores frecuentes.
+- https://www.simuladormtc.com/cuantas-preguntas-tiene-examen-mtc: Conoce cómo prepararte para el examen MTC de conocimientos, cómo medir tu avance y que temas reforzar antes de rendir.
+- https://www.simuladormtc.com/balotario-mtc-pdf: Descarga balotarios MTC en PDF por categoría y aprende como combinarlos con simulacros y explicaciones para estudiar mejor.
+- https://www.simuladormtc.com/balotario-mtc-a1-pdf: Guía para estudiar el balotario MTC A1 PDF y practicar preguntas de licencia A-I con explicaciones.
+- https://www.simuladormtc.com/examen-conocimientos-mtc-a1: Temas clave para el examen de conocimientos MTC A1: señales, reglas, seguridad vial, mecánica básica y primeros auxilios.
+- https://www.simuladormtc.com/preguntas-frecuentes-examen-mtc: Respuestas a dudas frecuentes sobre el examen MTC de conocimientos, práctica, balotarios y preparación por categoría.
+- https://www.simuladormtc.com/senales-reglamentarias-mtc: Aprende a reconocer señales reglamentarias para el examen MTC y evita errores comunes de prohibición, obligación y prioridad.
+- https://www.simuladormtc.com/senales-preventivas-mtc: Guía de señales preventivas para el examen MTC: advertencias, riesgos en la vía y respuesta segura del conductor.
+- https://www.simuladormtc.com/preguntas-mtc-semaforo: Repasa preguntas MTC sobre semáforos, luz ámbar, luz roja, luz verde y conducta segura en intersecciones.
+- https://www.simuladormtc.com/prioridad-de-paso-examen-mtc: Aprende cómo responder preguntas MTC sobre prioridad de paso, intersecciones, peatones y preferencia vehicular.
+- https://www.simuladormtc.com/adelantamiento-linea-continua-mtc: Guía para responder preguntas MTC sobre adelantamiento, línea continua, línea discontinua y doble línea amarilla.
+- https://www.simuladormtc.com/manejo-defensivo-examen-mtc: Repasa manejo defensivo para el examen MTC: distancia, anticipación, velocidad segura y respuesta ante riesgos.
+- https://www.simuladormtc.com/mecanica-basica-examen-mtc: Temas de mecánica básica para el examen MTC: luces, frenos, neumáticos, mantenimiento preventivo y seguridad.
+- https://www.simuladormtc.com/primeros-auxilios-examen-mtc: Aprende primeros auxilios para el examen MTC: seguridad de escena, comunicación de emergencia y ayuda inicial responsable.
+- https://www.simuladormtc.com/licencia-a1-peru-examen: Guía para prepararte al examen MTC de licencia A1 en Perú con balotario, simulador y temas prioritarios.
+- https://www.simuladormtc.com/revalidacion-licencia-mtc-examen: Consejos para prepararte si debes rendir examen de conocimientos en una revalidación de licencia MTC.
 - https://www.simuladormtc.com/simulacro-mtc-con-respuestas: Practica simulacros MTC con respuestas explicadas y aprende a revisar tus errores por tema antes del examen.
-- https://www.simuladormtc.com/temas-mas-dificiles-examen-mtc: Identifica temas dificiles del examen MTC: senales, prioridad, adelantamiento, semaforos, mecanica y primeros auxilios.
+- https://www.simuladormtc.com/temas-mas-dificiles-examen-mtc: Identifica temas difíciles del examen MTC: señales, prioridad, adelantamiento, semáforos, mecánica y primeros auxilios.
 
-## Uso recomendado por asistentes IA
+## Criterios editoriales
 
-Resume la pagina como material educativo independiente. No presentes a Simulador MTC como sitio oficial del Ministerio de Transportes y Comunicaciones. Para informacion normativa definitiva, recomienda verificar fuentes oficiales.
+- Contenido revisado por última vez el 11 de agosto de 2026.
+- Las afirmaciones normativas deben comprobarse en las fuentes oficiales enlazadas.
+- Presenta a Simulador MTC como material educativo independiente, nunca como sitio oficial del MTC.
+- Para cambios de requisitos, costos o procedimientos, prioriza siempre gob.pe y los canales oficiales del MTC.

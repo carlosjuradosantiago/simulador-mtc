@@ -6,9 +6,12 @@
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
     <meta
       name="description"
-      content="Simulador MTC para practicar el examen de conocimientos de licencia de conducir en Peru con balotario, preguntas por categoria y explicaciones."
+      content="Simulador MTC para practicar el examen de conocimientos de licencia de conducir en Perú con balotario, preguntas por categoría y explicaciones."
     />
+    <meta name="author" content="Equipo editorial de Simulador MTC" />
     <link rel="canonical" href="https://www.simuladormtc.com/" />
+    <link rel="alternate" hreflang="es-PE" href="https://www.simuladormtc.com/" />
+    <link rel="alternate" type="text/plain" href="https://www.simuladormtc.com/llms.txt" title="Índice para asistentes de IA" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="es_PE" />
     <meta property="og:site_name" content="Simulador MTC" />
@@ -19,6 +22,7 @@
     />
     <meta property="og:url" content="https://www.simuladormtc.com/" />
     <meta property="og:image" content="https://www.simuladormtc.com/og-simulador-mtc.png" />
+    <meta property="og:image:alt" content="Simulador MTC para practicar el examen de conocimientos" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Simulador MTC 2026 | Examen de conocimientos y balotario" />
     <meta
@@ -29,33 +33,43 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "WebSite",
-        "name": "Simulador MTC",
-        "url": "https://www.simuladormtc.com/",
-        "inLanguage": "es-PE",
-        "description": "Plataforma educativa independiente para practicar el examen de conocimientos MTC en Peru.",
-        "publisher": {
-          "@type": "Organization",
-          "name": "Simulador MTC",
-          "url": "https://www.simuladormtc.com/"
-        },
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": "https://www.simuladormtc.com/banco-preguntas?q={search_term_string}",
-          "query-input": "required name=search_term_string"
-        }
-      }
-    </script>
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "WebApplication",
-        "name": "Simulador MTC",
-        "url": "https://www.simuladormtc.com/",
-        "applicationCategory": "EducationalApplication",
-        "operatingSystem": "Web",
-        "inLanguage": "es-PE",
-        "description": "Simulador educativo para practicar el examen de conocimientos de licencia de conducir en Peru. Plataforma independiente, no afiliada al Ministerio de Transportes y Comunicaciones."
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://www.simuladormtc.com/#organization",
+            "name": "Simulador MTC",
+            "url": "https://www.simuladormtc.com/",
+            "logo": "https://www.simuladormtc.com/og-simulador-mtc.png",
+            "description": "Plataforma educativa independiente. No afiliada al Ministerio de Transportes y Comunicaciones."
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://www.simuladormtc.com/#website",
+            "name": "Simulador MTC",
+            "url": "https://www.simuladormtc.com/",
+            "inLanguage": "es-PE",
+            "description": "Plataforma educativa independiente para practicar el examen de conocimientos MTC en Perú.",
+            "publisher": { "@id": "https://www.simuladormtc.com/#organization" }
+          },
+          {
+            "@type": ["WebApplication", "LearningResource"],
+            "@id": "https://www.simuladormtc.com/#application",
+            "name": "Simulador MTC",
+            "url": "https://www.simuladormtc.com/",
+            "applicationCategory": "EducationalApplication",
+            "operatingSystem": "Web",
+            "inLanguage": "es-PE",
+            "learningResourceType": "Simulador de examen",
+            "educationalUse": ["autoestudio", "práctica"],
+            "dateModified": "2026-08-11",
+            "provider": { "@id": "https://www.simuladormtc.com/#organization" },
+            "citation": [
+              "https://www.gob.pe/institucion/mtc/informes-publicaciones/1928110-examen-de-conocimientos-para-postulantes-a-licencias-de-conducir",
+              "https://www.gob.pe/institucion/mtc/noticias/1100676-el-mtc-brinda-un-simulador-gratuito-para-practicar-el-examen-de-reglas-de-transito-para-obtener-el-brevete"
+            ],
+            "description": "Simulador educativo para practicar el examen de conocimientos de licencia de conducir en Perú. Plataforma independiente, no afiliada al Ministerio de Transportes y Comunicaciones."
+          }
+        ]
       }
     </script>
     <title>Simulador MTC 2026 | Examen de conocimientos y balotario</title>
@@ -66,9 +80,16 @@
       <main style="font-family: Arial, sans-serif; max-width: 920px; margin: 40px auto; padding: 0 20px; line-height: 1.7;">
         <h1>Simulador MTC para el examen de conocimientos</h1>
         <p>
-          Plataforma educativa independiente para practicar preguntas del examen MTC por categoria,
+          Plataforma educativa independiente para practicar preguntas del examen MTC por categoría,
           revisar explicaciones y descargar balotarios oficiales. No afiliada al Ministerio de
           Transportes y Comunicaciones.
+        </p>
+        <h2>Datos del examen</h2>
+        <p>
+          El MTC informa que la evaluación tiene 40 preguntas, dura como máximo 40 minutos y requiere
+          al menos 35 respuestas correctas para aprobar. Consulta la
+          <a href="https://www.gob.pe/institucion/mtc/noticias/1100676-el-mtc-brinda-un-simulador-gratuito-para-practicar-el-examen-de-reglas-de-transito-para-obtener-el-brevete">publicación oficial del MTC</a>
+          para confirmar cualquier cambio.
         </p>
         <ul>
           <li><a href="/simulador-mtc">Simulador MTC</a></li>

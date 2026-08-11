@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node tools/generate-seo-assets.mjs && vite build",
+    "check:seo": "node tools/generate-seo-assets.mjs && node tools/check-seo-assets.mjs",
     "dev": "vite",
     "preview": "vite preview",
     "seo:indexnow": "node tools/submit-indexnow.mjs"
