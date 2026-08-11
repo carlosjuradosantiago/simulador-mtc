@@ -126,16 +126,20 @@ export async function handleGetExamHistory(req) {
     const url = new URL(req.url);
     const page = parseInt(url.searchParams.get('page') || '0');
     const size = parseInt(url.searchParams.get('size') || '10');
+    const categoryId = parseInt(url.searchParams.get('categoryId') || '');
     const offset = page * size;
     const supabase = getSupabaseClient();
     // Get total count
-    const { count } = await filterOfficialExamAttempts(supabase.from('intento').select('*', {
+    let countQuery = filterOfficialExamAttempts(supabase.from('intento').select('*', {
       count: 'exact',
       head: true
     }), user.userId);
+    if (Number.isInteger(categoryId)) countQuery = countQuery.eq('id_categoria', categoryId);
+    const { count } = await countQuery;
     // Get paginated attempts - with all necessary fields
-    const historyQuery = filterOfficialExamAttempts(supabase.from('intento').select(`
+    let historyQuery = filterOfficialExamAttempts(supabase.from('intento').select(`
         id,
+        id_categoria,
         id_tipo_examen,
         hora_inicio,
         hora_fin,
@@ -145,8 +149,10 @@ export async function handleGetExamHistory(req) {
         respuestas_incorrectas,
         porcentaje,
         aprobado,
-        tipo_examen:id_tipo_examen(id, nombre, descripcion)
-      `), user.userId);
+        tipo_examen:id_tipo_examen(id, nombre, descripcion),
+        categoria:id_categoria(id, nombre)
+    `), user.userId);
+    if (Number.isInteger(categoryId)) historyQuery = historyQuery.eq('id_categoria', categoryId);
     const { data: intentos, error } = await historyQuery
       .order('hora_inicio', { ascending: false })
       .range(offset, offset + size - 1);
@@ -156,6 +162,7 @@ export async function handleGetExamHistory(req) {
     }
     // Transform to expected frontend structure
     const content = (intentos || []).map((i) => {
+      const category = Array.isArray(i.categoria) ? i.categoria[0] : i.categoria;
       const startTime = i.hora_inicio ? new Date(i.hora_inicio) : null;
       const endTime = i.hora_fin ? new Date(i.hora_fin) : null;
       const durationMs = startTime && endTime ? endTime.getTime() - startTime.getTime() : 0;
@@ -168,6 +175,8 @@ export async function handleGetExamHistory(req) {
       
       return {
         attemptId: i.id,
+        categoryId: i.id_categoria,
+        categoryName: category?.nombre || null,
         examType: {
           id: i.tipo_examen?.id || i.id_tipo_examen,
           name: i.tipo_examen?.nombre || 'Examen MTC',
@@ -405,8 +414,10 @@ export async function handleGetUserStats(req) {
     if (!user) {
       return unauthorizedResponse();
     }
+    const url = new URL(req.url);
+    const categoryId = parseInt(url.searchParams.get('categoryId') || '');
     const supabase = getSupabaseClient();
-    const { data: intentos, error } = await supabase
+    let statsQuery = supabase
       .from('intento')
       .select(`
         id_categoria,
@@ -422,6 +433,8 @@ export async function handleGetUserStats(req) {
         categoria:id_categoria(id, nombre)
       `)
       .eq('id_usuario', user.userId);
+    if (Number.isInteger(categoryId)) statsQuery = statsQuery.eq('id_categoria', categoryId);
+    const { data: intentos, error } = await statsQuery;
     if (error) {
       console.error('Get user stats query error:', error);
       return errorResponse('Error al obtener el progreso', 500);

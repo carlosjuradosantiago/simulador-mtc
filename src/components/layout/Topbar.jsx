@@ -7,7 +7,7 @@ import BrandLogo from './BrandLogo.jsx';
 
 function isActivePath(pathname, search, item) {
   if (item.id === 'home') return pathname === '/dashboard';
-  if (item.id === 'exam') return pathname.startsWith('/simulacro') && new URLSearchParams(search).get('mode') === 'exam';
+  if (item.id === 'simulator') return pathname.startsWith('/simulacro') && new URLSearchParams(search).get('mode') === 'exam';
   if (item.id === 'learn') return pathname.startsWith('/banco-preguntas') || pathname.startsWith('/clases');
   if (item.id === 'progress') return pathname.startsWith('/resultados');
   return false;
@@ -19,11 +19,11 @@ export default function Topbar() {
   const { pathname, search } = useLocation();
   const userMenuRef = useRef(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const category = user?.category ?? 25;
+  const category = user?.categoryConfirmed ? user?.category : null;
   const adminUser = isAdminUser(user);
   const navItems = [
     { id: 'home', label: 'Inicio', icon: Home, to: '/dashboard' },
-    { id: 'exam', label: 'Examen real', icon: Clock3, to: `/simulacro/${category}?mode=exam` },
+    { id: 'simulator', label: 'Simulacro', icon: Clock3, to: category ? `/simulacro/${category}?mode=exam` : '/dashboard?chooseCategory=1' },
     { id: 'learn', label: 'Aprender', icon: BookOpen, to: '/banco-preguntas' },
     { id: 'progress', label: 'Mi avance', icon: BarChart3, to: '/resultados' },
   ];

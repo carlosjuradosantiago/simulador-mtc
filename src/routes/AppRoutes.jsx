@@ -15,6 +15,7 @@ const DashboardPage = lazy(() => import('../pages/DashboardPage.jsx'));
 const LandingPage = lazy(() => import('../pages/LandingPage.jsx'));
 const PlansPage = lazy(() => import('../pages/PlansPage.jsx'));
 const ProfilePage = lazy(() => import('../pages/ProfilePage.jsx'));
+const ProgressPage = lazy(() => import('../pages/ProgressPage.jsx'));
 const QuestionBankPage = lazy(() => import('../pages/QuestionBankPage.jsx'));
 const ResultsPage = lazy(() => import('../pages/ResultsPage.jsx'));
 const SimulatorPage = lazy(() => import('../pages/SimulatorPage.jsx'));
@@ -68,7 +69,7 @@ export default function AppRoutes() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/banco-preguntas" element={<QuestionBankPage />} />
             <Route path="/clases" element={<ClassesPage />} />
-            <Route path="/resultados" element={<ResultsPage />} />
+            <Route path="/resultados" element={<ProgressPage />} />
             <Route path="/resultados/:id" element={<ResultsPage />} />
             <Route path="/ranking" element={<Navigate to="/dashboard" replace />} />
             <Route path="/perfil" element={<ProfilePage />} />

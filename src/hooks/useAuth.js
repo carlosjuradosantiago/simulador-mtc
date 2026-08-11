@@ -9,7 +9,7 @@ const USER_KEY = 'simulamanejo:user';
 export function AuthProvider({ children }) {
   const [user, setUser, removeUser] = useLocalStorage(USER_KEY, null);
   const [loading, setLoading] = useState(Boolean(getStoredToken()));
-  const [authModal, setAuthModal] = useState({ open: false, mode: 'login', redirectTo: '/dashboard', category: 25 });
+  const [authModal, setAuthModal] = useState({ open: false, mode: 'login', redirectTo: '/dashboard', category: null });
 
   const hydrateUser = useCallback(async (baseUser = user) => {
     const token = getStoredToken();
@@ -22,7 +22,8 @@ export function AuthProvider({ children }) {
     ]);
 
     const hydrated = toFrontendUser(profile, {
-      category: settings?.categoriaPreferidaId ?? baseUser?.category ?? 25,
+      category: settings?.categoriaPreferidaId ?? baseUser?.category ?? null,
+      categoryConfirmed: settings?.categoriaConfirmada ?? baseUser?.categoryConfirmed ?? false,
       stats: {
         attempts: stats?.totalIntentos ?? 0,
         average: stats?.promedioGeneral ?? 0,
@@ -49,7 +50,7 @@ export function AuthProvider({ children }) {
       mode,
       redirectTo: safeInternalPath(options.redirectTo),
       email: options.email ?? '',
-      category: options.category ?? 25,
+      category: options.category ?? null,
     });
   }, []);
 
@@ -110,8 +111,8 @@ export function AuthProvider({ children }) {
               message: response.message,
             };
           }
-          await storeAuthenticatedUser(response, { category });
-          await api.updateSettings({ categoriaPreferidaId: category, notificacionesHabilitadas: true, tema: 'light' }).catch(() => null);
+          await storeAuthenticatedUser(response, { category, categoryConfirmed: true });
+          await api.updateSettings({ categoriaPreferidaId: category, categoriaConfirmada: true, notificacionesHabilitadas: true, tema: 'light' }).catch(() => null);
           return { ok: true };
         } catch (error) {
           return { ok: false, message: error.message, ...(error.data ?? {}) };
@@ -120,9 +121,9 @@ export function AuthProvider({ children }) {
       verifyEmail: async ({ email, code, category }) => {
         try {
           const response = await api.verifyEmail({ email, code });
-          await storeAuthenticatedUser(response, { category });
+          await storeAuthenticatedUser(response, { category, categoryConfirmed: Boolean(category) });
           if (category) {
-            await api.updateSettings({ categoriaPreferidaId: category, notificacionesHabilitadas: true, tema: 'light' }).catch(() => null);
+            await api.updateSettings({ categoriaPreferidaId: category, categoriaConfirmada: true, notificacionesHabilitadas: true, tema: 'light' }).catch(() => null);
           }
           return { ok: true };
         } catch (error) {
@@ -153,10 +154,16 @@ export function AuthProvider({ children }) {
           return { ok: false, message: error.message };
         }
       },
-      loginWithToken: async (token) => {
+      loginWithToken: async (token, { category = null } = {}) => {
         try {
           setStoredToken(token);
-          await hydrateUser(null);
+          const authenticatedUser = await hydrateUser(null);
+          if (category) {
+            await api.updateSettings({ categoriaPreferidaId: category, categoriaConfirmada: true, notificacionesHabilitadas: true, tema: 'light' });
+            setUser((currentUser) => ({ ...currentUser, category, categoryConfirmed: true }));
+          } else if (!authenticatedUser?.categoryConfirmed) {
+            setUser((currentUser) => ({ ...currentUser, categoryConfirmed: false }));
+          }
           return { ok: true };
         } catch (error) {
           setStoredToken(null);

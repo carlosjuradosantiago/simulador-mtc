@@ -54,6 +54,7 @@ export default function VehicleStartPanel({
   fullExamPrice = 1200,
   membershipEndDate = null,
   fullExamIsFree = false,
+  focusSelected = false,
 }) {
   const [practiceMode, setPracticeMode] = useState('random');
   const [categoryVehicleId, setCategoryVehicleId] = useState(null);
@@ -100,8 +101,8 @@ export default function VehicleStartPanel({
     window.speechSynthesis.cancel();
     const message = new SpeechSynthesisUtterance(
       selectedCategory
-        ? `¿Qué examen vas a rendir? Elegiste ${selectedCategory.vehicle}, licencia ${selectedCategory.title}.`
-        : '¿Qué examen vas a rendir? Elige un vehículo y después la categoría que aparece en tu licencia.',
+        ? `¿Qué simulacro vas a rendir? Elegiste ${selectedCategory.vehicle}, licencia ${selectedCategory.title}.`
+        : '¿Qué simulacro vas a rendir? Elige un vehículo y después la categoría que aparece en tu licencia.',
     );
     message.lang = 'es-PE';
     message.rate = 0.9;
@@ -135,7 +136,9 @@ export default function VehicleStartPanel({
     <section className="mx-auto w-full max-w-[1280px] px-4 pb-10 pt-4 sm:px-6 lg:px-8 lg:pb-14 lg:pt-5">
       <div className="mx-auto max-w-5xl text-center">
         <div className="flex items-center justify-center gap-3 sm:flex-nowrap">
-          <h1 className="font-display text-3xl font-black text-ink sm:whitespace-nowrap sm:text-4xl lg:text-5xl">¿Qué examen vas a rendir?</h1>
+          <h1 className="font-display text-3xl font-black text-ink sm:whitespace-nowrap sm:text-4xl lg:text-5xl">
+            {focusSelected && selectedCategory ? `Tu simulacro ${selectedCategory.title}` : '¿Qué simulacro vas a rendir?'}
+          </h1>
           <button
             type="button"
             aria-label={
@@ -159,11 +162,16 @@ export default function VehicleStartPanel({
           </button>
         </div>
         <p className="mx-auto mt-2 max-w-2xl text-base leading-6 text-slate-600 sm:text-lg sm:leading-7">
-          Elige tu vehículo y después la categoría exacta de tu licencia.
+          {focusSelected && selectedCategory
+            ? `Todo está preparado para ${selectedCategory.vehicle}.`
+            : 'Elige tu vehículo y después la categoría exacta de tu licencia.'}
         </p>
       </div>
 
-      <div className="mx-auto mt-6 grid max-w-6xl gap-4 md:grid-cols-3 lg:gap-5">
+      <div className={cn(
+        'mx-auto mt-6 grid gap-4 lg:gap-5',
+        focusSelected && selectedCategory ? 'max-w-md grid-cols-1' : 'max-w-6xl md:grid-cols-3',
+      )}>
         {vehicleChoices.map((choice) => {
           const selected = choice.id === selectedVehicle?.id;
           return (
@@ -177,7 +185,7 @@ export default function VehicleStartPanel({
               className={cn(
                 'relative flex min-h-[300px] min-w-0 flex-col rounded-lg border-2 bg-white p-4 text-center transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-brand sm:min-h-[330px] lg:min-h-[350px] lg:p-5',
                 selected ? 'border-brand bg-blue-50/40 shadow-[0_8px_0_#cfe0ff]' : 'border-line',
-                selectedCategory && !selected ? 'hidden md:flex' : null,
+                selectedCategory && !selected ? (focusSelected ? 'hidden' : 'hidden md:flex') : null,
               )}
             >
               {selected ? (
@@ -204,7 +212,10 @@ export default function VehicleStartPanel({
       </div>
 
       {selectedCategory ? (
-        <div className="mx-auto mt-3 grid max-w-6xl grid-cols-2 gap-2 md:hidden" aria-label="Cambiar de vehículo">
+        <div className={cn(
+          'mx-auto mt-3 grid max-w-6xl grid-cols-2 gap-2',
+          focusSelected ? 'md:grid' : 'md:hidden',
+        )} aria-label="Cambiar de vehículo">
           {vehicleChoices
             .filter((choice) => choice.id !== selectedVehicle?.id)
             .map((choice) => (
@@ -239,13 +250,13 @@ export default function VehicleStartPanel({
                 <div className="min-w-0">
                   <p className="flex items-center gap-2 text-sm font-black uppercase text-traffic-yellow">
                     <Clock3 className="h-5 w-5" />
-                    Examen real
+                    Simulacro cronometrado
                   </p>
                   <h2 id="official-exam-title" className="mt-1 font-display text-2xl font-black sm:text-3xl">
-                    40 preguntas con cronómetro
+                    40 preguntas como en la evaluación
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-blue-100 sm:text-base">
-                    Esta es la prueba que mide tu preparación y actualiza tus estadísticas.
+                    Este simulacro mide tu preparación y actualiza tus estadísticas.
                   </p>
                   <div className="mt-4 grid grid-cols-3 divide-x divide-blue-400 border-y border-blue-400/60 py-3 text-center">
                     <span>
@@ -278,7 +289,7 @@ export default function VehicleStartPanel({
                     )}
                   >
                     {canStartFullExam ? <CircleGauge className="h-7 w-7" /> : <LockKeyhole className="h-6 w-6" />}
-                    {canStartFullExam ? 'Comenzar examen real' : 'Activar para rendir'}
+                    {canStartFullExam ? 'Iniciar simulacro' : 'Activar simulacro'}
                     <ArrowRight className="h-6 w-6" />
                   </Link>
                 )}
@@ -362,12 +373,12 @@ export default function VehicleStartPanel({
               <div>
                 <div className="flex items-end justify-between gap-4">
                   <div>
-                    <p className="text-sm font-bold text-brand">Preparación según tus exámenes reales</p>
+                    <p className="text-sm font-bold text-brand">Preparación según tus simulacros</p>
                     <h2 id="progress-title" className="font-display text-2xl font-black text-ink">
                       {progress.promedioGeneral}% de aciertos
                     </h2>
                   </div>
-                  <p className="shrink-0 text-sm font-bold text-slate-600">{progress.totalIntentos} exámenes de 40</p>
+                  <p className="shrink-0 text-sm font-bold text-slate-600">{progress.totalIntentos} simulacros de 40</p>
                 </div>
                 <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-200" aria-label={`${progress.promedioGeneral}% de progreso`}>
                   <div className="h-full rounded-full bg-brand" style={{ width: `${Math.min(progress.promedioGeneral, 100)}%` }} />
@@ -390,7 +401,7 @@ export default function VehicleStartPanel({
               <div className="flex-1">
                 <h2 id="progress-title" className="font-display text-xl font-black text-ink">Aún no medimos tu preparación</h2>
                 <p className="text-sm text-slate-600">
-                  Se calcula al terminar un examen real de 40 preguntas con cronómetro.
+                  Se calcula al terminar un simulacro de 40 preguntas con cronómetro.
                   {progress.freePracticeCount > 0 ? ` Ya completaste ${progress.freePracticeCount} prácticas libres.` : ''}
                 </p>
               </div>
