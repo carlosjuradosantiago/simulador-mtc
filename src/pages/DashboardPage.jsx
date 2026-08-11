@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import VehicleStartPanel from '../components/practice/VehicleStartPanel.jsx';
 import { BRAND_DISCLAIMER } from '../data/brand.js';
+import { FULL_EXAM_IS_FREE } from '../data/examRules.js';
 import { fallbackLicenseCategories } from '../data/vehicleChoices.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { api, resolveCategoryId } from '../services/api.js';
@@ -24,6 +25,10 @@ export default function DashboardPage() {
       promedioGeneral: 0,
       weakTopics: [],
     }));
+    if (FULL_EXAM_IS_FREE) {
+      setMembershipLoading(false);
+      return;
+    }
     api.getPlans().then((items) => setPlan(items?.[0] ?? null)).catch(() => null);
     api.getActiveMembership()
       .then(setMembership)
@@ -54,13 +59,14 @@ export default function DashboardPage() {
         progress={progress}
         onCategoryChange={selectCategory}
         startTo={`/simulacro/${selectedCategoryId}?mode=quick`}
-        fullExamTo={membership?.isActive
+        fullExamTo={FULL_EXAM_IS_FREE || membership?.isActive
           ? `/simulacro/${selectedCategoryId}?mode=exam`
           : `/checkout?category=${selectedCategoryId}`}
-        fullExamHasAccess={Boolean(membership?.isActive)}
+        fullExamHasAccess={FULL_EXAM_IS_FREE || Boolean(membership?.isActive)}
         fullExamAccessLoading={membershipLoading}
         fullExamPrice={plan?.price ?? 1200}
         membershipEndDate={membership?.endDate}
+        fullExamIsFree={FULL_EXAM_IS_FREE}
       />
       <p className="border-t border-line px-4 py-5 text-center text-sm text-slate-500">{BRAND_DISCLAIMER}</p>
     </div>

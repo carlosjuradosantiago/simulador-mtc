@@ -6,7 +6,7 @@ import {
   OFFICIAL_EXAM_MIN_CORRECT,
   OFFICIAL_EXAM_QUESTION_COUNT,
 } from '../_shared/exam-rules.ts';
-import { TIMED_SESSION_TYPE } from '../_shared/membership-access.ts';
+import { isFullExamFree, TIMED_SESSION_TYPE } from '../_shared/membership-access.ts';
 
 // Headers CORS para todas las respuestas
 const corsHeaders = {
@@ -124,30 +124,34 @@ function jsonResponse(data: unknown, status = 200) {
   }
   console.log('✅ Usuario ID:', userId);
 
-  // ============ PASO 3: VALIDAR MEMBRESÍA ============
-  console.log('\n💳 PASO 3: Verificando membresía para el simulacro completo...');
-  const { data: activeMembership, error: membershipError } = await supabase
-    .from('membresias_usuario')
-    .select('id, fecha_fin')
-    .eq('id_usuario', userId)
-    .eq('esta_activa', true)
-    .gte('fecha_fin', new Date().toISOString())
-    .order('fecha_fin', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // ============ PASO 3: VALIDAR ACCESO ============
+  if (isFullExamFree(Deno.env.get('FULL_EXAM_FREE_ACCESS'))) {
+    console.log('\n✅ PASO 3: Acceso gratuito temporal al simulacro completo');
+  } else {
+    console.log('\n💳 PASO 3: Verificando membresía para el simulacro completo...');
+    const { data: activeMembership, error: membershipError } = await supabase
+      .from('membresias_usuario')
+      .select('id, fecha_fin')
+      .eq('id_usuario', userId)
+      .eq('esta_activa', true)
+      .gte('fecha_fin', new Date().toISOString())
+      .order('fecha_fin', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-  if (membershipError) {
-    throw new Error(`[PASO 3] Error al verificar membresía: ${membershipError.message}`);
+    if (membershipError) {
+      throw new Error(`[PASO 3] Error al verificar membresía: ${membershipError.message}`);
+    }
+    if (!activeMembership) {
+      console.log('❌ Acceso denegado: el simulacro completo requiere membresía');
+      return jsonResponse({
+        code: 'MEMBERSHIP_REQUIRED',
+        message: 'Activa tu acceso de 1 mes para rendir el simulacro completo de 40 preguntas.',
+        checkoutPath: `/checkout?category=${categoryIdNum}`,
+      }, 402);
+    }
+    console.log('✅ Membresía activa hasta:', activeMembership.fecha_fin);
   }
-  if (!activeMembership) {
-    console.log('❌ Acceso denegado: el simulacro completo requiere membresía');
-    return jsonResponse({
-      code: 'MEMBERSHIP_REQUIRED',
-      message: 'Activa tu acceso de 1 mes para rendir el simulacro completo de 40 preguntas.',
-      checkoutPath: `/checkout?category=${categoryIdNum}`,
-    }, 402);
-  }
-  console.log('✅ Membresía activa hasta:', activeMembership.fecha_fin);
 
   // ============ PASO 4: OBTENER PREGUNTAS ============
   console.log('\n📚 PASO 4: Obteniendo preguntas del examen...');

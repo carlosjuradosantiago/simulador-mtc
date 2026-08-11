@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import DashboardLayout from '../layouts/DashboardLayout.jsx';
 import PublicLayout from '../layouts/PublicLayout.jsx';
+import { FULL_EXAM_IS_FREE } from '../data/examRules.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { isAdminUser } from '../utils/admin.js';
 
@@ -72,8 +73,8 @@ export default function AppRoutes() {
             <Route path="/ranking" element={<Navigate to="/dashboard" replace />} />
             <Route path="/perfil" element={<ProfilePage />} />
             <Route path="/configuracion" element={<Navigate to="/perfil" replace />} />
-            <Route path="/planes" element={<PlansPage />} />
-            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/planes" element={FULL_EXAM_IS_FREE ? <Navigate to="/dashboard" replace /> : <PlansPage />} />
+            <Route path="/checkout" element={FULL_EXAM_IS_FREE ? <Navigate to="/dashboard" replace /> : <CheckoutPage />} />
             <Route path="/libro-reclamaciones" element={<ComplaintBookPage />} />
           </Route>
         </Route>

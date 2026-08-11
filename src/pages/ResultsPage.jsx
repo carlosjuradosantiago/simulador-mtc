@@ -10,6 +10,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Button from '../components/ui/Button.jsx';
+import { FULL_EXAM_IS_FREE } from '../data/examRules.js';
 import { api, resolveCategoryId, toResult } from '../services/api.js';
 
 const emptyResult = {
@@ -215,7 +216,12 @@ export default function ResultsPage() {
       <div className="mx-auto mt-6 flex max-w-3xl flex-col gap-3 sm:flex-row">
         {quickPractice ? (
           <>
-            <Button as={Link} to={`/checkout?category=${categoryId}`} size="lg" className="flex-1">
+            <Button
+              as={Link}
+              to={FULL_EXAM_IS_FREE ? `/simulacro/${categoryId}?mode=exam` : `/checkout?category=${categoryId}`}
+              size="lg"
+              className="flex-1"
+            >
               <Clock3 className="h-6 w-6" />
               Rendir simulacro de 40
             </Button>

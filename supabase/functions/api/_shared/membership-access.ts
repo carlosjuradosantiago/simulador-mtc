@@ -4,6 +4,10 @@ export const TIMED_SESSION_TYPE = 'CRONOMETRADO';
 export const QUICK_SESSION_TYPE = 'PRACTICA_CORTA';
 export const SIMULATED_PAYMENT_METHOD = 'simulacion';
 
+export function isFullExamFree(value?: string | null) {
+  return String(value ?? '').trim().toLowerCase() !== 'false';
+}
+
 export function addCalendarMonths(value: Date | string, months: number) {
   const result = new Date(value);
   const originalDay = result.getUTCDate();

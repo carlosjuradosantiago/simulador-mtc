@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   addCalendarMonths,
+  isFullExamFree,
   isRealPayment,
   partitionAttempts,
 } from '../supabase/functions/api/_shared/membership-access.ts';
@@ -10,7 +11,12 @@ import {
   OFFICIAL_EXAM_QUESTION_COUNT,
   passesOfficialExam,
 } from '../supabase/functions/api/_shared/exam-rules.ts';
-import { OFFICIAL_EXAM_RULES } from '../src/data/examRules.js';
+import { FULL_EXAM_IS_FREE, OFFICIAL_EXAM_RULES } from '../src/data/examRules.js';
+
+assert.equal(isFullExamFree(undefined), true);
+assert.equal(isFullExamFree('true'), true);
+assert.equal(isFullExamFree('FALSE'), false);
+assert.equal(FULL_EXAM_IS_FREE, true);
 
 assert.equal(addCalendarMonths('2026-01-31T12:00:00.000Z', 1).toISOString(), '2026-02-28T12:00:00.000Z');
 assert.equal(addCalendarMonths('2026-07-25T12:00:00.000Z', 1).toISOString(), '2026-08-25T12:00:00.000Z');

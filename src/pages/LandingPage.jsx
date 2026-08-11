@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import BrandLogo from '../components/layout/BrandLogo.jsx';
 import VehicleStartPanel from '../components/practice/VehicleStartPanel.jsx';
 import { BRAND_DISCLAIMER } from '../data/brand.js';
+import { FULL_EXAM_IS_FREE } from '../data/examRules.js';
 import { fallbackLicenseCategories } from '../data/vehicleChoices.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { api } from '../services/api.js';
@@ -19,9 +20,11 @@ export default function LandingPage() {
     api.getCategories().then((items) => {
       if (items?.length) setCategories(items);
     }).catch(() => null);
-    api.getPlans().then((items) => {
-      if (items?.[0]?.price) setPlanPrice(items[0].price);
-    }).catch(() => null);
+    if (!FULL_EXAM_IS_FREE) {
+      api.getPlans().then((items) => {
+        if (items?.[0]?.price) setPlanPrice(items[0].price);
+      }).catch(() => null);
+    }
   }, []);
 
   useEffect(() => {
@@ -46,6 +49,15 @@ export default function LandingPage() {
       redirectTo: `/simulacro/${selectedCategoryId}?mode=quick&strategy=${practiceMode}`,
     });
   };
+
+  const fullExamDestination = selectedCategoryId
+    ? FULL_EXAM_IS_FREE
+      ? `/simulacro/${selectedCategoryId}?mode=exam`
+      : `/checkout?category=${selectedCategoryId}`
+    : null;
+  const fullExamTo = fullExamDestination
+    ? `/?auth=register&category=${selectedCategoryId}&next=${encodeURIComponent(fullExamDestination)}`
+    : null;
 
   return (
     <div className="min-h-screen bg-white text-ink">
@@ -83,9 +95,8 @@ export default function LandingPage() {
           selectedCategoryId={selectedCategoryId}
           onCategoryChange={setSelectedCategoryId}
           onStart={startPractice}
-          fullExamTo={selectedCategoryId
-            ? `/?auth=register&category=${selectedCategoryId}&next=${encodeURIComponent(`/checkout?category=${selectedCategoryId}`)}`
-            : null}
+          fullExamTo={fullExamTo}
+          fullExamIsFree={FULL_EXAM_IS_FREE}
           fullExamPrice={planPrice}
         />
       </main>
