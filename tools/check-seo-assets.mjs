@@ -33,6 +33,21 @@ async function main() {
     readFile(path.resolve('tools', 'seo-category-question-samples.json'), 'utf8'),
   ]);
   const categorySamples = JSON.parse(categorySamplesText);
+  const vercelConfig = JSON.parse(vercel);
+  const redirects = vercelConfig.redirects || [];
+  assert.equal(vercelConfig.trailingSlash, false, 'vercel.json: las URLs canónicas no deben terminar en /');
+  assert(
+    redirects.some(({ source, destination, permanent }) => source === '/index.html' && destination === '/' && permanent),
+    'vercel.json: /index.html debe redirigir permanentemente a /',
+  );
+  assert(
+    redirects.some(({ source, destination, permanent }) => source === '/seo/:slug.html' && destination === '/:slug' && permanent),
+    'vercel.json: los HTML internos deben redirigir a su URL pública',
+  );
+  assert(
+    redirects.some(({ source, destination, permanent }) => source === '/seo/:slug' && destination === '/:slug' && permanent),
+    'vercel.json: las rutas internas sin extensión deben redirigir a su URL pública',
+  );
   assert.deepEqual(
     Object.keys(categorySamples).sort(),
     ['a1', 'a2a', 'a2b', 'a3a', 'a3b', 'a3c', 'b2a', 'b2b', 'b2c'],
