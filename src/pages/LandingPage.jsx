@@ -102,7 +102,12 @@ export default function LandingPage() {
       </main>
 
       <footer className="border-t border-line px-4 py-6 text-center text-sm leading-6 text-slate-500">
-        {BRAND_DISCLAIMER}
+        <nav aria-label="Información del simulador" className="mb-2 flex flex-wrap justify-center gap-x-5 gap-y-1">
+          <a className="font-semibold text-brand hover:underline" href="/simulador-mtc">Cómo funciona</a>
+          <a className="font-semibold text-brand hover:underline" href="/fuentes-mtc">Fuentes oficiales</a>
+          <a className="font-semibold text-brand hover:underline" href="/metodologia-simulador-mtc">Metodología</a>
+        </nav>
+        <p>{BRAND_DISCLAIMER}</p>
       </footer>
     </div>
   );

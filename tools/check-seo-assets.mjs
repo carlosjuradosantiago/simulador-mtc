@@ -4,6 +4,12 @@ import path from 'node:path';
 
 const siteUrl = 'https://www.simuladormtc.com';
 const seoDir = path.resolve('public', 'seo');
+const questionPages = new Set([
+  'flecha-verde-semaforo-pregunta-mtc.html',
+  'linea-amarilla-discontinua-pregunta-mtc.html',
+  'luz-ambar-semaforo-pregunta-mtc.html',
+  'senal-r6-prohibido-voltear-izquierda-mtc.html',
+]);
 
 function firstMatch(html, pattern, label, file) {
   const value = html.match(pattern)?.[1]?.trim();
@@ -16,16 +22,17 @@ function schemaTypes(graph) {
 }
 
 async function main() {
-  const [fileNames, sitemap, robots, llms, home] = await Promise.all([
+  const [fileNames, sitemap, robots, llms, home, vercel] = await Promise.all([
     readdir(seoDir),
     readFile(path.resolve('public', 'sitemap.xml'), 'utf8'),
     readFile(path.resolve('public', 'robots.txt'), 'utf8'),
     readFile(path.resolve('public', 'llms.txt'), 'utf8'),
     readFile(path.resolve('index.html'), 'utf8'),
+    readFile(path.resolve('vercel.json'), 'utf8'),
   ]);
 
   const htmlFiles = fileNames.filter((file) => file.endsWith('.html')).sort();
-  assert(htmlFiles.length >= 30, `Se esperaban al menos 30 páginas SEO; se encontraron ${htmlFiles.length}`);
+  assert(htmlFiles.length >= 46, `Se esperaban al menos 46 páginas SEO; se encontraron ${htmlFiles.length}`);
 
   const titles = new Set();
   const descriptions = new Set();
@@ -50,6 +57,8 @@ async function main() {
     const description = firstMatch(html, /<meta name="description" content="([^"]+)"/, 'description', file);
     const canonical = firstMatch(html, /<link rel="canonical" href="([^"]+)"/, 'canonical', file);
 
+    assert(title.length <= 70, `${file}: title demasiado largo (${title.length} caracteres)`);
+    assert(description.length <= 160, `${file}: description demasiado larga (${description.length} caracteres)`);
     assert(!titles.has(title), `${file}: title duplicado: ${title}`);
     assert(!descriptions.has(description), `${file}: description duplicada: ${description}`);
     assert(!canonicals.has(canonical), `${file}: canonical duplicado: ${canonical}`);
@@ -70,6 +79,17 @@ async function main() {
       assert(types.has(requiredType), `${file}: falta schema ${requiredType}`);
     }
 
+    if (questionPages.has(file)) {
+      assert(types.has('Quiz'), `${file}: falta schema Quiz`);
+      assert(html.includes('Respuesta correcta'), `${file}: falta la respuesta completa visible`);
+      assert(html.includes('Opciones'), `${file}: faltan las opciones completas visibles`);
+    }
+
+    if (/^simulador-mtc-(?!con-respuestas)[a-z0-9]+\.html$/.test(file)) {
+      assert(html.includes('auth=register&amp;category='), `${file}: el CTA no conserva la categoría al registrar`);
+      assert(html.includes('mode%3Dexam'), `${file}: falta el acceso directo al simulacro de 40 preguntas`);
+    }
+
     const webpage = graph.find((item) => item['@type'] === 'WebPage');
     assert.equal(webpage.dateModified, '2026-08-11', `${file}: fecha editorial inesperada`);
     assert(webpage.mainEntity?.['@id'], `${file}: WebPage no enlaza su recurso principal`);
@@ -79,19 +99,27 @@ async function main() {
     assert(relatedLinks <= 4, `${file}: demasiadas guías repetidas (${relatedLinks})`);
   }
 
-  for (const crawler of ['OAI-SearchBot', 'ChatGPT-User', 'Claude-SearchBot', 'Claude-User', 'PerplexityBot', 'Applebot']) {
+  for (const crawler of ['Google-Extended', 'OAI-SearchBot', 'ChatGPT-User', 'GPTBot', 'Claude-SearchBot', 'Claude-User', 'ClaudeBot', 'PerplexityBot', 'Applebot']) {
     assert(robots.includes(`User-agent: ${crawler}\nAllow: /`), `robots.txt: falta permiso para ${crawler}`);
   }
   assert(robots.includes(`Sitemap: ${siteUrl}/sitemap.xml`), 'robots.txt: falta sitemap');
   assert(llms.includes('40 preguntas'), 'llms.txt: falta el formato verificable del examen');
   assert(llms.includes('35 respuestas correctas'), 'llms.txt: falta el puntaje mínimo verificable');
+  assert(llms.includes('## Preguntas oficiales explicadas'), 'llms.txt: faltan las preguntas explicadas');
+  assert(llms.includes('/metodologia-simulador-mtc'), 'llms.txt: falta la metodología editorial');
   assert(llms.includes('## Criterios editoriales'), 'llms.txt: faltan criterios editoriales');
+  assert(vercel.includes('"value": "noindex, follow"'), 'vercel.json: los PDF oficiales deben delegar la indexación a las páginas explicativas');
+  for (const file of questionPages) {
+    assert(vercel.includes(`/${file.replace(/\.html$/, '')}`), `vercel.json: falta rewrite para ${file}`);
+  }
 
   const homeSchemas = [...home.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
     .map((match) => JSON.parse(match[1]))
     .flatMap((document) => document['@graph'] || [document]);
   assert(schemaTypes(homeSchemas).has('WebApplication'), 'index.html: falta schema WebApplication');
   assert(schemaTypes(homeSchemas).has('LearningResource'), 'index.html: falta schema LearningResource');
+  const organization = homeSchemas.find((item) => item['@type'] === 'Organization');
+  assert.equal(organization?.publishingPrinciples, `${siteUrl}/metodologia-simulador-mtc`, 'index.html: falta la metodología editorial de la organización');
 
   console.log(`SEO/GEO OK: ${htmlFiles.length} páginas, ${canonicals.size} canonicals únicos y rastreadores de IA habilitados.`);
 }

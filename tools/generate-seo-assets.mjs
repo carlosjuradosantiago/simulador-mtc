@@ -34,34 +34,95 @@ const officialSources = [
     url: 'https://www.gob.pe/institucion/mtc/normas-legales/343919-033-2001-mtc',
     note: 'Norma base y relación de modificatorias publicadas por el MTC.',
   },
+  {
+    id: 'license-types',
+    name: 'Tipos de licencia de conducir (brevete)',
+    publisher: 'Ministerio de Transportes y Comunicaciones',
+    url: 'https://www.gob.pe/262-tipos-de-licencia-de-conducir-brevete-tipos-de-licencia-de-conducir-brevete',
+    note: 'Orientación oficial sobre las clases de licencia y los vehículos autorizados en cada categoría.',
+  },
 ];
 
 const categories = [
-  { code: 'A-I', slug: 'a1', common: 'A1', categoryId: 25, pdf: 'balotario_A-I.pdf', vehicle: 'vehiculos particulares livianos', exam: 'licencia A-I' },
-  { code: 'A-IIA', slug: 'a2a', common: 'A2A', categoryId: 16, pdf: 'balotario_A-IIA.pdf', vehicle: 'taxis, transporte turistico y servicios autorizados', exam: 'licencia A-IIA' },
-  { code: 'A-IIB', slug: 'a2b', common: 'A2B', categoryId: 17, pdf: 'balotario_A-IIB.pdf', vehicle: 'vehiculos de transporte de pasajeros y mercancias segun categoria', exam: 'licencia A-IIB' },
-  { code: 'A-IIIA', slug: 'a3a', common: 'A3A', categoryId: 18, pdf: 'balotario_A-IIIA.pdf', vehicle: 'vehiculos mayores de transporte interprovincial', exam: 'licencia A-IIIA' },
-  { code: 'A-IIIB', slug: 'a3b', common: 'A3B', categoryId: 19, pdf: 'balotario_A-IIIB.pdf', vehicle: 'vehiculos de carga y transporte pesado', exam: 'licencia A-IIIB' },
-  { code: 'A-IIIC', slug: 'a3c', common: 'A3C', categoryId: 20, pdf: 'balotario_A-IIIC.pdf', vehicle: 'vehiculos de carga pesada y combinaciones especiales', exam: 'licencia A-IIIC' },
-  { code: 'B-IIA', slug: 'b2a', common: 'B2A', categoryId: 22, pdf: 'balotario_B-IIA.pdf', vehicle: 'vehiculos menores de categoria B-IIA', exam: 'licencia B-IIA' },
-  { code: 'B-IIB', slug: 'b2b', common: 'B2B', categoryId: 23, pdf: 'balotario_B-IIB.pdf', vehicle: 'vehiculos menores de categoria B-IIB', exam: 'licencia B-IIB' },
-  { code: 'B-IIC', slug: 'b2c', common: 'B2C', categoryId: 24, pdf: 'balotario_B-IIC.pdf', vehicle: 'vehiculos menores de categoria B-IIC', exam: 'licencia B-IIC' },
+  {
+    code: 'A-I', slug: 'a1', common: 'A1', categoryId: 25, pdf: 'balotario_A-I.pdf', exam: 'licencia A-I',
+    vehicle: 'autos y camionetas de uso particular',
+    scope: 'Autoriza vehículos M1 y M2 de uso particular, vehículos de mercancías N1 y un acoplado O1.',
+    focus: 'Señales, semáforos, prioridad de paso, marcas en el pavimento, adelantamiento y conducción segura de vehículos particulares.',
+    advice: 'Empieza por las materias generales y alterna preguntas de señales con simulacros completos; A1 tiene un balotario propio de referencia.',
+  },
+  {
+    code: 'A-IIA', slug: 'a2a', common: 'A2A', categoryId: 16, pdf: 'balotario_A-IIA.pdf', exam: 'licencia A-IIA',
+    vehicle: 'taxis, transporte turístico y vehículos de emergencia',
+    scope: 'Autoriza vehículos M1 destinados al transporte especial de pasajeros e incluye los permisos de A-I.',
+    focus: 'Materias generales y reglas específicas de transporte especial, servicio de taxi, seguridad del pasajero y documentación.',
+    advice: 'Practica por separado el bloque general y el bloque profesional para detectar cuál de los dos está bajando tu puntaje.',
+  },
+  {
+    code: 'A-IIB', slug: 'a2b', common: 'A2B', categoryId: 17, pdf: 'balotario_A-IIB.pdf', exam: 'licencia A-IIB',
+    vehicle: 'microbuses, minibuses y camiones medianos',
+    scope: 'Autoriza vehículos M2 y M3 de hasta 6 toneladas y vehículos de mercancías N2 con remolques O1 u O2; incluye A-I y A-IIA.',
+    focus: 'Transporte de personas y mercancías, pesos y categorías vehiculares, seguridad de pasajeros, documentos y materias generales.',
+    advice: 'Refuerza las diferencias entre M2, M3 y N2 y luego comprueba el aprendizaje en un simulacro cronometrado de la categoría.',
+  },
+  {
+    code: 'A-IIIA', slug: 'a3a', common: 'A3A', categoryId: 18, pdf: 'balotario_A-IIIA.pdf', exam: 'licencia A-IIIA',
+    vehicle: 'ómnibus urbanos, interurbanos y articulados',
+    scope: 'Autoriza vehículos M3 de más de 6 toneladas para transporte de personas e incluye A-I, A-IIA y A-IIB.',
+    focus: 'Transporte pesado de pasajeros, obligaciones del conductor profesional, seguridad, operación del vehículo y materias generales.',
+    advice: 'Prioriza las preguntas sobre transporte de personas y contrástalas con las reglas generales que también forman parte del examen.',
+  },
+  {
+    code: 'A-IIIB', slug: 'a3b', common: 'A3B', categoryId: 19, pdf: 'balotario_A-IIIB.pdf', exam: 'licencia A-IIIB',
+    vehicle: 'camiones, remolcadores y volquetes',
+    scope: 'Autoriza vehículos N3 para mercancías con uno o más vehículos acoplados de categoría O; incluye A-I, A-IIA y A-IIB.',
+    focus: 'Carga pesada, acoplados, pesos y dimensiones, seguridad operativa, inspección del vehículo y materias generales.',
+    advice: 'Separa los errores de normativa general de los errores sobre carga y vehículos N3 para que el repaso sea realmente útil.',
+  },
+  {
+    code: 'A-IIIC', slug: 'a3c', common: 'A3C', categoryId: 20, pdf: 'balotario_A-IIIC.pdf', exam: 'licencia A-IIIC',
+    vehicle: 'ómnibus y vehículos de carga pesada',
+    scope: 'Combina las autorizaciones A-IIIA y A-IIIB para transporte pesado de personas y mercancías e incluye las categorías anteriores de clase A.',
+    focus: 'Normas de ómnibus y carga pesada, seguridad de pasajeros y mercancías, categorías vehiculares y responsabilidades profesionales.',
+    advice: 'Alterna bloques de transporte de personas y carga; el promedio general puede ocultar que uno de los dos bloques necesita refuerzo.',
+  },
+  {
+    code: 'B-IIA', slug: 'b2a', common: 'B2A', categoryId: 22, pdf: 'balotario_B-IIA.pdf', exam: 'licencia B-IIA',
+    vehicle: 'bicimotos de categorías L1 y L2',
+    scope: 'Autoriza bicimotos L1 y L2 para transporte particular de pasajeros o transporte de mercancías.',
+    focus: 'Reglas para vehículos menores, casco y elementos de seguridad, circulación, documentos y materias generales de tránsito.',
+    advice: 'No estudies con el balotario de auto: selecciona B2A para recibir las preguntas que corresponden a bicimotos.',
+  },
+  {
+    code: 'B-IIB', slug: 'b2b', common: 'B2B', categoryId: 23, pdf: 'balotario_B-IIB.pdf', exam: 'licencia B-IIB',
+    vehicle: 'motocicletas y motocicletas con sidecar',
+    scope: 'Autoriza vehículos L3 y L4 para uso particular e incluye los permisos de B-IIA.',
+    focus: 'Seguridad en motocicleta, casco, posición en la vía, maniobras, mantenimiento básico y normas para vehículos menores.',
+    advice: 'Practica específicamente B2B: las preguntas para motocicleta no son iguales a las de la licencia A-I de automóvil.',
+  },
+  {
+    code: 'B-IIC', slug: 'b2c', common: 'B2C', categoryId: 24, pdf: 'balotario_B-IIC.pdf', exam: 'licencia B-IIC',
+    vehicle: 'mototaxis y trimotos de pasajeros o mercancías',
+    scope: 'Autoriza vehículos L5 para transporte público especial de pasajeros y mercancías e incluye B-IIA y B-IIB.',
+    focus: 'Servicio público en vehículos menores, seguridad del pasajero, documentos, obligaciones del conductor y reglas para unidades L5.',
+    advice: 'Distingue las reglas de uso particular de las obligaciones del servicio público especial antes de rendir otro simulacro.',
+  },
 ];
 
 const corePages = [
   {
     slug: 'simulador-mtc',
-    title: 'Simulador MTC 2026 para practicar el examen de conocimientos',
-    description: 'Practica para el examen de conocimientos MTC con simulacros por categoria, balotario descargable, explicaciones y resultados por tema.',
-    h1: 'Simulador MTC para practicar el examen de conocimientos',
-    intro: 'Entrena con preguntas organizadas por categoria de licencia, revisa explicaciones despues de responder y descarga los balotarios oficiales para estudiar con calma.',
+    title: 'Simulador MTC 2026: práctica gratis y simulacro de 40 preguntas',
+    description: 'Elige A1, A2A, A2B, A3 o B2. Practica 5 preguntas gratis o rinde un simulacro MTC de 40 preguntas y revisa tus errores por tema.',
+    h1: 'Simulador MTC 2026 por categoría de licencia',
+    intro: 'Elige la categoría exacta de tu licencia. Puedes aprender con 5 preguntas sin cronómetro o medir tu preparación con 40 preguntas en 40 minutos y un mínimo de referencia de 35 respuestas correctas.',
     primaryCta: '/?auth=register',
-    ctaText: 'Comenzar practica',
+    ctaText: 'Elegir categoría y practicar',
     keywords: ['simulador mtc', 'examen de conocimientos mtc', 'balotario mtc', 'licencia de conducir peru'],
     sections: [
-      ['Que puedes practicar', 'Preguntas de reglas de transito, senales, conduccion preventiva, mecanica basica, primeros auxilios y temas recurrentes del examen de conocimientos.'],
-      ['Como se calcula tu avance', 'Cada simulacro muestra respuestas correctas, incorrectas, pendientes y temas por reforzar para que sepas donde estudiar antes de volver a intentar.'],
-      ['Material oficial descargable', 'La plataforma enlaza balotarios oficiales por categoria para que puedas revisar el PDF completo ademas de practicar en linea.'],
+      ['Práctica corta para aprender', 'Responde 5 preguntas sin cronómetro, recibe la explicación completa y vuelve a practicar las preguntas que más fallas.'],
+      ['Simulacro cronometrado', 'Responde 40 preguntas en 40 minutos. Solo estos simulacros alimentan el promedio, la evolución y los temas débiles de Mi avance.'],
+      ['Balotario por categoría', 'Cada licencia usa su propia selección de preguntas. La plataforma enlaza el PDF correspondiente y las fuentes oficiales del MTC.'],
     ],
     faqs: [
       ['Que es un simulador MTC?', 'Es una herramienta educativa para practicar preguntas similares al examen de conocimientos requerido para obtener o revalidar una licencia de conducir en Peru.'],
@@ -70,8 +131,28 @@ const corePages = [
     ],
   },
   {
+    slug: 'metodologia-simulador-mtc',
+    title: 'Metodología y fuentes de Simulador MTC',
+    description: 'Conoce cómo se organizan, revisan y explican las preguntas de Simulador MTC y qué fuentes oficiales se consultan.',
+    h1: 'Cómo revisamos el contenido de Simulador MTC',
+    intro: 'La plataforma transforma balotarios públicos en prácticas fáciles de usar. Conservamos el texto completo de las preguntas, separamos las categorías y enlazamos las fuentes para que cada dato importante pueda comprobarse.',
+    primaryCta: '/fuentes-mtc',
+    ctaText: 'Revisar fuentes oficiales',
+    keywords: ['metodologia simulador mtc', 'fuentes simulador mtc', 'preguntas oficiales mtc', 'revision balotario mtc'],
+    sections: [
+      ['Preguntas sin recortes', 'Las preguntas y alternativas deben mostrarse completas. Cuando existe una imagen asociada, forma parte de la pregunta y no se sustituye por una descripción inventada.'],
+      ['Separación por licencia', 'A1, A2A, A2B, A3 y las categorías B no comparten exactamente el mismo banco. Cada práctica se filtra por la licencia elegida por la persona.'],
+      ['Revisión y correcciones', 'Contrastamos formato, categorías y balotarios con publicaciones del MTC. Si una fuente cambia, se revisa el contenido afectado antes de modificar su fecha editorial.'],
+    ],
+    faqs: [
+      ['Simulador MTC pertenece al MTC?', disclaimer],
+      ['Se modifican las preguntas para hacerlas más cortas?', 'No. La interfaz puede adaptar el tamaño visual, pero no debe recortar ni resumir el enunciado o las alternativas.'],
+      ['Como puedo verificar una respuesta?', 'Cada guía enlaza sus fuentes y los balotarios descargables. Ante cualquier diferencia, prevalece la publicación oficial vigente.'],
+    ],
+  },
+  {
     slug: 'fuentes-mtc',
-    title: 'Fuentes oficiales MTC usadas para estudiar el examen de conocimientos',
+    title: 'Fuentes oficiales y balotarios MTC por categoría',
     description: 'Fuentes oficiales MTC y balotarios usados como referencia para estudiar el examen de conocimientos de licencia de conducir en Peru.',
     h1: 'Fuentes oficiales MTC para estudiar el examen de conocimientos',
     intro: 'Para prepararte con criterio, combina practica online con la revision de publicaciones oficiales. Esta pagina centraliza la referencia publica del MTC y los balotarios descargables por categoria.',
@@ -111,7 +192,7 @@ const corePages = [
   },
   {
     slug: 'senales-de-transito',
-    title: 'Senales de transito para el examen MTC: reglamentarias, preventivas e informativas',
+    title: 'Señales de tránsito MTC: tipos y preguntas del examen',
     description: 'Aprende a reconocer senales de transito para el examen MTC y practica preguntas con explicacion inmediata.',
     h1: 'Senales de transito para el examen MTC',
     intro: 'Las senales suelen decidir muchas preguntas del examen. La clave es reconocer el tipo de senal y la conducta que exige al conductor.',
@@ -532,6 +613,145 @@ const articlePages = [
   },
 ];
 
+const questionPages = [
+  {
+    type: 'Quiz',
+    slug: 'luz-ambar-semaforo-pregunta-mtc',
+    categorySlug: 'a1',
+    title: 'Luz ámbar del semáforo: respuesta del balotario MTC',
+    description: 'Conoce qué significa la luz ámbar del semáforo según la pregunta 6 del balotario MTC A-I y practica sus cuatro alternativas.',
+    h1: '¿Qué significa la luz ámbar del semáforo?',
+    intro: 'Debes detenerte antes de ingresar a la intersección si tu velocidad y ubicación lo permiten. Si ya no es posible detenerte con seguridad, cruza y despeja la intersección.',
+    primaryCta: '/?auth=register&category=25&next=%2Fsimulacro%2F25%3Fmode%3Dquick%26strategy%3Drandom',
+    ctaText: 'Practicar preguntas A1',
+    keywords: ['luz ámbar semáforo mtc', 'pregunta semáforo amarillo mtc', 'balotario mtc a1 pregunta 6'],
+    question: {
+      number: 6,
+      text: 'El color ámbar o amarillo del semáforo significa que:',
+      options: [
+        'Los vehículos deben avanzar.',
+        'Los vehículos deben detenerse.',
+        'Los vehículos deben acelerar la marcha.',
+        'Los vehículos deben detenerse antes de ingresar a la intersección si su velocidad y ubicación lo permiten; de lo contrario, deberán cruzar y despejar la intersección.',
+      ],
+      correctAnswer: 'Los vehículos deben detenerse antes de ingresar a la intersección si su velocidad y ubicación lo permiten; de lo contrario, deberán cruzar y despejar la intersección.',
+      explanation: 'La luz ámbar es una advertencia de cambio. No ordena acelerar y tampoco exige una frenada peligrosa cuando el vehículo ya está demasiado cerca para detenerse con seguridad.',
+    },
+    sections: [
+      ['Regla para recordar', 'Ámbar significa prevención: detente si puedes hacerlo con seguridad antes de la intersección; si no puedes, termina de cruzar y deja libre el cruce.'],
+      ['Error frecuente', 'Elegir solo “deben detenerse” deja fuera la excepción que contempla la ubicación y velocidad del vehículo. La alternativa completa es la correcta.'],
+      ['Fuente de la pregunta', 'Corresponde a la pregunta 6 del balotario A-I publicado por el MTC. Puedes abrir el PDF enlazado en esta página para comprobar el texto.'],
+    ],
+    faqs: [
+      ['La luz ámbar significa acelerar?', 'No. Advierte que la señal cambiará y exige decidir con seguridad antes de entrar a la intersección.'],
+      ['Debo frenar aunque ya esté dentro de la intersección?', 'No debes quedar detenido bloqueando el cruce. Si ya ingresaste, debes despejar la intersección.'],
+      ['Esta pregunta corresponde a A1?', 'Sí. Está identificada como la pregunta 6 del balotario A-I usado como fuente.'],
+    ],
+  },
+  {
+    type: 'Quiz',
+    slug: 'flecha-verde-semaforo-pregunta-mtc',
+    categorySlug: 'a1',
+    title: 'Flecha verde del semáforo: respuesta del balotario MTC',
+    description: 'Aprende qué indica una flecha verde del semáforo según la pregunta 8 del balotario MTC A-I y evita una respuesta incompleta.',
+    h1: '¿Qué indica una flecha verde en un semáforo?',
+    intro: 'Puedes continuar con precaución únicamente en la dirección de la flecha y desde el carril que esa flecha controla.',
+    primaryCta: '/?auth=register&category=25&next=%2Fsimulacro%2F25%3Fmode%3Dquick%26strategy%3Drandom',
+    ctaText: 'Practicar preguntas A1',
+    keywords: ['flecha verde semáforo mtc', 'qué indica flecha verde semáforo', 'balotario mtc a1 pregunta 8'],
+    question: {
+      number: 8,
+      text: '¿Qué indica una flecha verde en un semáforo vehicular?',
+      options: [
+        'Se puede continuar con precaución únicamente en la dirección de la flecha y desde el carril que esta flecha controla.',
+        'No está permitida la circulación en el sentido que indica la flecha.',
+        'Se debe respetar únicamente la luz circular.',
+        'Ninguna de las alternativas es correcta.',
+      ],
+      correctAnswer: 'Se puede continuar con precaución únicamente en la dirección de la flecha y desde el carril que esta flecha controla.',
+      explanation: 'La autorización no vale para cualquier carril ni para otra dirección. Debes seguir el sentido de la flecha y mantener precaución antes de avanzar.',
+    },
+    sections: [
+      ['Qué autoriza', 'La flecha verde permite avanzar solo hacia donde apunta. No convierte en libre cualquier otro movimiento de la intersección.'],
+      ['Qué carril debe usarla', 'La indicación corresponde al carril controlado por esa flecha. Antes de avanzar, comprueba peatones y condiciones del cruce.'],
+      ['Fuente de la pregunta', 'Corresponde a la pregunta 8 del balotario A-I publicado por el MTC y enlazado como PDF en esta página.'],
+    ],
+    faqs: [
+      ['Puedo avanzar en otra dirección si veo una flecha verde?', 'No por efecto de esa flecha. La autorización se limita a la dirección que indica.'],
+      ['La flecha verde elimina la precaución?', 'No. La respuesta oficial incluye expresamente que se debe continuar con precaución.'],
+      ['Esta pregunta es del balotario A-I?', 'Sí. Figura como la pregunta 8 en el material A-I usado como fuente.'],
+    ],
+  },
+  {
+    type: 'Quiz',
+    slug: 'linea-amarilla-discontinua-pregunta-mtc',
+    categorySlug: 'a1',
+    title: 'Línea amarilla discontinua: respuesta del balotario MTC',
+    description: 'Conoce cuándo se puede cruzar una línea central amarilla discontinua según la pregunta 5 del balotario MTC A-I.',
+    h1: '¿Qué significa una línea amarilla central discontinua?',
+    intro: 'Está permitido cruzar al otro carril para adelantar únicamente cuando sea seguro hacerlo.',
+    primaryCta: '/?auth=register&category=25&next=%2Fsimulacro%2F25%3Fmode%3Dquick%26strategy%3Drandom',
+    ctaText: 'Practicar preguntas A1',
+    keywords: ['línea amarilla discontinua mtc', 'adelantamiento línea discontinua', 'balotario mtc a1 pregunta 5'],
+    question: {
+      number: 5,
+      text: 'En las vías, las marcas en el pavimento que son del tipo central discontinua y de color amarillo significan que:',
+      options: [
+        'Está permitido cruzar al otro carril para el adelantamiento vehicular, si es que es seguro hacerlo.',
+        'No está permitido cruzar al otro carril para el adelantamiento vehicular.',
+        'Se está reduciendo el ancho de la calzada de la vía por donde se circula.',
+        'Se está frente a un lugar de cruce peatonal.',
+      ],
+      correctAnswer: 'Está permitido cruzar al otro carril para el adelantamiento vehicular, si es que es seguro hacerlo.',
+      explanation: 'La discontinuidad permite cruzar la marca, pero no garantiza que la maniobra sea segura. Antes de adelantar debes comprobar visibilidad, distancia y ausencia de prohibiciones adicionales.',
+    },
+    sections: [
+      ['Condición indispensable', 'La respuesta no termina en “está permitido”. Solo puedes cruzar cuando la maniobra sea segura y no exista otra señal que la prohíba.'],
+      ['No la confundas', 'Una línea central continua tiene una restricción distinta. Observa primero si la marca es continua o discontinua antes de responder.'],
+      ['Fuente de la pregunta', 'Corresponde a la pregunta 5 del balotario A-I publicado por el MTC y disponible desde esta página.'],
+    ],
+    faqs: [
+      ['Siempre puedo adelantar con línea amarilla discontinua?', 'No. La posibilidad depende de que la maniobra sea segura y de que no exista otra prohibición.'],
+      ['La línea discontinua indica un cruce peatonal?', 'No. Esa alternativa no corresponde al significado de una línea central amarilla discontinua.'],
+      ['Dónde compruebo la pregunta?', 'En el balotario A-I enlazado en la sección de descarga de esta página.'],
+    ],
+  },
+  {
+    type: 'Quiz',
+    slug: 'senal-r6-prohibido-voltear-izquierda-mtc',
+    categorySlug: 'a1',
+    title: 'Señal R-6: prohibido voltear a la izquierda | MTC',
+    description: 'Aprende qué prohíbe la señal R-6 según la pregunta 3 del balotario MTC A-I y si también impide realizar un giro en U.',
+    h1: '¿Qué significa la señal R-6?',
+    intro: 'La señal R-6 prohíbe voltear a la izquierda y, por lo tanto, también prohíbe realizar un giro en U.',
+    primaryCta: '/?auth=register&category=25&next=%2Fsimulacro%2F25%3Fmode%3Dquick%26strategy%3Drandom',
+    ctaText: 'Practicar preguntas A1',
+    keywords: ['señal R-6 MTC', 'prohibido voltear izquierda giro en U', 'balotario mtc a1 pregunta 3'],
+    question: {
+      number: 3,
+      text: 'La señal vertical reglamentaria R-6 “prohibido voltear a la izquierda”, significa que:',
+      options: [
+        'Está prohibido voltear a la izquierda y, por lo tanto también está prohibido el giro en U.',
+        'Está prohibido voltear a la izquierda, sin embargo, está permitido el giro en U.',
+        'El único sentido de desplazamiento es continuar de frente.',
+        'Ninguna de las alternativas es correcta.',
+      ],
+      correctAnswer: 'Está prohibido voltear a la izquierda y, por lo tanto también está prohibido el giro en U.',
+      explanation: 'Un giro en U incluye una maniobra hacia la izquierda, por eso la prohibición de la señal R-6 también alcanza ese giro.',
+    },
+    sections: [
+      ['Qué prohíbe', 'No puedes realizar el giro ordinario a la izquierda ni usar ese movimiento para completar un giro en U.'],
+      ['Error frecuente', 'La señal no equivale a una obligación de continuar de frente: puede haber otros movimientos permitidos según la vía y la señalización presente.'],
+      ['Fuente de la pregunta', 'Corresponde a la pregunta 3 del balotario A-I publicado por el MTC y enlazado en esta página.'],
+    ],
+    faqs: [
+      ['La señal R-6 permite girar en U?', 'No. La respuesta del balotario indica que también está prohibido el giro en U.'],
+      ['R-6 significa que solo puedo seguir de frente?', 'No necesariamente. Su mensaje específico es prohibir el giro a la izquierda.'],
+      ['Esta es una señal reglamentaria?', 'Sí. Expresa una prohibición que el conductor debe obedecer.'],
+    ],
+  },
+];
+
 function pageUrl(slug) {
   return `${siteUrl}/${slug}`;
 }
@@ -640,6 +860,27 @@ function renderSections(sections) {
           </article>`).join('');
 }
 
+function renderQuestion(page) {
+  if (!page.question) return '';
+
+  const letters = ['A', 'B', 'C', 'D'];
+  return `<section class="quiz-section" aria-labelledby="pregunta-oficial">
+        <div class="wrap quiz-panel">
+          <p class="quiz-source">Balotario A-I · pregunta ${page.question.number}</p>
+          <h2 id="pregunta-oficial">${escapeHtml(page.question.text)}</h2>
+          <h3>Opciones de respuesta</h3>
+          <ol class="quiz-options">
+            ${page.question.options.map((option, index) => `<li><span>${letters[index]}</span>${escapeHtml(option)}</li>`).join('')}
+          </ol>
+          <div class="quiz-answer">
+            <strong>Respuesta correcta</strong>
+            <p>${escapeHtml(page.question.correctAnswer)}</p>
+            <p>${escapeHtml(page.question.explanation)}</p>
+          </div>
+        </div>
+      </section>`;
+}
+
 function renderFaqs(faqs) {
   return faqs.map(([question, answer]) => `
           <details>
@@ -653,7 +894,10 @@ function sourcesForPage(page) {
   if (/transito|senal|semaforo|prioridad|adelantamiento|manejo|mecanica|auxilios/.test(page.slug)) {
     sourceIds.add('traffic-rules');
   }
-  if (page.slug === 'fuentes-mtc') officialSources.forEach((source) => sourceIds.add(source.id));
+  if (page.categorySlug) sourceIds.add('license-types');
+  if (['fuentes-mtc', 'metodologia-simulador-mtc'].includes(page.slug)) {
+    officialSources.forEach((source) => sourceIds.add(source.id));
+  }
   return officialSources.filter((source) => sourceIds.has(source.id));
 }
 
@@ -716,6 +960,24 @@ function renderGuideLinks(page) {
             </a>`).join('');
 }
 
+function relatedQuestionsFor(page) {
+  if (page.type === 'Quiz') {
+    return questionPages.filter((question) => question.slug !== page.slug).slice(0, 3);
+  }
+  if (page.categorySlug === 'a1' || /pregunta|senal|semaforo|adelantamiento/.test(page.slug)) {
+    return questionPages;
+  }
+  return [];
+}
+
+function renderQuestionLinks(page) {
+  return relatedQuestionsFor(page).map((question) => `
+            <a href="/${question.slug}">
+              <strong>${escapeHtml(question.h1)}</strong>
+              <span>${escapeHtml(question.intro)}</span>
+            </a>`).join('');
+}
+
 function shouldShowCategories(page) {
   return Boolean(page.categorySlug) || ['simulador-mtc', 'fuentes-mtc', 'balotario-mtc-pdf'].includes(page.slug);
 }
@@ -761,7 +1023,7 @@ function renderHtml(page) {
     inLanguage: 'es-PE',
     datePublished: contentPublished,
     dateModified: contentLastReviewed,
-    learningResourceType: page.type === 'Article' ? 'Guía de estudio' : 'Práctica educativa',
+    learningResourceType: page.type === 'Article' ? 'Guía de estudio' : page.type === 'Quiz' ? 'Pregunta explicada' : 'Práctica educativa',
     educationalUse: ['autoestudio', 'práctica'],
     teaches: page.keywords,
     audience: {
@@ -779,7 +1041,24 @@ function renderHtml(page) {
       publisher: { '@type': 'Organization', name: source.publisher },
       url: source.url,
     })),
+    hasPart: page.question ? { '@id': `${canonical}#quiz` } : undefined,
   };
+  const quizSchema = page.question ? {
+    '@type': 'Quiz',
+    '@id': `${canonical}#quiz`,
+    name: page.h1,
+    about: page.keywords.map((name) => ({ '@type': 'Thing', name })),
+    educationalLevel: 'Postulante a licencia de conducir',
+    hasPart: {
+      '@type': 'Question',
+      eduQuestionType: 'Flashcard',
+      text: page.question.text,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: page.question.correctAnswer,
+      },
+    },
+  } : null;
   const webPageSchema = {
     '@type': 'WebPage',
     '@id': `${canonical}#webpage`,
@@ -807,6 +1086,7 @@ function renderHtml(page) {
         url: siteUrl,
         logo: `${siteUrl}/og-simulador-mtc.png`,
         description: disclaimer,
+        publishingPrinciples: `${siteUrl}/metodologia-simulador-mtc`,
       },
       {
         '@type': 'WebSite',
@@ -819,23 +1099,28 @@ function renderHtml(page) {
       webPageSchema,
       breadcrumbSchema,
       learningResourceSchema,
+      ...(quizSchema ? [quizSchema] : []),
       faqSchema,
     ],
   };
   const pdfLinks = renderPdfLinks(page);
+  const questionLinks = renderQuestionLinks(page);
+  const secondaryCta = page.secondaryCta || (page.categorySlug ? `/mtc-official/${categories.find((category) => category.slug === page.categorySlug)?.pdf}` : '/examen-mtc-preguntas');
+  const secondaryCtaText = page.secondaryCtaText || (page.categorySlug ? 'Abrir balotario PDF' : 'Ver preguntas y temas');
 
   return `<!doctype html>
 <html lang="es-PE">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>${escapeHtml(page.title)} | ${brandName}</title>
+    <title>${escapeHtml(page.title)}</title>
     <meta name="description" content="${escapeHtml(page.description)}">
     <meta name="author" content="Equipo editorial de Simulador MTC">
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
     <link rel="canonical" href="${canonical}">
     <link rel="alternate" hreflang="es-PE" href="${canonical}">
     <link rel="alternate" type="text/plain" href="${siteUrl}/llms.txt" title="Índice para asistentes de IA">
+    <link rel="author" href="${siteUrl}/metodologia-simulador-mtc">
     <meta property="og:type" content="website">
     <meta property="og:locale" content="es_PE">
     <meta property="og:site_name" content="${brandName}">
@@ -860,10 +1145,10 @@ function renderHtml(page) {
       .logo { display:flex; align-items:center; gap:12px; font-weight:900; font-size:22px; }
       .mark { width:40px; height:40px; display:grid; place-items:center; border-radius:50%; background:var(--deep); color:#fff; }
       nav { display:flex; gap:16px; flex-wrap:wrap; font-size:14px; font-weight:700; color:#4d617d; }
-      .hero { background:linear-gradient(180deg, #eef6ff 0%, #fff 75%); border-bottom:1px solid var(--line); }
+      .hero { background:#eef6ff; border-bottom:1px solid var(--line); }
       .hero-grid { display:grid; grid-template-columns: minmax(0,1.05fr) minmax(280px,.95fr); gap:32px; align-items:center; padding:44px 0; }
       .eyebrow { display:inline-flex; align-items:center; gap:8px; padding:7px 12px; border-radius:999px; background:#e8f1ff; color:var(--brand); font-weight:900; font-size:13px; }
-      h1 { margin:16px 0 0; font-size:clamp(34px, 5vw, 60px); line-height:1.02; letter-spacing:0; }
+      h1 { margin:16px 0 0; font-size:52px; line-height:1.02; letter-spacing:0; }
       .lead { margin:18px 0 0; font-size:18px; line-height:1.75; color:#40536f; max-width:720px; }
       .actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:24px; }
       .btn { display:inline-flex; align-items:center; justify-content:center; min-height:46px; padding:0 18px; border-radius:8px; border:1px solid var(--brand); font-weight:900; }
@@ -880,6 +1165,17 @@ function renderHtml(page) {
       .answer-panel h2 { margin:0; font-size:24px; }
       .answer-panel p { margin:10px 0 0; color:#31445f; font-size:17px; line-height:1.7; }
       .reviewed { font-size:13px !important; font-weight:700; color:#5f718c !important; }
+      .quiz-section { padding:28px 0 0; }
+      .quiz-panel { border:2px solid var(--line); padding:24px; background:#fff; }
+      .quiz-source { margin:0 0 8px; color:var(--brand); font-size:13px; font-weight:900; text-transform:uppercase; }
+      .quiz-panel h2 { margin:0; font-size:30px; line-height:1.25; }
+      .quiz-panel h3 { margin:20px 0 0; font-size:16px; }
+      .quiz-options { margin:10px 0 0; padding:0; list-style:none; display:grid; gap:10px; }
+      .quiz-options li { display:flex; align-items:flex-start; gap:12px; border:1px solid var(--line); padding:14px; line-height:1.55; }
+      .quiz-options li span { width:30px; height:30px; flex:0 0 30px; display:grid; place-items:center; border-radius:50%; background:var(--soft); font-weight:900; }
+      .quiz-answer { margin-top:18px; border-left:5px solid var(--ok); background:#f1fbf7; padding:18px; }
+      .quiz-answer strong { color:#08794e; }
+      .quiz-answer p { margin:8px 0 0; line-height:1.65; color:#31445f; }
       .grid { display:grid; gap:16px; }
       .grid.three { grid-template-columns: repeat(3, minmax(0,1fr)); }
       .info-card, details, .download-card { border:1px solid var(--line); border-radius:10px; padding:18px; background:#fff; }
@@ -905,6 +1201,8 @@ function renderHtml(page) {
         nav { gap:10px; }
         .hero-grid, .grid.three { grid-template-columns:1fr; }
         .hero-grid { padding:30px 0; }
+        h1 { font-size:36px; }
+        .quiz-panel h2 { font-size:24px; }
         .answer-panel { padding:18px; }
       }
     </style>
@@ -921,6 +1219,7 @@ function renderHtml(page) {
           <a href="/examen-mtc-preguntas">Preguntas</a>
           <a href="/senales-de-transito">Señales</a>
           <a href="/reglas-de-transito-peru">Reglas</a>
+          <a href="/metodologia-simulador-mtc">Metodología</a>
         </nav>
       </div>
     </header>
@@ -932,8 +1231,8 @@ function renderHtml(page) {
             <h1>${escapeHtml(page.h1)}</h1>
             <p class="lead">${escapeHtml(page.description)}</p>
             <div class="actions">
-              <a class="btn primary" href="${page.primaryCta}">${escapeHtml(page.ctaText)}</a>
-              <a class="btn secondary" href="/banco-preguntas">Ver banco de preguntas</a>
+              <a class="btn primary" href="${escapeHtml(page.primaryCta)}">${escapeHtml(page.ctaText)}</a>
+              <a class="btn secondary" href="${escapeHtml(secondaryCta)}">${escapeHtml(secondaryCtaText)}</a>
             </div>
             <p class="notice">${escapeHtml(disclaimer)}</p>
           </div>
@@ -954,6 +1253,7 @@ function renderHtml(page) {
           <p class="reviewed">Revisión editorial: ${contentLastReviewedLabel}. Contrastado con publicaciones oficiales enlazadas en esta página.</p>
         </div>
       </section>
+      ${renderQuestion(page)}
       <section>
         <div class="wrap">
           <div class="grid three">
@@ -996,6 +1296,14 @@ function renderHtml(page) {
           </div>
         </div>
       </section>
+      ${questionLinks ? `<section>
+        <div class="wrap">
+          <h2>Preguntas oficiales explicadas</h2>
+          <div class="guide-strip">
+            ${questionLinks}
+          </div>
+        </div>
+      </section>` : ''}
       <section>
         <div class="wrap">
           <h2>Preguntas frecuentes</h2>
@@ -1010,6 +1318,7 @@ function renderHtml(page) {
         <p><strong>${brandName}</strong></p>
         <p>${disclaimer}</p>
         <p>Fuente oficial de referencia: <a href="${officialMtcSource}" rel="noopener noreferrer" style="color:#fff;">MTC en gob.pe</a>.</p>
+        <p><a href="/metodologia-simulador-mtc" style="color:#fff;">Metodología editorial y criterios de revisión</a></p>
         <p>Revisión editorial: ${contentLastReviewedLabel}. Verifica siempre la información vigente antes de rendir tu examen.</p>
       </div>
     </footer>
@@ -1018,24 +1327,29 @@ function renderHtml(page) {
 }
 
 function simulatorPageFor(category) {
+  const simulatorDestination = `/simulacro/${category.categoryId}?mode=quick&strategy=random`;
+  const examDestination = `/simulacro/${category.categoryId}?mode=exam`;
   return {
     slug: `simulador-mtc-${category.slug}`,
     categorySlug: category.slug,
-    title: `Simulador MTC ${category.common} (${category.code}) para examen de conocimientos`,
-    description: `Practica el simulador MTC ${category.common} con preguntas por tema, explicaciones y balotario ${category.code} descargable.`,
+    title: `Simulador MTC ${category.common} 2026: 40 preguntas y balotario ${category.code}`,
+    description: `Practica 5 preguntas ${category.common} gratis o rinde 40 preguntas en 40 minutos. Revisa respuestas y abre el balotario MTC ${category.code}.`,
     h1: `Simulador MTC ${category.common} para ${category.exam}`,
-    intro: `Preparate para la categoria ${category.code} con preguntas organizadas por tema, explicaciones despues de marcar y practica adaptada para ${category.vehicle}.`,
-    primaryCta: `/simulacro/${category.categoryId}`,
-    ctaText: `Practicar ${category.common}`,
+    intro: `Esta página corresponde únicamente a ${category.code}. Practica preguntas para ${category.vehicle}, revisa la explicación completa y usa el simulacro cronometrado para medir tu avance.`,
+    primaryCta: `/?auth=register&category=${category.categoryId}&next=${encodeURIComponent(simulatorDestination)}`,
+    ctaText: `Practicar 5 preguntas ${category.common}`,
+    secondaryCta: `/?auth=register&category=${category.categoryId}&next=${encodeURIComponent(examDestination)}`,
+    secondaryCtaText: 'Rendir simulacro de 40',
     keywords: [`simulador mtc ${category.common}`, `simulador mtc ${category.code}`, `examen mtc ${category.common}`, `licencia ${category.common}`],
     sections: [
-      ['Practica por tema', 'Responde preguntas de normas de circulacion, senales, seguridad vial, mecanica basica y primeros auxilios.'],
-      ['Explicaciones inmediatas', 'Despues de elegir y confirmar una respuesta, revisa por que una alternativa es correcta y como descartar distractores.'],
-      ['Resultados por avance', 'Al finalizar puedes revisar porcentaje, correctas, incorrectas y temas que conviene reforzar antes del examen.'],
+      [`Qué vehículos cubre ${category.code}`, category.scope],
+      [`Qué conviene reforzar en ${category.common}`, category.focus],
+      [`Cómo estudiar para ${category.code}`, `${category.advice} La práctica corta tiene 5 preguntas sin tiempo; el simulacro de medición tiene 40 preguntas y 40 minutos.`],
     ],
     faqs: [
-      [`Que incluye el simulador MTC ${category.common}?`, `Incluye practica por categoria ${category.code}, preguntas por tema, explicaciones y acceso al balotario correspondiente.`],
-      [`Donde descargo el balotario ${category.code}?`, `Puedes descargar el PDF desde /mtc-official/${category.pdf} y revisarlo junto con la practica en linea.`],
+      [`Que incluye el simulador MTC ${category.common}?`, `Incluye práctica exclusiva de ${category.code}, preguntas completas, explicaciones, simulacro de 40 preguntas y acceso al balotario correspondiente.`],
+      [`Donde descargo el balotario ${category.code}?`, `Usa el botón “Abrir balotario ${category.code}” de esta página y contrasta cualquier cambio con la publicación oficial del MTC.`],
+      [`Qué vehículos corresponden a ${category.code}?`, category.scope],
       ['La plataforma es oficial?', disclaimer],
     ],
   };
@@ -1048,14 +1362,16 @@ function balotarioPageFor(category) {
     title: `Balotario MTC ${category.common} (${category.code}) en PDF y practica online`,
     description: `Descarga el balotario MTC ${category.common} (${category.code}) y practica preguntas del examen de conocimientos con explicaciones.`,
     h1: `Balotario MTC ${category.common} (${category.code})`,
-    intro: `El balotario ${category.code} te ayuda a estudiar la categoria ${category.common}. En ${brandName} puedes descargar el PDF y practicar preguntas con retroalimentacion inmediata.`,
+    intro: `Este es el acceso al balotario de ${category.code}, la categoría que corresponde a ${category.vehicle}. Descarga el PDF completo y úsalo junto con la práctica filtrada para esa misma licencia.`,
     primaryCta: `/mtc-official/${category.pdf}`,
     ctaText: `Descargar PDF ${category.code}`,
+    secondaryCta: `/?auth=register&category=${category.categoryId}&next=${encodeURIComponent(`/simulacro/${category.categoryId}?mode=quick&strategy=random`)}`,
+    secondaryCtaText: `Practicar ${category.common}`,
     keywords: [`balotario mtc ${category.common}`, `balotario ${category.code}`, `preguntas mtc ${category.common}`, `pdf mtc ${category.common}`],
     sections: [
-      ['Como usar el PDF', 'Lee el balotario por bloques, identifica temas repetidos y luego practica las preguntas que mas dudas te generen.'],
-      ['Practica online', 'El simulador permite responder preguntas y revisar explicaciones para aprender la razon de cada alternativa correcta.'],
-      ['Repaso antes del examen', 'Prioriza senales, reglas de circulacion, prioridades, luces, adelantamiento, seguridad y primeros auxilios.'],
+      [`Qué licencia estás preparando`, `${category.scope} Elige otra página si esa descripción no coincide con el vehículo para el que rendirás.`],
+      ['Cómo usar el PDF', `Lee el balotario ${category.code} por bloques y marca las preguntas que no puedas justificar. Después practícalas en línea para revisar la respuesta completa.`],
+      [`Repaso recomendado para ${category.common}`, `${category.focus} ${category.advice}`],
     ],
     faqs: [
       [`El balotario ${category.code} sirve para ${category.common}?`, `Si. Esta pagina organiza el material para la categoria ${category.code}, asociada a ${category.exam}.`],
@@ -1068,6 +1384,7 @@ function balotarioPageFor(category) {
 const pages = [
   ...corePages,
   ...articlePages,
+  ...questionPages,
   ...categories.map(simulatorPageFor),
   ...categories.map(balotarioPageFor),
 ];
@@ -1101,6 +1418,9 @@ Allow: /
 User-agent: Googlebot
 Allow: /
 
+User-agent: Google-Extended
+Allow: /
+
 User-agent: Bingbot
 Allow: /
 
@@ -1114,6 +1434,12 @@ User-agent: Claude-SearchBot
 Allow: /
 
 User-agent: Claude-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: GPTBot
 Allow: /
 
 User-agent: PerplexityBot
@@ -1150,6 +1476,7 @@ ${disclaimer}
 - ${siteUrl}/senales-de-transito: señales de tránsito para practicar.
 - ${siteUrl}/reglas-de-transito-peru: reglas de tránsito en Perú.
 - ${siteUrl}/fuentes-mtc: fuentes oficiales y balotarios de referencia.
+- ${siteUrl}/metodologia-simulador-mtc: metodología editorial, alcance y actualización del contenido.
 
 ## Categorías
 
@@ -1158,6 +1485,10 @@ ${categories.map((category) => `- ${siteUrl}/simulador-mtc-${category.slug}: pr�
 ## Guías de estudio
 
 ${articlePages.map((page) => `- ${siteUrl}/${page.slug}: ${normalizeSpanish(page.description)}`).join('\n')}
+
+## Preguntas oficiales explicadas
+
+${questionPages.map((page) => `- ${siteUrl}/${page.slug}: ${normalizeSpanish(page.description)}`).join('\n')}
 
 ## Criterios editoriales
 

@@ -19,6 +19,7 @@ Plataforma educativa independiente. No afiliada al Ministerio de Transportes y C
 - https://www.simuladormtc.com/senales-de-transito: señales de tránsito para practicar.
 - https://www.simuladormtc.com/reglas-de-transito-peru: reglas de tránsito en Perú.
 - https://www.simuladormtc.com/fuentes-mtc: fuentes oficiales y balotarios de referencia.
+- https://www.simuladormtc.com/metodologia-simulador-mtc: metodología editorial, alcance y actualización del contenido.
 
 ## Categorías
 
@@ -52,6 +53,13 @@ Plataforma educativa independiente. No afiliada al Ministerio de Transportes y C
 - https://www.simuladormtc.com/revalidacion-licencia-mtc-examen: Consejos para prepararte si debes rendir examen de conocimientos en una revalidación de licencia MTC.
 - https://www.simuladormtc.com/simulacro-mtc-con-respuestas: Practica simulacros MTC con respuestas explicadas y aprende a revisar tus errores por tema antes del examen.
 - https://www.simuladormtc.com/temas-mas-dificiles-examen-mtc: Identifica temas difíciles del examen MTC: señales, prioridad, adelantamiento, semáforos, mecánica y primeros auxilios.
+
+## Preguntas oficiales explicadas
+
+- https://www.simuladormtc.com/luz-ambar-semaforo-pregunta-mtc: Conoce qué significa la luz ámbar del semáforo según la pregunta 6 del balotario MTC A-I y practica sus cuatro alternativas.
+- https://www.simuladormtc.com/flecha-verde-semaforo-pregunta-mtc: Aprende qué indica una flecha verde del semáforo según la pregunta 8 del balotario MTC A-I y evita una respuesta incompleta.
+- https://www.simuladormtc.com/linea-amarilla-discontinua-pregunta-mtc: Conoce cuándo se puede cruzar una línea central amarilla discontinua según la pregunta 5 del balotario MTC A-I.
+- https://www.simuladormtc.com/senal-r6-prohibido-voltear-izquierda-mtc: Aprende qué prohíbe la señal R-6 según la pregunta 3 del balotario MTC A-I y si también impide realizar un giro en U.
 
 ## Criterios editoriales
 

@@ -68,7 +68,7 @@
       "headers": [
         {
           "key": "X-Robots-Tag",
-          "value": "index, follow"
+          "value": "noindex, follow"
         }
       ]
     }
@@ -93,6 +93,26 @@
     {
       "source": "/fuentes-mtc",
       "destination": "/seo/fuentes-mtc.html"
+    },
+    {
+      "source": "/metodologia-simulador-mtc",
+      "destination": "/seo/metodologia-simulador-mtc.html"
+    },
+    {
+      "source": "/luz-ambar-semaforo-pregunta-mtc",
+      "destination": "/seo/luz-ambar-semaforo-pregunta-mtc.html"
+    },
+    {
+      "source": "/flecha-verde-semaforo-pregunta-mtc",
+      "destination": "/seo/flecha-verde-semaforo-pregunta-mtc.html"
+    },
+    {
+      "source": "/linea-amarilla-discontinua-pregunta-mtc",
+      "destination": "/seo/linea-amarilla-discontinua-pregunta-mtc.html"
+    },
+    {
+      "source": "/senal-r6-prohibido-voltear-izquierda-mtc",
+      "destination": "/seo/senal-r6-prohibido-voltear-izquierda-mtc.html"
     },
     {
       "source": "/como-aprobar-examen-mtc",
