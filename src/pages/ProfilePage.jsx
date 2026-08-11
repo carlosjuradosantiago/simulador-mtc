@@ -2,6 +2,7 @@ import { Calendar, Mail, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Card from '../components/ui/Card.jsx';
 import StatCard from '../components/ui/StatCard.jsx';
+import { FULL_EXAM_IS_FREE } from '../data/examRules.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { api, normalizeCategoryName } from '../services/api.js';
 
@@ -24,9 +25,11 @@ export default function ProfilePage() {
       });
     }).catch(() => null);
 
-    api.getActiveMembership().then((activeMembership) => {
-      setMembership(activeMembership);
-    }).catch(() => null);
+    if (!FULL_EXAM_IS_FREE) {
+      api.getActiveMembership().then((activeMembership) => {
+        setMembership(activeMembership);
+      }).catch(() => null);
+    }
   }, [user?.stats?.studyTime]);
 
   return (
@@ -44,7 +47,7 @@ export default function ProfilePage() {
               <span className="inline-flex items-center gap-2"><Mail className="h-4 w-4 text-brand" /> {user?.email}</span>
               <span className="inline-flex items-center gap-2"><User className="h-4 w-4 text-brand" /> Categoría principal {normalizeCategoryName(user?.category)}</span>
               <span className="inline-flex items-center gap-2"><Calendar className="h-4 w-4 text-brand" /> Registro {user?.registeredAt}</span>
-              <span className="inline-flex items-center gap-2"><Calendar className="h-4 w-4 text-brand" /> Plan {membership?.planName ?? 'Sin membresía activa'}</span>
+              <span className="inline-flex items-center gap-2"><Calendar className="h-4 w-4 text-brand" /> Plan {FULL_EXAM_IS_FREE ? 'Acceso gratuito' : membership?.planName ?? 'Sin membresía activa'}</span>
             </div>
           </div>
         </div>

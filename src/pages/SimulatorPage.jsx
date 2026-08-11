@@ -16,7 +16,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import BrandLogo from '../components/layout/BrandLogo.jsx';
 import Button from '../components/ui/Button.jsx';
 import { OptionContent, QuestionImage } from '../components/ui/QuestionMedia.jsx';
-import { OFFICIAL_EXAM_RULES } from '../data/examRules.js';
+import { FULL_EXAM_IS_FREE, OFFICIAL_EXAM_RULES } from '../data/examRules.js';
 import { useExam } from '../hooks/useExam.js';
 import { normalizeCategoryName } from '../services/api.js';
 import { cn } from '../utils/cn.js';
@@ -191,7 +191,7 @@ export default function SimulatorPage() {
   }
 
   if (error || !currentQuestion) {
-    const membershipRequired = errorStatus === 402;
+    const membershipRequired = !FULL_EXAM_IS_FREE && errorStatus === 402;
     return (
       <div className="grid min-h-screen place-items-center bg-white p-6 text-center">
         <div className="max-w-lg">

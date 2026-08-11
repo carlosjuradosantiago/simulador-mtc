@@ -54,6 +54,7 @@ export default function VehicleStartPanel({
   fullExamAccessLoading = false,
   fullExamPrice = 1200,
   membershipEndDate = null,
+  fullExamIsFree = false,
 }) {
   const [practiceMode, setPracticeMode] = useState('random');
   const [categoryVehicleId, setCategoryVehicleId] = useState(null);
@@ -64,6 +65,8 @@ export default function VehicleStartPanel({
   const categoryVehicle = vehicleChoices.find((choice) => choice.id === categoryVehicleId) ?? null;
   const weakTopic = progress?.weakTopics?.[0];
   const priceLabel = `S/${Math.round(Number(fullExamPrice || 1200) / 100)}`;
+  const canStartFullExam = fullExamIsFree || fullExamHasAccess;
+  const isCheckingFullExamAccess = !fullExamIsFree && fullExamAccessLoading;
 
   useEffect(() => {
     speechRef.current = null;
@@ -284,7 +287,9 @@ export default function VehicleStartPanel({
                 {OFFICIAL_EXAM_RULES.questionCount} preguntas · {OFFICIAL_EXAM_RULES.durationMinutes} minutos · apruebas con {OFFICIAL_EXAM_RULES.minimumCorrectAnswers} correctas
               </p>
               <p className="mt-1 text-sm font-bold text-slate-700">
-                {fullExamAccessLoading
+                {fullExamIsFree
+                  ? 'Gratis por ahora'
+                  : isCheckingFullExamAccess
                   ? 'Revisando tu acceso...'
                   : fullExamHasAccess
                     ? `Acceso activo${membershipEndDate ? ` hasta ${new Date(membershipEndDate).toLocaleDateString('es-PE')}` : ''}`
@@ -292,7 +297,7 @@ export default function VehicleStartPanel({
               </p>
             </div>
           </div>
-          {fullExamAccessLoading ? (
+          {isCheckingFullExamAccess ? (
             <button type="button" disabled className="inline-flex min-h-14 items-center justify-center gap-2 rounded-lg bg-slate-100 px-5 font-bold text-slate-500">
               Revisando acceso...
             </button>
@@ -301,13 +306,13 @@ export default function VehicleStartPanel({
               to={fullExamTo}
               className={cn(
                 'inline-flex min-h-14 items-center justify-center gap-2 rounded-lg px-5 font-bold transition focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-brand',
-                fullExamHasAccess
+                canStartFullExam
                   ? 'bg-brand text-white shadow-[0_4px_0_#0f4eae] hover:bg-blue-700'
                   : 'border-2 border-brand bg-white text-brand hover:bg-blue-50',
               )}
             >
-              {fullExamHasAccess ? <CircleGauge className="h-6 w-6" /> : <LockKeyhole className="h-5 w-5" />}
-              {fullExamHasAccess ? 'Rendir simulacro' : 'Activar y rendir'}
+              {canStartFullExam ? <CircleGauge className="h-6 w-6" /> : <LockKeyhole className="h-5 w-5" />}
+              {canStartFullExam ? 'Rendir simulacro' : 'Activar y rendir'}
               <ArrowRight className="h-5 w-5" />
             </Link>
           )}
