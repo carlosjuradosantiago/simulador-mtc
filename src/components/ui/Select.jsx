@@ -6,7 +6,7 @@ export default function Select({ label, children, className, error, ...props }) 
       {label ? <span>{label}</span> : null}
       <select
         className={cn(
-          'h-11 min-w-0 rounded-lg border border-line bg-white px-4 text-sm text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-blue-100',
+          'min-h-12 min-w-0 rounded-lg border border-line bg-white px-4 text-base text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-blue-100',
           error && 'border-danger focus:border-danger focus:ring-red-100',
           className,
         )}

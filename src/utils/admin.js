@@ -1,9 +1,9 @@
-export const ADMIN_EMAILS = ['ivan.carlos23@gmail.com'];
+export const ADMIN_ROLE = 'ADMIN';
 
-export function isAdminEmail(email) {
-  return ADMIN_EMAILS.includes(String(email ?? '').trim().toLowerCase());
+export function isAdminRole(role) {
+  return String(role ?? '').trim().toUpperCase() === ADMIN_ROLE;
 }
 
 export function isAdminUser(user) {
-  return Boolean(user?.isAdmin || isAdminEmail(user?.email));
+  return isAdminRole(user?.role);
 }

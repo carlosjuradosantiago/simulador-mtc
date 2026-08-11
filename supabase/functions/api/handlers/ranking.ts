@@ -10,7 +10,7 @@ export async function handleGetRanking(req: Request) {
     const supabase = getSupabaseClient();
     let query = supabase
       .from('vw_ranking_usuarios')
-      .select('*')
+      .select('id_usuario, nombre_usuario, id_categoria, categoria, intentos, promedio, ultimo_intento')
       .not('intentos', 'eq', 0)
       .order('promedio', { ascending: false })
       .order('ultimo_intento', { ascending: false })
@@ -29,7 +29,6 @@ export async function handleGetRanking(req: Request) {
       posicion: index + 1,
       idUsuario: row.id_usuario,
       username: row.nombre_usuario,
-      email: row.correo_electronico,
       categoriaId: row.id_categoria,
       categoria: row.categoria,
       intentos: Number(row.intentos || 0),

@@ -1,13 +1,13 @@
 import { ArrowRight, KeyRound, Mail, RefreshCw, ShieldCheck, User, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BRAND_NAME } from '../../data/brand.js';
+import { fallbackLicenseCategories, getCategoryById } from '../../data/vehicleChoices.js';
+import { useAuth } from '../../hooks/useAuth.js';
+import { getGoogleOAuthUrl } from '../../services/api.js';
+import { cn } from '../../utils/cn.js';
 import Button from '../ui/Button.jsx';
 import Input from '../ui/Input.jsx';
-import Select from '../ui/Select.jsx';
-import { BRAND_NAME } from '../../data/brand.js';
-import { useAuth } from '../../hooks/useAuth.js';
-import { api, getGoogleOAuthUrl } from '../../services/api.js';
-import { cn } from '../../utils/cn.js';
 
 const AUTH_CALLBACK_ORIGIN_BY_HOST = {
   'simuladormtc.com': 'https://www.simuladormtc.com',
@@ -16,19 +16,21 @@ const AUTH_CALLBACK_ORIGIN_BY_HOST = {
 const titleByMode = {
   login: 'Iniciar sesión',
   register: 'Crear cuenta',
-  verify: 'Verificar correo',
+  verify: 'Verifica tu correo',
   resetRequest: 'Recuperar cuenta',
-  resetConfirm: 'Nueva contraseña',
+  resetConfirm: 'Crear nueva contraseña',
 };
 
 function Feedback({ error, notice }) {
   if (!error && !notice) return null;
 
   return (
-    <p className={cn(
-      'rounded-lg px-4 py-3 text-sm font-semibold',
-      error ? 'bg-red-50 text-danger' : 'bg-blue-50 text-brand',
-    )}
+    <p
+      role={error ? 'alert' : 'status'}
+      className={cn(
+        'rounded-lg px-4 py-3 text-base font-bold',
+        error ? 'bg-red-50 text-danger' : 'bg-blue-50 text-brand',
+      )}
     >
       {error || notice}
     </p>
@@ -36,6 +38,7 @@ function Feedback({ error, notice }) {
 }
 
 export default function AuthModal() {
+  const dialogRef = useRef(null);
   const navigate = useNavigate();
   const {
     authModal,
@@ -48,9 +51,8 @@ export default function AuthModal() {
     confirmPasswordReset,
   } = useAuth();
   const [mode, setMode] = useState('login');
-  const [categories, setCategories] = useState([]);
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
-  const [registerForm, setRegisterForm] = useState({ name: '', email: '', password: '', confirmPassword: '', category: 25 });
+  const [registerForm, setRegisterForm] = useState({ name: '', email: '', password: '', category: 25 });
   const [verifyForm, setVerifyForm] = useState({ email: '', code: '' });
   const [resetForm, setResetForm] = useState({ email: '', code: '', password: '', confirmPassword: '' });
   const [pendingCategory, setPendingCategory] = useState(25);
@@ -58,34 +60,40 @@ export default function AuthModal() {
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [verificationEmailSent, setVerificationEmailSent] = useState(true);
+
+  useEffect(() => {
+    if (!authModal.open) return undefined;
+    const dialog = dialogRef.current;
+    if (dialog && !dialog.open) dialog.showModal();
+    return () => {
+      if (dialog?.open) dialog.close();
+    };
+  }, [authModal.open]);
 
   useEffect(() => {
     if (!authModal.open) return;
+    const initialCategory = Number(authModal.category) || 25;
     setMode(authModal.mode ?? 'login');
+    setPendingCategory(initialCategory);
+    setRegisterForm((currentForm) => ({ ...currentForm, category: initialCategory }));
     setError('');
     setNotice('');
     setLoading(false);
     setGoogleLoading(false);
+    setVerificationEmailSent(true);
     if (authModal.email) {
       setLoginForm((currentForm) => ({ ...currentForm, email: authModal.email }));
       setVerifyForm((currentForm) => ({ ...currentForm, email: authModal.email }));
       setResetForm((currentForm) => ({ ...currentForm, email: authModal.email }));
     }
-  }, [authModal.email, authModal.mode, authModal.open]);
-
-  useEffect(() => {
-    if (!authModal.open || mode !== 'register' || categories.length) return;
-
-    api.getCategories().then((items) => {
-      setCategories(items);
-      setRegisterForm((currentForm) => ({ ...currentForm, category: items[0]?.id ?? currentForm.category }));
-    }).catch(() => null);
-  }, [authModal.open, categories.length, mode]);
+  }, [authModal.category, authModal.email, authModal.mode, authModal.open]);
 
   if (!authModal.open) return null;
 
   const redirectTo = authModal.redirectTo || '/dashboard';
   const busy = loading || googleLoading;
+  const selectedCategory = getCategoryById(fallbackLicenseCategories, registerForm.category);
 
   const finishAuth = () => {
     closeAuthModal();
@@ -109,7 +117,7 @@ export default function AuthModal() {
       window.location.assign(googleUrl);
     } catch (oauthError) {
       setGoogleLoading(false);
-      setError(oauthError.message || 'No pudimos iniciar el login con Google.');
+      setError(oauthError.message || 'No pudimos abrir Google.');
     }
   };
 
@@ -120,11 +128,11 @@ export default function AuthModal() {
     setLoading(true);
     const result = await login(loginForm);
     setLoading(false);
-
     if (!result.ok) {
       if (result.requiresEmailVerification) {
         const email = result.email ?? loginForm.email;
         setVerifyForm({ email, code: '' });
+        setVerificationEmailSent(result.emailSent === true);
         setNotice(result.emailSent ? 'Te enviamos un código para validar tu correo.' : result.message);
         setMode('verify');
         return;
@@ -132,7 +140,6 @@ export default function AuthModal() {
       setError(result.message);
       return;
     }
-
     finishAuth();
   };
 
@@ -140,34 +147,26 @@ export default function AuthModal() {
     event.preventDefault();
     setError('');
     setNotice('');
-
     if (!registerForm.name || !registerForm.email || !registerForm.password) {
       setError('Completa los campos obligatorios.');
       return;
     }
-    if (registerForm.password !== registerForm.confirmPassword) {
-      setError('Las contraseñas no coinciden.');
-      return;
-    }
-
     setLoading(true);
     const result = await register(registerForm);
     setLoading(false);
-
     if (!result.ok) {
       setError(result.message);
       return;
     }
-
     if (result.requiresEmailVerification) {
       const email = result.email ?? registerForm.email;
       setPendingCategory(registerForm.category);
       setVerifyForm({ email, code: '' });
+      setVerificationEmailSent(result.emailSent === true);
       setNotice(result.message || 'Te enviamos un código para validar tu correo.');
       setMode('verify');
       return;
     }
-
     finishAuth();
   };
 
@@ -178,12 +177,10 @@ export default function AuthModal() {
     setLoading(true);
     const result = await verifyEmail({ ...verifyForm, category: pendingCategory });
     setLoading(false);
-
     if (!result.ok) {
       setError(result.message);
       return;
     }
-
     finishAuth();
   };
 
@@ -197,6 +194,7 @@ export default function AuthModal() {
       setError(result.message);
       return;
     }
+    setVerificationEmailSent(true);
     setNotice(result.message);
   };
 
@@ -219,7 +217,6 @@ export default function AuthModal() {
     event.preventDefault();
     setError('');
     setNotice('');
-
     if (resetForm.password !== resetForm.confirmPassword) {
       setError('Las contraseñas no coinciden.');
       return;
@@ -238,88 +235,126 @@ export default function AuthModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/45 p-4 backdrop-blur-sm">
-      <div className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-xl border border-line bg-white p-5 shadow-2xl sm:p-6">
-        <div className="mb-5 flex items-start justify-between gap-4">
+    <dialog
+      ref={dialogRef}
+      aria-labelledby="auth-title"
+      onCancel={(event) => {
+        event.preventDefault();
+        closeAuthModal();
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) closeAuthModal();
+      }}
+      className="m-auto max-h-[94vh] w-[min(94vw,540px)] overflow-y-auto rounded-lg border border-line bg-white p-0 text-ink shadow-2xl"
+    >
+      <div className="p-5 sm:p-7">
+        <div className="mb-6 flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-black uppercase tracking-normal text-brand">{BRAND_NAME}</p>
-            <h2 className="mt-1 text-2xl font-black text-ink">{titleByMode[mode]}</h2>
+            <p className="font-bold text-brand">{BRAND_NAME}</p>
+            <h2 id="auth-title" className="mt-1 font-display text-3xl font-black">{titleByMode[mode]}</h2>
+            {mode === 'register' ? (
+              <p className="mt-2 text-base text-slate-600">
+                Practicarás para {selectedCategory.vehicle}, licencia {selectedCategory.title}.
+              </p>
+            ) : null}
           </div>
-          <button type="button" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" onClick={closeAuthModal} aria-label="Cerrar autenticación">
-            <X className="h-5 w-5" />
+          <button type="button" className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" onClick={closeAuthModal} aria-label="Cerrar">
+            <X className="h-6 w-6" />
           </button>
         </div>
 
         {mode === 'login' ? (
           <form className="grid gap-4" onSubmit={handleLogin}>
-            <Button type="button" variant="secondary" className="w-full" disabled={busy} onClick={handleGoogleLogin}>
-              <Mail className="h-5 w-5" /> {googleLoading ? 'Abriendo selector de Google...' : 'Continuar con Google'}
-            </Button>
-            <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-normal text-slate-400"><span className="h-px flex-1 bg-line" /> o usa tu correo <span className="h-px flex-1 bg-line" /></div>
-            <Input label="Correo" type="email" value={loginForm.email} onChange={(event) => setLoginForm({ ...loginForm, email: event.target.value })} required />
-            <Input label="Contraseña" type="password" value={loginForm.password} onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })} required />
+            <Input label="Correo" type="email" autoComplete="email" value={loginForm.email} onChange={(event) => setLoginForm({ ...loginForm, email: event.target.value })} required autoFocus />
+            <Input label="Contraseña" type="password" autoComplete="current-password" value={loginForm.password} onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })} required />
             <Feedback error={error} notice={notice} />
-            <Button type="submit" className="w-full" disabled={busy}>{loading ? 'Ingresando...' : 'Iniciar sesión'} <ArrowRight className="h-4 w-4" /></Button>
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm font-semibold">
+            <Button type="submit" size="lg" className="w-full" disabled={busy}>
+              {loading ? 'Ingresando...' : 'Entrar'}
+              <ArrowRight className="h-5 w-5" />
+            </Button>
+            <Button type="button" variant="secondary" className="w-full" disabled={busy} onClick={handleGoogleLogin}>
+              <Mail className="h-5 w-5" />
+              {googleLoading ? 'Abriendo Google...' : 'Entrar con Google'}
+            </Button>
+            <div className="flex flex-wrap items-center justify-between gap-3 text-base font-bold">
               <button type="button" className="text-brand" onClick={() => switchMode('register')}>Crear cuenta</button>
-              <button type="button" className="text-slate-500 hover:text-brand" onClick={() => { setResetForm((currentForm) => ({ ...currentForm, email: loginForm.email })); switchMode('resetRequest'); }}>Olvidé mi contraseña</button>
+              <button type="button" className="text-slate-500 hover:text-brand" onClick={() => {
+                setResetForm((currentForm) => ({ ...currentForm, email: loginForm.email }));
+                switchMode('resetRequest');
+              }}>
+                Olvidé mi contraseña
+              </button>
             </div>
           </form>
         ) : null}
 
         {mode === 'register' ? (
           <form className="grid gap-4" onSubmit={handleRegister}>
-            <Button type="button" variant="secondary" className="w-full" disabled={busy} onClick={handleGoogleLogin}>
-              <Mail className="h-5 w-5" /> {googleLoading ? 'Abriendo selector de Google...' : 'Crear con Google'}
-            </Button>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Input label="Nombre completo" value={registerForm.name} onChange={(event) => setRegisterForm({ ...registerForm, name: event.target.value })} required />
-              <Input label="Correo" type="email" value={registerForm.email} onChange={(event) => setRegisterForm({ ...registerForm, email: event.target.value })} required />
-              <Input label="Contraseña" type="password" value={registerForm.password} onChange={(event) => setRegisterForm({ ...registerForm, password: event.target.value })} required />
-              <Input label="Confirmar contraseña" type="password" value={registerForm.confirmPassword} onChange={(event) => setRegisterForm({ ...registerForm, confirmPassword: event.target.value })} required />
-            </div>
-            <Select label="Categoría inicial" value={registerForm.category} onChange={(event) => setRegisterForm({ ...registerForm, category: Number(event.target.value) })}>
-              {(categories.length ? categories : [{ id: 25, title: 'A-I', vehicle: 'Licencia A-I' }]).map((category) => <option key={category.id} value={category.id}>{category.title} - {category.vehicle}</option>)}
-            </Select>
+            <Input label="Tu nombre" autoComplete="name" value={registerForm.name} onChange={(event) => setRegisterForm({ ...registerForm, name: event.target.value })} required autoFocus />
+            <Input label="Tu correo" type="email" autoComplete="email" value={registerForm.email} onChange={(event) => setRegisterForm({ ...registerForm, email: event.target.value })} required />
+            <Input label="Crea una contraseña" type="password" autoComplete="new-password" minLength={8} value={registerForm.password} onChange={(event) => setRegisterForm({ ...registerForm, password: event.target.value })} required />
             <Feedback error={error} notice={notice} />
-            <Button type="submit" className="w-full" disabled={busy}>{loading ? 'Creando cuenta...' : 'Crear cuenta'} <User className="h-4 w-4" /></Button>
-            <button type="button" className="text-center text-sm font-semibold text-brand" onClick={() => switchMode('login')}>Ya tengo cuenta</button>
+            <Button type="submit" size="lg" className="w-full" disabled={busy}>
+              {loading ? 'Creando cuenta...' : 'Crear y practicar'}
+              <User className="h-5 w-5" />
+            </Button>
+            <Button type="button" variant="secondary" className="w-full" disabled={busy} onClick={handleGoogleLogin}>
+              <Mail className="h-5 w-5" />
+              {googleLoading ? 'Abriendo Google...' : 'Crear con Google'}
+            </Button>
+            <button type="button" className="min-h-11 text-center font-bold text-brand" onClick={() => switchMode('login')}>Ya tengo cuenta</button>
           </form>
         ) : null}
 
         {mode === 'verify' ? (
           <form className="grid gap-4" onSubmit={handleVerify}>
-            <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-slate-700">
-              <p className="flex items-center gap-2 font-black text-brand"><Mail className="h-5 w-5" /> Verifica tu correo</p>
-              <p className="mt-1">Ingresa el código de 6 dígitos para {verifyForm.email}. Si no lo recibiste, solicita un reenvío.</p>
-            </div>
-            <Input label="Código de 6 dígitos" inputMode="numeric" maxLength={6} value={verifyForm.code} onChange={(event) => setVerifyForm({ ...verifyForm, code: event.target.value.replace(/\D/g, '').slice(0, 6) })} required />
+            <p className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-base leading-6 text-slate-700">
+              {verificationEmailSent ? (
+                <>Escribe el código de 6 dígitos que enviamos a <strong>{verifyForm.email}</strong>.</>
+              ) : (
+                <>Tu cuenta fue creada, pero no pudimos enviar el código a <strong>{verifyForm.email}</strong>. Usa “Reenviar código” para intentarlo otra vez.</>
+              )}
+            </p>
+            <Input label="Código de 6 dígitos" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={verifyForm.code} onChange={(event) => setVerifyForm({ ...verifyForm, code: event.target.value.replace(/\D/g, '').slice(0, 6) })} required autoFocus />
             <Feedback error={error} notice={notice} />
-            <Button type="submit" className="w-full" disabled={loading}>{loading ? 'Validando...' : 'Validar correo'} <ShieldCheck className="h-4 w-4" /></Button>
-            <Button type="button" variant="secondary" className="w-full" disabled={loading} onClick={handleResend}><RefreshCw className="h-4 w-4" /> Reenviar código</Button>
+            <Button type="submit" size="lg" className="w-full" disabled={loading}>
+              {loading ? 'Validando...' : 'Validar y practicar'}
+              <ShieldCheck className="h-5 w-5" />
+            </Button>
+            <Button type="button" variant="secondary" className="w-full" disabled={loading} onClick={handleResend}>
+              <RefreshCw className="h-5 w-5" />
+              Reenviar código
+            </Button>
           </form>
         ) : null}
 
         {mode === 'resetRequest' ? (
           <form className="grid gap-4" onSubmit={handleResetRequest}>
-            <Input label="Correo de tu cuenta" type="email" value={resetForm.email} onChange={(event) => setResetForm({ ...resetForm, email: event.target.value })} required />
+            <p className="text-base leading-6 text-slate-600">Te enviaremos un código para recuperar tu cuenta.</p>
+            <Input label="Correo de tu cuenta" type="email" autoComplete="email" value={resetForm.email} onChange={(event) => setResetForm({ ...resetForm, email: event.target.value })} required autoFocus />
             <Feedback error={error} notice={notice} />
-            <Button type="submit" className="w-full" disabled={loading}>{loading ? 'Enviando...' : 'Enviar código'} <Mail className="h-4 w-4" /></Button>
-            <button type="button" className="text-center text-sm font-semibold text-brand" onClick={() => switchMode('login')}>Volver a iniciar sesión</button>
+            <Button type="submit" size="lg" className="w-full" disabled={loading}>
+              {loading ? 'Enviando...' : 'Enviar código'}
+              <Mail className="h-5 w-5" />
+            </Button>
+            <button type="button" className="min-h-11 text-center font-bold text-brand" onClick={() => switchMode('login')}>Volver</button>
           </form>
         ) : null}
 
         {mode === 'resetConfirm' ? (
           <form className="grid gap-4" onSubmit={handleResetConfirm}>
-            <Input label="Correo" type="email" value={resetForm.email} onChange={(event) => setResetForm({ ...resetForm, email: event.target.value })} required />
-            <Input label="Código" inputMode="numeric" maxLength={6} value={resetForm.code} onChange={(event) => setResetForm({ ...resetForm, code: event.target.value.replace(/\D/g, '').slice(0, 6) })} required />
-            <Input label="Nueva contraseña" type="password" value={resetForm.password} onChange={(event) => setResetForm({ ...resetForm, password: event.target.value })} required />
-            <Input label="Confirmar contraseña" type="password" value={resetForm.confirmPassword} onChange={(event) => setResetForm({ ...resetForm, confirmPassword: event.target.value })} required />
+            <Input label="Correo" type="email" autoComplete="email" value={resetForm.email} onChange={(event) => setResetForm({ ...resetForm, email: event.target.value })} required />
+            <Input label="Código" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={resetForm.code} onChange={(event) => setResetForm({ ...resetForm, code: event.target.value.replace(/\D/g, '').slice(0, 6) })} required />
+            <Input label="Nueva contraseña" type="password" autoComplete="new-password" minLength={8} value={resetForm.password} onChange={(event) => setResetForm({ ...resetForm, password: event.target.value })} required />
+            <Input label="Repite la contraseña" type="password" autoComplete="new-password" minLength={8} value={resetForm.confirmPassword} onChange={(event) => setResetForm({ ...resetForm, confirmPassword: event.target.value })} required />
             <Feedback error={error} notice={notice} />
-            <Button type="submit" className="w-full" disabled={loading}>{loading ? 'Actualizando...' : 'Actualizar contraseña'} <KeyRound className="h-4 w-4" /></Button>
+            <Button type="submit" size="lg" className="w-full" disabled={loading}>
+              {loading ? 'Actualizando...' : 'Guardar contraseña'}
+              <KeyRound className="h-5 w-5" />
+            </Button>
           </form>
         ) : null}
       </div>
-    </div>
+    </dialog>
   );
 }

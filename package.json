@@ -5,6 +5,13 @@
   "type": "module",
   "scripts": {
     "build": "node tools/generate-seo-assets.mjs && vite build",
+    "check:question-fidelity": "node tools/check-question-fidelity.mjs",
+    "check:practice-selection": "node tools/check-practice-selection.mjs",
+    "check:membership-access": "node tools/check-membership-access.mjs",
+    "check:exam-submission": "node tools/check-exam-submission.mjs",
+    "check:email-recipient": "node tools/check-email-recipient.mjs",
+    "check:admin-access": "node tools/check-admin-access.mjs",
+    "check:navigation": "node tools/check-safe-navigation.mjs",
     "check:seo": "node tools/generate-seo-assets.mjs && node tools/check-seo-assets.mjs",
     "dev": "vite",
     "preview": "vite preview",
@@ -17,13 +24,13 @@
     "lucide-react": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "react-router-dom": "latest",
+    "react-router-dom": "7.18.2",
     "recharts": "latest",
     "tailwind-merge": "latest",
     "tailwindcss": "latest"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "latest",
-    "vite": "latest"
+    "vite": "8.2.1"
   }
 }

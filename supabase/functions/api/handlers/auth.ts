@@ -298,6 +298,7 @@ function publicUser(usuario: any, hasExamHistory: boolean) {
     id: usuario.id,
     username: usuario.nombre_usuario,
     email: usuario.correo_electronico,
+    role: usuario.rol || 'USUARIO',
     firstName: usuario.primer_nombre,
     lastName: usuario.apellido,
     socialPictureUrl: usuario.url_foto_social,

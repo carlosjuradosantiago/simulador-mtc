@@ -1,36 +1,85 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { OFFICIAL_EXAM_RULES } from '../data/examRules.js';
 import { api, resolveCategoryId, toQuestion, toResult } from '../services/api.js';
 
-const EXAM_DURATION_SECONDS = 35 * 60;
-const REFERENCE_INITIAL_SECONDS = 24 * 60 + 18;
+const QUICK_PRACTICE_QUESTIONS = 5;
+const inFlightStarts = new Map();
 
-export function useExam(category) {
+function getStartRequest(key, createRequest) {
+  const existing = inFlightStarts.get(key);
+  if (existing) return existing;
+
+  const request = createRequest();
+  inFlightStarts.set(key, request);
+  request.then(
+    () => {
+      if (inFlightStarts.get(key) === request) inFlightStarts.delete(key);
+    },
+    () => {
+      if (inFlightStarts.get(key) === request) inFlightStarts.delete(key);
+    },
+  );
+  return request;
+}
+
+function elapsedLabel(startedAt) {
+  const seconds = Math.max(Math.round((Date.now() - startedAt) / 1000), 0);
+  return `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, '0')}s`;
+}
+
+export function useExam(category, mode = 'quick', strategy = 'random') {
+  const quickPractice = mode !== 'exam';
+  const practiceStrategy = strategy === 'weak' ? 'weak' : 'random';
+  const startedAtRef = useRef(Date.now());
   const [questions, setQuestions] = useState([]);
   const [sessionId, setSessionId] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [marked, setMarked] = useState([]);
-  const [timeRemaining, setTimeRemaining] = useState(REFERENCE_INITIAL_SECONDS);
+  const [timeRemaining, setTimeRemaining] = useState(quickPractice ? null : OFFICIAL_EXAM_RULES.durationSeconds);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [errorStatus, setErrorStatus] = useState(null);
+  const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError('');
+    setErrorStatus(null);
+    setSaveError('');
     setQuestions([]);
     setAnswers({});
     setMarked([]);
     setCurrentIndex(0);
+    setSessionId(null);
+    setTimeRemaining(quickPractice ? null : OFFICIAL_EXAM_RULES.durationSeconds);
+    startedAtRef.current = Date.now();
 
-    api.startTimedExam(resolveCategoryId(category)).then((response) => {
+    const categoryId = resolveCategoryId(category);
+    const request = getStartRequest(
+      `${categoryId}:${quickPractice ? 'quick' : 'exam'}:${practiceStrategy}`,
+      () => (
+        quickPractice
+          ? api.startPractice(categoryId, QUICK_PRACTICE_QUESTIONS, practiceStrategy)
+          : api.startTimedExam(categoryId)
+      ),
+    );
+
+    request.then((response) => {
       if (cancelled) return;
       const rawQuestions = response.preguntas ?? response.questions ?? [];
-      setSessionId(response.sessionId ?? response.idSesionPractica ?? response.id_sesion_practica ?? response.id);
-      setQuestions(rawQuestions.map((question) => toQuestion(question, category)));
-      setTimeRemaining(response.tiempoRestante ?? response.durationSeconds ?? EXAM_DURATION_SECONDS);
+      const questionLimit = quickPractice ? QUICK_PRACTICE_QUESTIONS : rawQuestions.length;
+      setSessionId(response.practiceSessionId ?? response.sessionId ?? response.idSesionPractica ?? response.id_sesion_practica ?? response.id);
+      setQuestions(rawQuestions.slice(0, questionLimit).map((question) => toQuestion(question, category)));
+      if (!quickPractice) {
+        setTimeRemaining(response.tiempoRestante ?? response.durationSeconds ?? OFFICIAL_EXAM_RULES.durationSeconds);
+      }
     }).catch((requestError) => {
-      if (!cancelled) setError(requestError.message);
+      if (!cancelled) {
+        setError(requestError.message);
+        setErrorStatus(requestError.status ?? null);
+      }
     }).finally(() => {
       if (!cancelled) setLoading(false);
     });
@@ -38,41 +87,38 @@ export function useExam(category) {
     return () => {
       cancelled = true;
     };
-  }, [category]);
+  }, [category, practiceStrategy, quickPractice]);
 
   useEffect(() => {
+    if (quickPractice || !questions.length) return undefined;
     const intervalId = window.setInterval(() => {
-      setTimeRemaining((currentTime) => Math.max(currentTime - 1, 0));
+      setTimeRemaining((currentTime) => Math.max((currentTime ?? 0) - 1, 0));
     }, 1000);
-
     return () => window.clearInterval(intervalId);
-  }, []);
+  }, [questions.length, quickPractice]);
 
   const currentQuestion = questions[currentIndex];
 
   const selectAnswer = useCallback((questionId, optionId) => {
     setAnswers((currentAnswers) => ({ ...currentAnswers, [questionId]: optionId }));
     if (sessionId) {
-      api.savePracticeAnswer(sessionId, questionId, optionId).catch((requestError) => setError(requestError.message));
+      api.savePracticeAnswer(sessionId, questionId, optionId)
+        .then(() => setSaveError(''))
+        .catch(() => setSaveError('No pudimos guardar esta respuesta todavía. Puedes continuar e intentaremos guardarla al terminar.'));
     }
   }, [sessionId]);
 
   const toggleMarked = useCallback((questionId) => {
-    setMarked((currentMarked) =>
+    setMarked((currentMarked) => (
       currentMarked.includes(questionId)
         ? currentMarked.filter((markedId) => markedId !== questionId)
-        : [...currentMarked, questionId],
-    );
+        : [...currentMarked, questionId]
+    ));
   }, []);
 
-  const goToQuestion = useCallback(
-    (index) => {
-      if (index >= 0 && index < questions.length) {
-        setCurrentIndex(index);
-      }
-    },
-    [questions.length],
-  );
+  const goToQuestion = useCallback((index) => {
+    if (index >= 0 && index < questions.length) setCurrentIndex(index);
+  }, [questions.length]);
 
   const progress = useMemo(() => {
     const answered = Object.keys(answers).length;
@@ -85,15 +131,16 @@ export function useExam(category) {
   }, [answers, marked.length, questions.length]);
 
   const finishExam = useCallback(async () => {
-    if (!sessionId) {
-      throw new Error('No hay una sesión de simulacro activa.');
-    }
+    if (!sessionId) throw new Error('No hay una sesión activa.');
 
     const respuestasDetalle = questions.map((question, index) => {
-      const selectedOptionId = answers[question.id] ? Number(answers[question.id]) : null;
+      const rawSelectedOptionId = answers[question.id];
+      const selectedOptionId = rawSelectedOptionId === null || rawSelectedOptionId === undefined
+        ? null
+        : Number(rawSelectedOptionId);
       const selectedOption = question.opciones.find((option) => String(option.id) === String(selectedOptionId));
       const correctOption = question.opciones.find((option) => option.esCorrecta || option.isCorrect);
-      const sinResponder = selectedOptionId === null || selectedOptionId === undefined;
+      const sinResponder = selectedOptionId === null;
 
       return {
         idPregunta: question.id,
@@ -123,19 +170,18 @@ export function useExam(category) {
         marcada: answer.marcada,
       })),
     );
-
     const backendResult = response.resultado ?? response;
     const result = toResult({
       ...backendResult,
       id: backendResult.intentoId ?? backendResult.id,
       category,
-      respuestasDetalle,
-      tiempoUsado: `${Math.floor((EXAM_DURATION_SECONDS - timeRemaining) / 60)}m ${String((EXAM_DURATION_SECONDS - timeRemaining) % 60).padStart(2, '0')}s`,
+      respuestasDetalle: backendResult.respuestasDetalle ?? respuestasDetalle,
+      tiempoUsado: elapsedLabel(startedAtRef.current),
     });
     const storedResults = JSON.parse(window.localStorage.getItem('simulamanejo:results') ?? '[]');
     window.localStorage.setItem('simulamanejo:results', JSON.stringify([result, ...storedResults]));
     return result;
-  }, [answers, category, marked, questions, sessionId, timeRemaining]);
+  }, [answers, category, marked, questions, sessionId]);
 
   return {
     questions,
@@ -147,7 +193,11 @@ export function useExam(category) {
     progress,
     loading,
     error,
+    errorStatus,
+    saveError,
     sessionId,
+    quickPractice,
+    practiceStrategy,
     selectAnswer,
     toggleMarked,
     goToQuestion,

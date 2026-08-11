@@ -1,5 +1,6 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { api, getStoredToken, setStoredToken, toFrontendUser } from '../services/api.js';
+import { safeInternalPath } from '../utils/navigation.js';
 import { useLocalStorage } from './useLocalStorage.js';
 
 const AuthContext = createContext(null);
@@ -8,7 +9,7 @@ const USER_KEY = 'simulamanejo:user';
 export function AuthProvider({ children }) {
   const [user, setUser, removeUser] = useLocalStorage(USER_KEY, null);
   const [loading, setLoading] = useState(Boolean(getStoredToken()));
-  const [authModal, setAuthModal] = useState({ open: false, mode: 'login', redirectTo: '/dashboard' });
+  const [authModal, setAuthModal] = useState({ open: false, mode: 'login', redirectTo: '/dashboard', category: 25 });
 
   const hydrateUser = useCallback(async (baseUser = user) => {
     const token = getStoredToken();
@@ -46,8 +47,9 @@ export function AuthProvider({ children }) {
     setAuthModal({
       open: true,
       mode,
-      redirectTo: options.redirectTo ?? '/dashboard',
+      redirectTo: safeInternalPath(options.redirectTo),
       email: options.email ?? '',
+      category: options.category ?? 25,
     });
   }, []);
 
@@ -100,7 +102,13 @@ export function AuthProvider({ children }) {
         try {
           const response = await api.register({ name, email, password, category });
           if (response.requiresEmailVerification) {
-            return { ok: true, requiresEmailVerification: true, email: response.email ?? email, message: response.message };
+            return {
+              ok: true,
+              requiresEmailVerification: true,
+              email: response.email ?? email,
+              emailSent: response.emailSent === true,
+              message: response.message,
+            };
           }
           await storeAuthenticatedUser(response, { category });
           await api.updateSettings({ categoriaPreferidaId: category, notificacionesHabilitadas: true, tema: 'light' }).catch(() => null);

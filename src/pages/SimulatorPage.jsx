@@ -1,42 +1,37 @@
-import { ArrowLeft, ArrowRight, Bell, Check, ChevronDown, CircleGauge, Clock, Flag, HelpCircle } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  CircleHelp,
+  Clock3,
+  LockKeyhole,
+  LogOut,
+  Pause,
+  Play,
+  Volume2,
+  X,
+} from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import BrandLogo from '../components/layout/BrandLogo.jsx';
 import Button from '../components/ui/Button.jsx';
-import Card from '../components/ui/Card.jsx';
 import { OptionContent, QuestionImage } from '../components/ui/QuestionMedia.jsx';
-import { useAuth } from '../hooks/useAuth.js';
+import { OFFICIAL_EXAM_RULES } from '../data/examRules.js';
 import { useExam } from '../hooks/useExam.js';
 import { normalizeCategoryName } from '../services/api.js';
 import { cn } from '../utils/cn.js';
 import { formatTime } from '../utils/formatTime.js';
 
-function UserChip({ user }) {
-  return (
-    <Link to="/perfil" className="hidden items-center gap-3 xl:flex">
-      <span className="relative grid h-12 w-12 overflow-hidden rounded-full bg-gradient-to-br from-sky-200 via-amber-100 to-blue-400 ring-4 ring-blue-50">
-        <span className="absolute left-1/2 top-2 h-4 w-4 -translate-x-1/2 rounded-full bg-amber-700" />
-        <span className="absolute left-1/2 top-5 h-5 w-7 -translate-x-1/2 rounded-t-full bg-white" />
-        <span className="absolute bottom-0 left-1/2 h-5 w-10 -translate-x-1/2 rounded-t-full bg-brand-dark" />
-      </span>
-      <span>
-        <span className="block text-sm font-bold text-ink">{user?.name ?? 'Carlos Mendoza'}</span>
-        <span className="block text-xs text-slate-500">Estudiante</span>
-      </span>
-      <ChevronDown className="h-4 w-4 text-ink" />
-    </Link>
-  );
-}
-
-function buildFallbackExplanation(question, correctOption) {
-  const correctText = correctOption?.texto || question?.respuestaCorrecta || 'la alternativa marcada como correcta';
-  return `Respuesta correcta: ${correctText}. Esta alternativa es la que se ajusta a la regla evaluada y descarta opciones incompletas, inseguras o contrarias a la norma.`;
+function hasAnswer(answerId) {
+  return answerId !== null && answerId !== undefined;
 }
 
 export default function SimulatorPage() {
-  const { categoria = 'A1' } = useParams();
+  const { categoria = '25' } = useParams();
+  const [searchParams] = useSearchParams();
+  const mode = searchParams.get('mode') === 'exam' ? 'exam' : 'quick';
+  const strategy = searchParams.get('strategy') === 'weak' ? 'weak' : 'random';
   const navigate = useNavigate();
-  const { user } = useAuth();
   const finishedRef = useRef(false);
   const {
     questions,
@@ -44,285 +39,406 @@ export default function SimulatorPage() {
     currentIndex,
     answers,
     timeRemaining,
-    progress,
+    loading,
+    error,
+    errorStatus,
+    saveError,
+    quickPractice,
     selectAnswer,
     goToQuestion,
     finishExam,
-    loading,
-    error,
-  } = useExam(categoria.toUpperCase());
+  } = useExam(categoria.toUpperCase(), mode, strategy);
   const [finishing, setFinishing] = useState(false);
+  const [finishError, setFinishError] = useState('');
   const [pendingAnswers, setPendingAnswers] = useState({});
+  const [speechState, setSpeechState] = useState('idle');
+  const speechRef = useRef(null);
 
   const currentAnswer = currentQuestion ? answers[currentQuestion.id] : null;
   const pendingAnswer = currentQuestion ? pendingAnswers[currentQuestion.id] : null;
-  const isAnswered = currentAnswer !== null && currentAnswer !== undefined;
-  const correctOption = currentQuestion?.opciones.find((option) => option.esCorrecta || option.isCorrect);
+  const isAnswered = hasAnswer(currentAnswer);
+  const isRevealed = quickPractice && isAnswered;
+  const selectedAnswerId = isRevealed ? currentAnswer : (hasAnswer(pendingAnswer) ? pendingAnswer : currentAnswer);
   const selectedOption = currentQuestion?.opciones.find((option) => String(option.id) === String(currentAnswer));
-  const answeredCorrectly = Boolean(isAnswered && selectedOption && (selectedOption.esCorrecta || selectedOption.isCorrect));
-  const explanationText = currentQuestion?.explicacion || currentQuestion?.fundamento || buildFallbackExplanation(currentQuestion, correctOption);
-  const displayAnswered = progress.answered;
-  const answerStats = questions.reduce((stats, question) => {
-    const answerId = answers[question.id];
-    if (answerId === null || answerId === undefined) return stats;
-    const answerOption = question.opciones.find((option) => String(option.id) === String(answerId));
-    if (answerOption?.esCorrecta || answerOption?.isCorrect) {
-      stats.correct += 1;
-    } else {
-      stats.incorrect += 1;
-    }
-    return stats;
-  }, { correct: 0, incorrect: 0 });
-  const displayCorrect = answerStats.correct;
-  const displayIncorrect = answerStats.incorrect;
-  const displayPercent = progress.percent;
-  const questionImage = currentQuestion?.imagenBase64;
+  const correctOption = currentQuestion?.opciones.find((option) => option.esCorrecta || option.isCorrect);
+  const answeredCorrectly = Boolean(isRevealed && selectedOption && (selectedOption.esCorrecta || selectedOption.isCorrect));
+  const explanation = currentQuestion?.explicacion || currentQuestion?.fundamento || '';
+  const isLastQuestion = currentIndex === questions.length - 1;
+  const canContinue = quickPractice ? (isRevealed || hasAnswer(pendingAnswer)) : isAnswered;
   const examLabel = normalizeCategoryName(categoria);
+  const practiceLabel = strategy === 'weak' ? 'Refuerzo de errores' : 'Preguntas aleatorias';
 
   useEffect(() => {
+    finishedRef.current = false;
+    setFinishError('');
     setPendingAnswers({});
-  }, [categoria]);
+  }, [categoria, mode, strategy]);
 
-  const handleSelectPendingAnswer = (questionId, optionId) => {
-    setPendingAnswers((currentAnswers) => ({ ...currentAnswers, [questionId]: optionId }));
-  };
+  useEffect(() => {
+    speechRef.current = null;
+    window.speechSynthesis?.cancel();
+    setSpeechState('idle');
 
-  const handleEvaluateAnswer = () => {
-    if (!currentQuestion || isAnswered || pendingAnswer === null || pendingAnswer === undefined) {
+    return () => {
+      speechRef.current = null;
+      window.speechSynthesis?.cancel();
+    };
+  }, [currentQuestion?.id]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0 });
+  }, [currentIndex]);
+
+  const handleFinish = useCallback(async () => {
+    if (finishedRef.current || finishing || loading || !questions.length) return;
+
+    finishedRef.current = true;
+    setFinishing(true);
+    setFinishError('');
+    try {
+      const result = await finishExam();
+      if (!result?.id) throw new Error('No se recibió el resultado.');
+      navigate(`/resultados/${result.id}`);
+    } catch {
+      finishedRef.current = false;
+      setFinishing(false);
+      setFinishError('No pudimos guardar tu resultado. Revisa tu conexión y vuelve a intentarlo.');
+    }
+  }, [finishExam, finishing, loading, navigate, questions.length]);
+
+  useEffect(() => {
+    if (!quickPractice && timeRemaining === 0 && questions.length) {
+      void handleFinish();
+    }
+  }, [handleFinish, questions.length, quickPractice, timeRemaining]);
+
+  const toggleSpeech = () => {
+    if (!currentQuestion || !('speechSynthesis' in window)) return;
+
+    if (speechState === 'speaking') {
+      window.speechSynthesis.pause();
+      setSpeechState('paused');
+      return;
+    }
+    if (speechState === 'paused') {
+      window.speechSynthesis.resume();
+      setSpeechState('speaking');
       return;
     }
 
+    window.speechSynthesis.cancel();
+    const options = currentQuestion.opciones
+      .map((option, index) => `${String.fromCharCode(65 + index)}. ${option.texto ?? ''}`)
+      .join('. ');
+    const message = new SpeechSynthesisUtterance(`${currentQuestion.texto}. ${options}`);
+    message.lang = 'es-PE';
+    message.rate = 0.88;
+    message.onstart = () => {
+      if (speechRef.current === message) setSpeechState('speaking');
+    };
+    message.onend = () => {
+      if (speechRef.current === message) {
+        speechRef.current = null;
+        setSpeechState('idle');
+      }
+    };
+    message.onerror = message.onend;
+    speechRef.current = message;
+    setSpeechState('speaking');
+    window.speechSynthesis.speak(message);
+  };
+
+  const chooseAnswer = (optionId) => {
+    if (isRevealed || !currentQuestion) return;
+    if (quickPractice) {
+      setPendingAnswers((current) => ({ ...current, [currentQuestion.id]: optionId }));
+      return;
+    }
+    selectAnswer(currentQuestion.id, optionId);
+  };
+
+  const revealAnswer = () => {
+    if (!currentQuestion || !hasAnswer(pendingAnswer)) return;
     selectAnswer(currentQuestion.id, pendingAnswer);
-    setPendingAnswers((currentAnswers) => {
-      const nextAnswers = { ...currentAnswers };
-      delete nextAnswers[currentQuestion.id];
-      return nextAnswers;
+    setPendingAnswers((current) => {
+      const next = { ...current };
+      delete next[currentQuestion.id];
+      return next;
     });
   };
 
-  const handleFinish = async () => {
-    if (finishedRef.current || finishing || loading || !questions.length) {
+  const handlePrimaryAction = () => {
+    if (quickPractice && !isRevealed) {
+      revealAnswer();
       return;
     }
-    finishedRef.current = true;
-    setFinishing(true);
-    const result = await finishExam().catch(() => null);
-    setFinishing(false);
-    if (!result?.id) {
-      finishedRef.current = false;
+    if (isLastQuestion) {
+      void handleFinish();
       return;
     }
-    navigate(`/resultados/${result.id}`);
+    goToQuestion(currentIndex + 1);
   };
 
-  useEffect(() => {
-    if (timeRemaining === 0 && questions.length) {
-      handleFinish();
-    }
-  }, [timeRemaining, questions.length]);
-
   if (loading) {
-    return <div className="grid min-h-screen place-items-center bg-white text-lg font-bold text-slate-600">Preparando simulacro real...</div>;
+    return (
+      <div className="grid min-h-screen place-items-center bg-white px-6 text-center">
+        <div>
+          <span className="mx-auto block h-10 w-10 animate-spin rounded-full border-4 border-blue-100 border-t-brand" />
+          <p className="mt-4 text-lg font-bold text-slate-600">Preparando tus preguntas...</p>
+        </div>
+      </div>
+    );
   }
 
   if (error || !currentQuestion) {
+    const membershipRequired = errorStatus === 402;
     return (
       <div className="grid min-h-screen place-items-center bg-white p-6 text-center">
-        <Card className="max-w-xl p-8">
-          <h1 className="text-2xl font-black">No pudimos iniciar el simulacro</h1>
-          <p className="mt-3 text-slate-600">{error || 'No llegaron preguntas para esta categoría.'}</p>
-          <Button as={Link} to="/dashboard" className="mt-6"><ArrowLeft className="h-4 w-4" /> Volver al dashboard</Button>
-        </Card>
+        <div className="max-w-lg">
+          {membershipRequired
+            ? <LockKeyhole className="mx-auto h-12 w-12 text-brand" />
+            : <X className="mx-auto h-12 w-12 text-danger" />}
+          <h1 className="mt-4 font-display text-3xl font-black text-ink">
+            {membershipRequired ? 'Activa el simulacro completo' : 'No pudimos iniciar la práctica'}
+          </h1>
+          <p className="mt-3 text-lg leading-7 text-slate-600">
+            {error || 'No encontramos preguntas para esta licencia.'}
+          </p>
+          <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+            {membershipRequired ? (
+              <Button as={Link} to={`/checkout?category=${categoria}`}>
+                Activar por S/12
+                <ArrowRight className="h-5 w-5" />
+              </Button>
+            ) : null}
+            <Button as={Link} to="/dashboard" variant={membershipRequired ? 'secondary' : 'primary'}>
+              <ArrowLeft className="h-5 w-5" />
+              Volver al inicio
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-[100dvh] overflow-hidden bg-soft text-ink">
-      <header className="relative z-40 shrink-0 border-b border-line bg-white/95 backdrop-blur">
-        <div className="flex h-12 items-center gap-2 px-2.5 lg:h-14 lg:px-4">
-          <div className="-ml-4 hidden h-14 w-60 shrink-0 items-center bg-brand-deep px-5 text-white xl:w-64 lg:flex">
-            <BrandLogo className="text-white" />
-          </div>
-
-          <div className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-lg border border-line bg-white px-3 text-sm font-black shadow-sm sm:flex-none sm:min-w-52 lg:min-w-60">
-            <CircleGauge className="h-4 w-4 shrink-0 text-brand-dark" />
-            <span className="truncate">Simulacro {examLabel}</span>
-            <ChevronDown className="ml-auto h-4 w-4 shrink-0" />
-          </div>
-
-          <div className="ml-auto flex shrink-0 items-center gap-2 lg:gap-3">
-            <div className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-blue-50 px-2.5 text-sm font-black text-brand sm:hidden">
-              <Clock className="h-4 w-4" />
-              {formatTime(timeRemaining)}
-            </div>
-            <button type="button" className="relative hidden rounded-lg border border-line bg-white p-2 shadow-sm sm:inline-flex" aria-label="Notificaciones">
-              <Bell className="h-4 w-4" />
-              <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-danger text-xs font-bold text-white">2</span>
-            </button>
-            <UserChip user={user} />
-            <Button variant="danger" size="sm" onClick={handleFinish} className="min-w-0 px-3 sm:h-10 sm:min-w-44" disabled={finishing}><Flag className="h-4 w-4" /> <span className="hidden sm:inline">{finishing ? 'Finalizando...' : 'Finalizar simulacro'}</span><span className="sm:hidden">Fin</span></Button>
-          </div>
+    <div className="min-h-screen bg-white text-ink">
+      <header className="sticky top-0 z-30 border-b border-line bg-white">
+        <div className="mx-auto flex min-h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
+          <BrandLogo />
+          <span className="hidden h-7 w-px bg-line sm:block" />
+          <span className="hidden text-sm font-bold text-slate-600 sm:block">
+            {quickPractice ? practiceLabel : 'Simulacro completo'} · {examLabel}
+          </span>
+          <nav className="ml-auto flex items-center gap-1 sm:gap-2" aria-label="Acciones de la práctica">
+            <Link
+              to="/banco-preguntas"
+              aria-label="Ayuda"
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg px-3 font-bold text-brand hover:bg-blue-50"
+            >
+              <CircleHelp className="h-5 w-5" />
+              <span className="hidden sm:inline">Ayuda</span>
+            </Link>
+            <Link
+              to="/dashboard"
+              aria-label="Salir de la práctica"
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg px-3 font-bold text-slate-600 hover:bg-slate-100 hover:text-ink"
+            >
+              <LogOut className="h-5 w-5" />
+              <span className="hidden sm:inline">Salir</span>
+            </Link>
+          </nav>
         </div>
       </header>
 
-      <main className="grid h-[calc(100dvh-3rem-1px)] min-h-0 gap-2 p-2 lg:h-[calc(100dvh-3.5rem-1px)] lg:grid-cols-[minmax(0,1fr)_310px] lg:gap-3 lg:p-3 xl:grid-cols-[minmax(0,1fr)_350px]">
-        <Card className="flex min-h-0 flex-col overflow-hidden rounded-lg shadow-sm">
-          <div className="shrink-0 border-b border-line p-2.5 sm:p-3">
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <h1 className="text-lg font-black sm:text-xl">Pregunta {currentIndex + 1} <span className="font-medium text-slate-500">de {questions.length}</span></h1>
-              <div className="hidden items-center gap-2 text-brand sm:flex">
-                <Clock className="h-4 w-4" />
-                <span className="text-sm font-medium text-slate-500">Tiempo</span>
-                <span className="text-xl font-black">{formatTime(timeRemaining)}</span>
-              </div>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-slate-200">
-              <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${questions.length ? ((currentIndex + 1) / questions.length) * 100 : 0}%` }} />
-            </div>
+      <main className="mx-auto w-full max-w-6xl px-4 pb-32 pt-4 sm:px-6 sm:pt-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="font-bold text-brand">
+              Pregunta {currentIndex + 1} de {questions.length}
+            </p>
+            <p className="mt-1 text-sm text-slate-500">
+              {quickPractice
+                ? strategy === 'weak'
+                  ? 'Primero verás lo que más necesitas reforzar.'
+                  : 'Sin tiempo. Preguntas de toda la categoría.'
+                : `${OFFICIAL_EXAM_RULES.questionCount} preguntas · ${OFFICIAL_EXAM_RULES.durationMinutes} minutos · tu resultado mide tu preparación.`}
+            </p>
           </div>
+          {!quickPractice ? (
+            <div className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-blue-50 px-4 text-lg font-black text-brand" aria-label={`Tiempo restante ${formatTime(timeRemaining)}`}>
+              <Clock3 className="h-5 w-5" />
+              {formatTime(timeRemaining)}
+            </div>
+          ) : null}
+        </div>
 
-          <div className={cn('grid max-h-[34dvh] shrink-0 gap-3 overflow-y-auto border-b border-line p-2.5 sm:p-3', questionImage && 'xl:grid-cols-[320px_1fr] xl:items-center xl:gap-4')}>
-            {questionImage ? (
-              <QuestionImage
-                src={questionImage}
-                mediaType={currentQuestion.multimedia?.[0]?.tipoMultimedia || currentQuestion.multimedia?.[0]?.tipo_multimedia}
-                className="h-[150px] bg-blue-50 sm:h-[170px]"
-                imgClassName="max-h-[130px] sm:max-h-[150px]"
+        {quickPractice ? (
+          <div className="mt-3 flex gap-2" aria-label={`Pregunta ${currentIndex + 1} de ${questions.length}`}>
+            {questions.map((question, index) => (
+              <span
+                key={question.id}
+                className={cn(
+                  'h-2.5 flex-1 rounded-full',
+                  index < currentIndex && 'bg-success',
+                  index === currentIndex && 'bg-brand',
+                  index > currentIndex && 'bg-slate-200',
+                )}
               />
-            ) : null}
-            <div>
-              <h2 className="text-lg font-black leading-tight sm:text-xl lg:text-2xl">{currentQuestion.texto}</h2>
-              <span className="mt-2 inline-flex max-w-full rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-brand sm:text-xs"><span className="clamp-2">{currentQuestion.tema}</span></span>
-            </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-200">
+            <div
+              className="h-full rounded-full bg-brand transition-[width]"
+              style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+            />
+          </div>
+        )}
+
+        <section className="mt-4" aria-labelledby="question-title">
+          {currentQuestion.imagenBase64 ? (
+            <QuestionImage
+              src={currentQuestion.imagenBase64}
+              mediaType={currentQuestion.multimedia?.[0]?.tipoMultimedia || currentQuestion.multimedia?.[0]?.tipo_multimedia}
+              className="mb-4 min-h-[170px] border border-line bg-slate-50 sm:min-h-[220px]"
+              imgClassName="max-h-[190px] sm:max-h-[250px]"
+            />
+          ) : null}
+
+          <div className="flex items-start gap-3">
+            <h1 id="question-title" className="min-w-0 flex-1 whitespace-pre-wrap break-words font-display text-xl font-black leading-tight text-ink sm:text-2xl lg:text-[28px]">
+              {currentQuestion.texto}
+            </h1>
+            <button
+              type="button"
+              onClick={toggleSpeech}
+              className="inline-flex min-h-12 shrink-0 items-center gap-2 rounded-lg border border-line bg-white px-3 font-bold text-brand hover:border-brand hover:bg-blue-50"
+              aria-label={
+                speechState === 'speaking'
+                  ? 'Pausar audio'
+                  : speechState === 'paused'
+                    ? 'Continuar audio'
+                    : 'Escuchar pregunta y respuestas'
+              }
+            >
+              {speechState === 'speaking'
+                ? <Pause className="h-5 w-5" />
+                : speechState === 'paused'
+                  ? <Play className="h-5 w-5" />
+                  : <Volume2 className="h-5 w-5" />}
+              <span className="hidden sm:inline">
+                {speechState === 'speaking' ? 'Pausar' : speechState === 'paused' ? 'Continuar' : 'Escuchar'}
+              </span>
+            </button>
           </div>
 
-          <div className={cn('grid min-h-0 flex-1 gap-2 overflow-y-auto px-2.5 py-2.5 sm:px-3', !isAnswered && 'auto-rows-fr')}>
-            {currentQuestion.opciones.map((option, optionIndex) => {
-              const selectedAnswerId = isAnswered ? currentAnswer : pendingAnswer;
-              const selected = selectedAnswerId !== null && selectedAnswerId !== undefined && String(selectedAnswerId) === String(option.id);
+          <div className="mt-4 grid gap-2.5">
+            {currentQuestion.opciones.map((option, index) => {
+              const selected = hasAnswer(selectedAnswerId) && String(selectedAnswerId) === String(option.id);
               const optionIsCorrect = option.esCorrecta || option.isCorrect;
-              const showCorrect = isAnswered && optionIsCorrect;
-              const showIncorrect = isAnswered && selected && !optionIsCorrect;
+              const showCorrect = isRevealed && optionIsCorrect;
+              const showIncorrect = isRevealed && selected && !optionIsCorrect;
+
               return (
                 <button
                   key={option.id}
+                  type="button"
+                  aria-pressed={selected}
+                  data-testid="answer-option"
+                  disabled={isRevealed}
+                  onClick={() => chooseAnswer(option.id)}
                   className={cn(
-                    'flex min-h-[48px] items-start gap-2.5 rounded-lg border border-line bg-white px-2.5 py-2.5 text-left text-sm text-slate-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 disabled:cursor-default sm:min-h-[54px] sm:gap-3 sm:px-3 sm:text-[15px]',
-                    !isAnswered && selected && 'border-brand bg-blue-50 ring-2 ring-blue-100',
-                    showCorrect && 'border-success bg-emerald-50 ring-2 ring-emerald-100',
-                    showIncorrect && 'border-danger bg-red-50 ring-2 ring-red-100',
+                    'flex min-h-14 w-full items-center gap-3 rounded-lg border-2 border-line bg-white px-3 py-2.5 text-left text-base leading-6 text-ink transition hover:border-blue-300 hover:bg-blue-50 disabled:cursor-default sm:min-h-16 sm:px-4 sm:text-lg',
+                    selected && !isRevealed && 'border-brand bg-blue-50 ring-2 ring-blue-100',
+                    showCorrect && 'border-success bg-emerald-50',
+                    showIncorrect && 'border-danger bg-red-50',
                   )}
-                  disabled={isAnswered}
-                  onClick={() => handleSelectPendingAnswer(currentQuestion.id, option.id)}
                 >
-                  <span className={cn(
-                    'grid h-8 w-8 shrink-0 place-items-center rounded-full bg-blue-50 text-sm font-black text-brand sm:h-9 sm:w-9',
-                    !isAnswered && selected && 'bg-brand text-white',
-                    showCorrect && 'bg-success text-white',
-                    showIncorrect && 'bg-danger text-white',
-                  )}>{String.fromCharCode(65 + optionIndex)}</span>
+                  <span
+                    className={cn(
+                      'grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 font-black text-slate-600 sm:h-10 sm:w-10',
+                      selected && !isRevealed && 'bg-brand text-white',
+                      showCorrect && 'bg-success text-white',
+                      showIncorrect && 'bg-danger text-white',
+                    )}
+                  >
+                    {showCorrect ? <Check className="h-5 w-5" /> : showIncorrect ? <X className="h-5 w-5" /> : String.fromCharCode(65 + index)}
+                  </span>
                   <OptionContent option={option} />
                 </button>
               );
             })}
+          </div>
 
-            {isAnswered ? (
-              <div
-                className={cn(
-                  'max-h-28 overflow-y-auto rounded-lg border p-2.5 text-xs leading-snug sm:text-sm',
-                  answeredCorrectly ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-red-200 bg-red-50 text-red-900',
-                )}
-                aria-live="polite"
-              >
-                <div className="mb-1 flex items-center gap-2 font-black">
-                  {answeredCorrectly ? <Check className="h-4 w-4 text-success" /> : <HelpCircle className="h-4 w-4 text-danger" />}
-                  {answeredCorrectly ? 'Correcto' : 'Revisa esto'}
+          {isRevealed ? (
+            <div
+              className={cn(
+                'mt-3 border-l-4 px-4 py-3 text-base leading-6',
+                answeredCorrectly
+                  ? 'border-success bg-emerald-50 text-emerald-950'
+                  : 'border-danger bg-red-50 text-red-950',
+              )}
+              aria-live="polite"
+            >
+              <p className="flex items-center gap-2 font-display text-lg font-black">
+                {answeredCorrectly ? <Check className="h-5 w-5 text-success" /> : <X className="h-5 w-5 text-danger" />}
+                {answeredCorrectly ? '¡Muy bien!' : 'Mira la respuesta correcta'}
+              </p>
+              <p className="mt-1 whitespace-pre-wrap break-words">
+                <strong>Respuesta correcta:</strong> {correctOption?.texto || currentQuestion.respuestaCorrecta}
+              </p>
+              {explanation ? (
+                <div className="mt-3 border-t border-current/15 pt-3">
+                  <p className="font-bold">Explicación</p>
+                  <p className="mt-1 whitespace-pre-wrap break-words text-slate-700">{explanation}</p>
                 </div>
-                <p>{explanationText}</p>
-              </div>
-            ) : null}
-          </div>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
 
-          <div className="z-20 grid shrink-0 grid-cols-3 gap-2 border-t border-line bg-white/95 p-2.5 backdrop-blur sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-2">
-            <Button size="sm" variant="secondary" onClick={() => goToQuestion(currentIndex - 1)} disabled={currentIndex === 0} className="w-full px-2 sm:min-w-36 sm:w-auto"><ArrowLeft className="h-4 w-4" /> <span className="hidden min-[420px]:inline">Anterior</span><span className="min-[420px]:hidden">Atrás</span></Button>
-            <Button size="sm" variant={isAnswered ? (answeredCorrectly ? 'success' : 'danger') : 'warning'} onClick={handleEvaluateAnswer} className="w-full px-2 sm:min-w-44 sm:w-auto" disabled={isAnswered || pendingAnswer === null || pendingAnswer === undefined}><Check className="h-4 w-4" /> {isAnswered ? 'Evaluada' : pendingAnswer === null || pendingAnswer === undefined ? 'Elige opción' : 'Marcar'}</Button>
-            <Button size="sm" onClick={() => currentIndex === questions.length - 1 ? handleFinish() : goToQuestion(currentIndex + 1)} className="w-full px-2 sm:min-w-44 sm:w-auto" disabled={finishing}>
-              <span className="hidden min-[420px]:inline">{currentIndex === questions.length - 1 ? finishing ? 'Finalizando...' : 'Finalizar' : 'Siguiente'}</span>
-              <span className="min-[420px]:hidden">{currentIndex === questions.length - 1 ? finishing ? '...' : 'Fin' : 'Sig.'}</span>
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </Card>
+        {saveError || finishError ? (
+          <p className="mt-5 rounded-lg border border-amber-300 bg-amber-50 p-3 font-bold text-amber-950" role="alert">
+            {finishError || saveError}
+          </p>
+        ) : null}
 
-        <aside className="hidden min-h-0 gap-2 self-stretch lg:grid lg:grid-rows-[auto_minmax(0,1fr)]">
-          <Card className="rounded-lg p-2.5 shadow-sm sm:p-3">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-base font-black sm:text-lg">Progreso</h2>
-              <span className="text-2xl font-black text-brand">{displayPercent}%</span>
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
-              <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${displayPercent}%` }} />
-            </div>
-            <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs font-semibold sm:text-sm">
-              <div className="rounded-lg bg-emerald-50 px-2 py-2 text-success">
-                <span className="block text-lg font-black">{displayCorrect}</span>
-                Correctas
-              </div>
-              <div className="rounded-lg bg-red-50 px-2 py-2 text-danger">
-                <span className="block text-lg font-black">{displayIncorrect}</span>
-                Errores
-              </div>
-              <div className="rounded-lg bg-slate-50 px-2 py-2 text-slate-600">
-                <span className="block text-lg font-black">{questions.length - displayAnswered}</span>
-                Pendientes
-              </div>
-            </div>
-          </Card>
-
-          <Card className="min-h-0 overflow-hidden rounded-lg p-2.5 shadow-sm sm:p-3">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-base font-black sm:text-lg">Preguntas</h2>
-              <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-brand">{currentIndex + 1}/{questions.length}</span>
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-500">
-              <span className="inline-flex items-center gap-1"><span className="h-3.5 w-3.5 rounded-full border border-emerald-200 bg-emerald-100" /> Correcta</span>
-              <span className="inline-flex items-center gap-1"><span className="h-3.5 w-3.5 rounded-full border border-red-200 bg-red-100" /> Incorrecta</span>
-              <span className="inline-flex items-center gap-1"><span className="h-3.5 w-3.5 rounded-full border border-line bg-white" /> Sin responder</span>
-              <span className="inline-flex items-center gap-1"><span className="h-3.5 w-3.5 rounded-full border-2 border-warning" /> Seleccionada</span>
-              <span className="inline-flex items-center gap-1"><span className="h-3.5 w-3.5 rounded-full border border-brand ring-2 ring-brand/30" /> Actual</span>
-            </div>
-            <div className="mt-2 grid max-h-[calc(100dvh-18rem)] grid-cols-8 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-10 lg:grid-cols-8 xl:grid-cols-10">
-              {questions.map((question, index) => {
-                const answerId = answers[question.id];
-                const answered = answerId !== null && answerId !== undefined;
-                const answerOption = answered ? question.opciones.find((option) => String(option.id) === String(answerId)) : null;
-                const questionCorrect = Boolean(answerOption?.esCorrecta || answerOption?.isCorrect);
-                const selectedPending = !answered && pendingAnswers[question.id] !== null && pendingAnswers[question.id] !== undefined;
-                const active = index === currentIndex;
-                return (
-                  <button
-                    key={question.id}
-                    onClick={() => goToQuestion(index)}
-                    className={cn(
-                      'grid aspect-square w-full min-w-0 place-items-center rounded-full border text-xs font-bold transition sm:text-sm',
-                      answered && questionCorrect && 'border-emerald-200 bg-emerald-100 text-success',
-                      answered && !questionCorrect && 'border-red-200 bg-red-100 text-danger',
-                      selectedPending && 'border-orange-300 bg-orange-50 text-warning',
-                      !answered && !selectedPending && 'border-line bg-white text-slate-500',
-                      active && 'ring-2 ring-brand ring-offset-1 ring-offset-white',
-                      active && !answered && !selectedPending && 'border-brand bg-blue-50 text-brand',
-                    )}
-                  >
-                    {index + 1}
-                  </button>
-                );
-              })}
-            </div>
-          </Card>
-
-        </aside>
       </main>
+
+      <footer
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-white/95 shadow-[0_-8px_24px_rgba(16,35,63,0.08)] backdrop-blur"
+        style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+      >
+        <div className="mx-auto flex w-full max-w-6xl items-center gap-2 px-4 pt-3 sm:px-6">
+          {currentIndex > 0 ? (
+            <button
+              type="button"
+              onClick={() => goToQuestion(currentIndex - 1)}
+              title="Pregunta anterior"
+              className="inline-flex min-h-14 shrink-0 items-center justify-center gap-2 rounded-lg px-3 font-bold text-slate-600 hover:bg-slate-100 hover:text-ink sm:px-4"
+            >
+              <ArrowLeft className="h-5 w-5" />
+              <span className="hidden sm:inline">Anterior</span>
+            </button>
+          ) : null}
+          <Button
+            size="lg"
+            onClick={handlePrimaryAction}
+            disabled={!canContinue || finishing}
+            className="ml-auto w-full sm:w-auto sm:min-w-72"
+          >
+            {finishing
+              ? 'Guardando resultado...'
+              : quickPractice && !isRevealed
+                ? 'Responder'
+                : isLastQuestion
+                  ? 'Ver mi resultado'
+                  : 'Siguiente pregunta'}
+            <ArrowRight className="h-6 w-6" />
+          </Button>
+        </div>
+      </footer>
     </div>
   );
 }

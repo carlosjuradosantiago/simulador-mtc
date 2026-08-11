@@ -260,6 +260,10 @@ Deno.serve(async (req)=>{
       const { handleProcesarPago } = await import('./handlers/pagos.ts');
       return await withLogging(req, path, 'handleProcesarPago', () => handleProcesarPago(req));
     }
+    if (path === '/pagos/simular' && method === 'POST') {
+      const { handleSimularPago } = await import('./handlers/pagos.ts');
+      return await withLogging(req, path, 'handleSimularPago', () => handleSimularPago(req));
+    }
     if (path === '/pagos/historial' && method === 'GET') {
       const { handleGetHistorialPagos } = await import('./handlers/pagos.ts');
       return await withLogging(req, path, 'handleGetHistorialPagos', () => handleGetHistorialPagos(req));
@@ -361,6 +365,7 @@ Deno.serve(async (req)=>{
         'POST /user/membership/subscribe',
         'GET /pagos/config',
         'POST /pagos/procesar',
+        'POST /pagos/simular',
         'GET /pagos/historial',
         'POST /libro-reclamaciones',
         'GET /libro-reclamaciones/info',
