@@ -2,7 +2,7 @@ import { getSupabaseClient } from '../_shared/supabase.ts';
 import { getUserFromToken } from '../_shared/auth.ts';
 import { jsonResponse, errorResponse, unauthorizedResponse } from '../_shared/response.ts';
 import { OFFICIAL_EXAM_MIN_CORRECT } from '../_shared/exam-rules.ts';
-import { partitionAttempts } from '../_shared/membership-access.ts';
+import { filterOfficialExamAttempts, partitionAttempts } from '../_shared/membership-access.ts';
 
 async function getCanonicalUsuario(supabase: any, userId: number) {
   const { data, error } = await supabase
@@ -129,12 +129,12 @@ export async function handleGetExamHistory(req) {
     const offset = page * size;
     const supabase = getSupabaseClient();
     // Get total count
-    const { count } = await supabase.from('intento').select('*', {
+    const { count } = await filterOfficialExamAttempts(supabase.from('intento').select('*', {
       count: 'exact',
       head: true
-    }).eq('id_usuario', user.userId);
+    }), user.userId);
     // Get paginated attempts - with all necessary fields
-    const { data: intentos, error } = await supabase.from('intento').select(`
+    const historyQuery = filterOfficialExamAttempts(supabase.from('intento').select(`
         id,
         id_tipo_examen,
         hora_inicio,
@@ -146,9 +146,10 @@ export async function handleGetExamHistory(req) {
         porcentaje,
         aprobado,
         tipo_examen:id_tipo_examen(id, nombre, descripcion)
-      `).eq('id_usuario', user.userId).order('hora_inicio', {
-      ascending: false
-    }).range(offset, offset + size - 1);
+      `), user.userId);
+    const { data: intentos, error } = await historyQuery
+      .order('hora_inicio', { ascending: false })
+      .range(offset, offset + size - 1);
     if (error) {
       console.error('Error fetching history:', error);
       return errorResponse('Error al obtener historial: ' + error.message, 500);
@@ -210,15 +211,16 @@ export async function handleGetRecentHistory(req) {
     const url = new URL(req.url);
     const limit = parseInt(url.searchParams.get('limit') || '5');
     const supabase = getSupabaseClient();
-    const { data: intentos, error } = await supabase.from('intento').select(`
+    const recentHistoryQuery = filterOfficialExamAttempts(supabase.from('intento').select(`
         id,
         puntuacion,
         hora_inicio,
         hora_fin,
         tipo_examen:id_tipo_examen(id, nombre)
-      `).eq('id_usuario', user.userId).order('hora_inicio', {
-      ascending: false
-    }).limit(limit);
+      `), user.userId);
+    const { data: intentos, error } = await recentHistoryQuery
+      .order('hora_inicio', { ascending: false })
+      .limit(limit);
     if (error) {
       console.error('Error fetching recent history:', error.message);
       return errorResponse('Error al obtener historial reciente: ' + error.message, 500);
