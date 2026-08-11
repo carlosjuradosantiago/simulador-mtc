@@ -63,6 +63,21 @@ Plataforma educativa independiente. No afiliada al Ministerio de Transportes y C
 - https://www.simuladormtc.com/linea-amarilla-discontinua-pregunta-mtc: Conoce cuándo se puede cruzar una línea central amarilla discontinua según la pregunta 5 del balotario MTC A-I.
 - https://www.simuladormtc.com/senal-r6-prohibido-voltear-izquierda-mtc: Aprende qué prohíbe la señal R-6 según la pregunta 3 del balotario MTC A-I y si también impide realizar un giro en U.
 
+## Preguntas completas por tema
+
+- https://www.simuladormtc.com/preguntas-reglamento-transito-mtc: 40 preguntas de Reglamento de tránsito y señales, con cuatro alternativas y respuesta.
+- https://www.simuladormtc.com/preguntas-obligaciones-conductor-mtc: 40 preguntas de Obligaciones del conductor, con cuatro alternativas y respuesta.
+- https://www.simuladormtc.com/preguntas-regulacion-transporte-mtc: 40 preguntas de Regulación del transporte, con cuatro alternativas y respuesta.
+- https://www.simuladormtc.com/preguntas-reglamento-vehiculos-mtc: 40 preguntas de Reglamento Nacional de Vehículos, con cuatro alternativas y respuesta.
+- https://www.simuladormtc.com/preguntas-mercancias-peligrosas-mtc: 31 preguntas de Mercancías peligrosas, con cuatro alternativas y respuesta.
+- https://www.simuladormtc.com/preguntas-licencias-conducir-mtc: 40 preguntas de Sistema de licencias de conducir, con cuatro alternativas y respuesta.
+- https://www.simuladormtc.com/preguntas-conduccion-eficiente-mtc: 13 preguntas de Conducción eficiente, con cuatro alternativas y respuesta.
+- https://www.simuladormtc.com/preguntas-mecanica-conduccion-mtc: 23 preguntas de Mecánica para la conducción, con cuatro alternativas y respuesta.
+- https://www.simuladormtc.com/preguntas-inspeccion-tecnica-vehicular-mtc: 7 preguntas de Inspección técnica vehicular, con cuatro alternativas y respuesta.
+- https://www.simuladormtc.com/preguntas-soat-mtc: 7 preguntas de SOAT y responsabilidad civil, con cuatro alternativas y respuesta.
+- https://www.simuladormtc.com/preguntas-placa-unica-mtc: 6 preguntas de Placa Única Nacional de Rodaje, con cuatro alternativas y respuesta.
+- https://www.simuladormtc.com/preguntas-primeros-auxilios-mtc: 6 preguntas de Primeros auxilios, con cuatro alternativas y respuesta.
+
 ## Criterios editoriales
 
 - Contenido revisado por última vez el 11 de agosto de 2026.
