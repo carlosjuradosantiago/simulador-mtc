@@ -1,0 +1,317 @@
+{
+  "a1": [
+    {
+      "number": 1,
+      "text": "Está permitido en la vía:",
+      "options": [
+        "Recoger o dejar pasajeros o carga en cualquier lugar",
+        "Dejar animales sueltos o situarlos de forma tal que obstaculicen solo un poco el tránsito",
+        "Recoger o dejar pasajeros en lugares autorizados.",
+        "Ejercer el comercio ambulatorio o estacionario"
+      ],
+      "correctAnswer": "Recoger o dejar pasajeros en lugares autorizados."
+    },
+    {
+      "number": 6,
+      "text": "El color ámbar o amarillo del semáforo significa que:",
+      "options": [
+        "Los vehículos deben avanzar.",
+        "Los vehículos deben detenerse.",
+        "Los vehículos deben acelerar la marcha.",
+        "Los vehículos deben detenerse antes de ingresar a la intersección si su velocidad y ubicación lo permiten; de lo contrario, deberán cruzar y despejar la intersección."
+      ],
+      "correctAnswer": "Los vehículos deben detenerse antes de ingresar a la intersección si su velocidad y ubicación lo permiten; de lo contrario, deberán cruzar y despejar la intersección."
+    },
+    {
+      "number": 8,
+      "text": "¿Qué indica una flecha verde en un semáforo vehicular?",
+      "options": [
+        "Se puede continuar con precaución únicamente en la dirección de la flecha y desde el carril que esta flecha controla.",
+        "No está permitida la circulación en el sentido que indica la flecha.",
+        "Se debe respetar únicamente la luz circular.",
+        "Ninguna de las alternativas es correcta."
+      ],
+      "correctAnswer": "Se puede continuar con precaución únicamente en la dirección de la flecha y desde el carril que esta flecha controla."
+    }
+  ],
+  "a2a": [
+    {
+      "number": 6,
+      "text": "La entidad competente de fiscalizar el servicio de transporte de ámbito provincial es:",
+      "options": [
+        "El Gobierno Regional.",
+        "La municipalidad provincial.",
+        "El Ministerio de Transportes y Comunicaciones.",
+        "\"a\" y \"c\" son correctas."
+      ],
+      "correctAnswer": "La municipalidad provincial."
+    },
+    {
+      "number": 10,
+      "text": "La autorización del servicio de taxi habilita para:",
+      "options": [
+        "Prestar el servicio dentro de la respectiva provincia donde se otorgó la autorización.",
+        "Prestar el servicio en todo el ámbito nacional.",
+        "Prestar el servicio dentro de todo el departamento correspondiente a la provincia donde se otorgó la autorización.",
+        "Ninguna de las anteriores."
+      ],
+      "correctAnswer": "Prestar el servicio dentro de la respectiva provincia donde se otorgó la autorización."
+    },
+    {
+      "number": 13,
+      "text": "El vehículo que prestan el servicio de transporte provincial de personas debe contar con el siguiente Seguro:",
+      "options": [
+        "Únicamente con el Seguro Obligatorio de Accidentes de Tránsito- SOAT.",
+        "Únicamente con el Certificado de Accidentes de Tránsito - CAT.",
+        "El Seguro Obligatorio de Accidentes de Tránsito - SOAT o el Certificado contra Accidentes de tránsito - CAT.",
+        "Ninguno de los anteriores."
+      ],
+      "correctAnswer": "El Seguro Obligatorio de Accidentes de Tránsito - SOAT o el Certificado contra Accidentes de tránsito - CAT."
+    }
+  ],
+  "a2b": [
+    {
+      "number": 43,
+      "text": "Para efectos de la jornada de conducción, ¿qué horario es considerado como diurno?",
+      "options": [
+        "El comprendido entre las 6:00 a.m. y 9:59 p.m.",
+        "El comprendido entre las 6:00 a.m. y 10:00 p.m.",
+        "El comprendido entre las 5:59 a.m. y 10:00 p.m.",
+        "El comprendido entre las 5:00 a.m. y 9:00 p.m."
+      ],
+      "correctAnswer": "El comprendido entre las 6:00 a.m. y 9:59 p.m."
+    },
+    {
+      "number": 49,
+      "text": "¿Cuál es el documento levantado por el inspector de transporte, en la que se hace constar los resultados de acción de control?",
+      "options": [
+        "Acta de Control.",
+        "Papeleta de infracción levantada por la PNP.",
+        "Acto administrativo emitido por el funcionario que lleva a cabo el procedimiento administrativo de sanción.",
+        "Todas las Anteriores."
+      ],
+      "correctAnswer": "Acta de Control."
+    },
+    {
+      "number": 54,
+      "text": "¿Cuál de las siguientes alternativas no es una medida preventiva?",
+      "options": [
+        "Suspensión de la licencia de conducir.",
+        "Interrupción del viaje.",
+        "Remoción del vehículo.",
+        "Suspensión precautoria del servicio."
+      ],
+      "correctAnswer": "Suspensión de la licencia de conducir."
+    }
+  ],
+  "a3a": [
+    {
+      "number": 27,
+      "text": "¿Que permite controlar el GPS instalado en un bus interprovincial?",
+      "options": [
+        "El tiempo de conducción",
+        "la distancia recorrida",
+        "la posición del bus",
+        "la velocidad"
+      ],
+      "correctAnswer": "la velocidad"
+    },
+    {
+      "number": 45,
+      "text": "¿Qué sanción pecuniaria le corresponde al conductor que presta el servicio sin contar con autorización otorgada por la autoridad competente o en una modalidad o ámbito diferente al autorizado?",
+      "options": [
+        "Multa de 1 UIT",
+        "Multa de 2 UIT",
+        "Multa de 0.5 UIT",
+        "Multa de 0.05 UIT"
+      ],
+      "correctAnswer": "Multa de 1 UIT"
+    },
+    {
+      "number": 48,
+      "text": "No es obligación de los usuarios del servicio de transporte de personas:",
+      "options": [
+        "Acatar las instrucciones sobre seguridad que emita el conductor o tripulación.",
+        "Transportar sustancias peligrosas y materiales explosivos, con autorización del transportista.",
+        "No portar en el salón del vehículo artículos o paquetes que pueden molestar o incomodar a los demás usuarios.",
+        "Respetar la tarifa convenida."
+      ],
+      "correctAnswer": "Transportar sustancias peligrosas y materiales explosivos, con autorización del transportista."
+    }
+  ],
+  "a3b": [
+    {
+      "number": 15,
+      "text": "El peso bruto máximo permitido en el Sistema Nacional de Transporte Terrestre es de:",
+      "options": [
+        "50 toneladas.",
+        "48 toneladas.",
+        "46 toneladas.",
+        "45 toneladas"
+      ],
+      "correctAnswer": "48 toneladas."
+    },
+    {
+      "number": 27,
+      "text": "¿Cómo se le llama el elemento que permite conectar el tracto camión (o remolcador) al semiremolque?",
+      "options": [
+        "Quinta rueda",
+        "sujetador",
+        "acople",
+        "cadena"
+      ],
+      "correctAnswer": "Quinta rueda"
+    },
+    {
+      "number": 51,
+      "text": "El inspector de transporte es la persona acreditada u homologada para:",
+      "options": [
+        "Realizar acciones de control, supervisión y detección de incumplimientos o infracciones a las normas del servicio de transporte terrestre.",
+        "Imponer las papeletas de infracción al tránsito",
+        "Emitir la resolución de sanción por las infracciones a las normas del servicio de transporte terrestre",
+        "Todas las anteriores."
+      ],
+      "correctAnswer": "Realizar acciones de control, supervisión y detección de incumplimientos o infracciones a las normas del servicio de transporte terrestre."
+    }
+  ],
+  "a3c": [
+    {
+      "number": 9,
+      "text": "Está prohibido en el transporte de materiales y residuos peligrosos:",
+      "options": [
+        "Prestar apoyo en caso de una emergencia",
+        "cargar y transportar materiales y/o residuos peligrosos, conjuntamente con alimentos, medicamentos u objetos destinados al uso humano y/o animal.",
+        "Tener la Guía de Remisión-Remitente en el transporte",
+        "Todas las anteriores"
+      ],
+      "correctAnswer": "cargar y transportar materiales y/o residuos peligrosos, conjuntamente con alimentos, medicamentos u objetos destinados al uso humano y/o animal."
+    },
+    {
+      "number": 10,
+      "text": "Los conductores de unidades vehiculares que transporten materiales y/o residuos peligrosos, deberán contar y portar durante la operación de transporte:",
+      "options": [
+        "La licencia de conducir que corresponda a la categoría del vehículo que conduce.",
+        "La licencia de conducir de categoría especial para el transporte terrestre de materiales y residuos peligrosos",
+        "La certificación de su licencia de conducir",
+        "Su licencia de conducir vigente de la categoría que corresponda al vehículo que conduce y su licencia de conducir de categoría especial."
+      ],
+      "correctAnswer": "Su licencia de conducir vigente de la categoría que corresponda al vehículo que conduce y su licencia de conducir de categoría especial."
+    },
+    {
+      "number": 27,
+      "text": "En caso de derrame, fuga o pérdida del material peligroso, el conductor debe:",
+      "options": [
+        "Aplicar el artículo 58 del Reglamento",
+        "Aplicar el plan de emergencia",
+        "Aplicar las instrucciones del transportista",
+        "Aplicar el plan de contingencia"
+      ],
+      "correctAnswer": "Aplicar el plan de contingencia"
+    }
+  ],
+  "b2a": [
+    {
+      "number": 1,
+      "text": "Con respecto a las definiciones de acera y/o de calzada marque la respuesta correcta.",
+      "options": [
+        "Ambas son una parte de la vía y están destinadas a la circulación de vehículos",
+        "La calzada es una parte de la vía destinada a la circulación de vehículos y eventualmente al cruce de peatones y animales.",
+        "Por lo general en la acera circulan vehículos",
+        "La acera es parte de la vía en la cual excepcionalmente pueden circular personas."
+      ],
+      "correctAnswer": "La calzada es una parte de la vía destinada a la circulación de vehículos y eventualmente al cruce de peatones y animales."
+    },
+    {
+      "number": 2,
+      "text": "Es una prerrogativa de un peatón o conductor de un vehículo para proseguir su marcha en precedencia a otro peatón o vehículo.",
+      "options": [
+        "Paso a desnivel",
+        "Paso a nivel",
+        "Paso Peatonal",
+        "Derecho de paso."
+      ],
+      "correctAnswer": "Derecho de paso."
+    },
+    {
+      "number": 8,
+      "text": "Son algunos de los dispositivos de control de tránsito automotor para calles y carreteras",
+      "options": [
+        "Señales Verticales, Marcas en el Pavimento, Espejos.",
+        "Señales Verticales, Marcas en el Pavimento, Radios.",
+        "Señales Verticales y Horizontales (Marcas en el Pavimento), Semáforos",
+        "Espejos, radios y semáforos"
+      ],
+      "correctAnswer": "Señales Verticales y Horizontales (Marcas en el Pavimento), Semáforos"
+    }
+  ],
+  "b2b": [
+    {
+      "number": 1,
+      "text": "Con respecto a las definiciones de acera y/o de calzada marque la respuesta correcta.",
+      "options": [
+        "Ambas son una parte de la vía y están destinadas a la circulación de vehículos",
+        "La calzada es una parte de la vía destinada a la circulación de vehículos y eventualmente al cruce de peatones y animales.",
+        "Por lo general en la acera circulan vehículos",
+        "La acera es parte de la vía en la cual excepcionalmente pueden circular personas."
+      ],
+      "correctAnswer": "La calzada es una parte de la vía destinada a la circulación de vehículos y eventualmente al cruce de peatones y animales."
+    },
+    {
+      "number": 203,
+      "text": "El grado de instrucción requerido para obtener una licencia de conducir B-II B es:",
+      "options": [
+        "Primaria incompleta",
+        "Primaria completa",
+        "Secundaria incompleta",
+        "Secundaria completa"
+      ],
+      "correctAnswer": "Primaria completa"
+    },
+    {
+      "number": 204,
+      "text": "Es un requisito para la obtención de una licencia de conducir B-II B",
+      "options": [
+        "Tener una edad mínima de 18 años",
+        "Presentar constancia de estudios que acredite que el postulante culminó la secundaria.",
+        "Presentar una declaración jurada de no tener antecedentes penales ni judiciales",
+        "Presentar certificado de no tener antecedentes penales ni judiciales"
+      ],
+      "correctAnswer": "Tener una edad mínima de 18 años"
+    }
+  ],
+  "b2c": [
+    {
+      "number": 1,
+      "text": "¿Es obligatorio que un vehículo de categoría L5 cuente con luz de posición delantera y luz de posición posterior?",
+      "options": [
+        "No, es opcional",
+        "Si.",
+        "Solo es obligatoria a la Luz de posición posterior.",
+        "No se encuentra regulado si es obligatorio o opcional."
+      ],
+      "correctAnswer": "Si."
+    },
+    {
+      "number": 3,
+      "text": "Los vehículos menores destinados al servicio de transporte público especial de pasajeros deben cumplir con lo siguiente:",
+      "options": [
+        "Ser de la categoría L5, contar con parachoques posterior y láminas retroflectivas.",
+        "Ser de la categoría L3 y contar con parachoque posterior",
+        "Ser de la categoría L y contar con láminas retroflectivas",
+        "Solo ser de la categoría L5"
+      ],
+      "correctAnswer": "Ser de la categoría L5, contar con parachoques posterior y láminas retroflectivas."
+    },
+    {
+      "number": 4,
+      "text": "¿Cuál definición corresponde a un vehículo de categoría L5?",
+      "options": [
+        "Vehículos de tres ruedas asimétricas al eje longitudinal del vehículo, de mas de 50 cm3 o una velocidad mayor de 50 km/h.",
+        "Vehículos de tres ruedas, de hasta 50 cm3 y velocidad máxima de 50 km/h",
+        "Vehículos de dos ruedas, de mas de 50 cm3 o velocidad mayor a 50 km/h.",
+        "Vehículos de tres ruedas simétricas al eje longitudinal del vehículo, de mas de 50 cm3 o velocidad mayor a 50 km/h y cuyo peso bruto vehicular no exceda de una tonelada."
+      ],
+      "correctAnswer": "Vehículos de tres ruedas simétricas al eje longitudinal del vehículo, de mas de 50 cm3 o velocidad mayor a 50 km/h y cuyo peso bruto vehicular no exceda de una tonelada."
+    }
+  ]
+}

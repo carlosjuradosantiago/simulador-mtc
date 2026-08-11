@@ -1,5 +1,10 @@
+import { readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+
+const categoryQuestionSamples = JSON.parse(
+  readFileSync(new URL('./seo-category-question-samples.json', import.meta.url), 'utf8'),
+);
 
 const siteUrl = 'https://www.simuladormtc.com';
 const brandName = 'Simulador MTC';
@@ -11,6 +16,7 @@ const contentLastReviewed = '2026-08-11';
 const contentLastReviewedLabel = '11 de agosto de 2026';
 const organizationId = `${siteUrl}/#organization`;
 const websiteId = `${siteUrl}/#website`;
+const repositoryUrl = 'https://github.com/carlosjuradosantiago/simulador-mtc';
 
 const officialSources = [
   {
@@ -140,7 +146,7 @@ const corePages = [
     ctaText: 'Revisar fuentes oficiales',
     keywords: ['metodologia simulador mtc', 'fuentes simulador mtc', 'preguntas oficiales mtc', 'revision balotario mtc'],
     sections: [
-      ['Preguntas sin recortes', 'Las preguntas y alternativas deben mostrarse completas. Cuando existe una imagen asociada, forma parte de la pregunta y no se sustituye por una descripción inventada.'],
+      ['Preguntas sin recortes', 'Las páginas de categoría muestran tres preguntas de muestra con sus cuatro alternativas y respuesta. Cuando existe una imagen asociada, forma parte de la pregunta y no se sustituye por una descripción inventada.'],
       ['Separación por licencia', 'A1, A2A, A2B, A3 y las categorías B no comparten exactamente el mismo banco. Cada práctica se filtra por la licencia elegida por la persona.'],
       ['Revisión y correcciones', 'Contrastamos formato, categorías y balotarios con publicaciones del MTC. Si una fuente cambia, se revisa el contenido afectado antes de modificar su fecha editorial.'],
     ],
@@ -826,8 +832,10 @@ function normalizeSpanish(value) {
     .replace(/^Cuantas\b/, 'Cuántas')
     .replace(/^Cuanto\b/, 'Cuánto')
     .replace(/^Que\b/, 'Qué')
+    .replace(/^¿Que\b/, '¿Qué')
     .replace(/^Donde\b/, 'Dónde')
-    .replace(/^Cual\b/, 'Cuál');
+    .replace(/^Cual\b/, 'Cuál')
+    .replace(/\bSi\.$/, 'Sí.');
 }
 
 function formatQuestion(value) {
@@ -876,6 +884,28 @@ function renderQuestion(page) {
             <strong>Respuesta correcta</strong>
             <p>${escapeHtml(page.question.correctAnswer)}</p>
             <p>${escapeHtml(page.question.explanation)}</p>
+          </div>
+        </div>
+      </section>`;
+}
+
+function renderCategorySamples(page) {
+  if (!page.sampleQuestions?.length) return '';
+
+  const letters = ['A', 'B', 'C', 'D'];
+  return `<section class="sample-section" aria-labelledby="preguntas-${page.categorySlug}">
+        <div class="wrap">
+          <h2 id="preguntas-${page.categorySlug}">3 preguntas completas del balotario ${escapeHtml(page.sampleSourceCode)}</h2>
+          <p class="section-intro">Lee el enunciado y las cuatro alternativas sin recortes. La respuesta marcada corresponde al PDF oficial enlazado en esta página.</p>
+          <div class="sample-list">
+            ${page.sampleQuestions.map((question) => `<article class="sample-question">
+              <p class="quiz-source">Balotario ${escapeHtml(page.sampleSourceCode)} · pregunta ${question.number}</p>
+              <h3>${escapeHtml(question.text)}</h3>
+              <ol class="quiz-options">
+                ${question.options.map((option, index) => `<li><span>${letters[index]}</span>${escapeHtml(option)}</li>`).join('')}
+              </ol>
+              <div class="sample-answer"><strong>Respuesta correcta:</strong> ${escapeHtml(question.correctAnswer)}</div>
+            </article>`).join('')}
           </div>
         </div>
       </section>`;
@@ -985,6 +1015,7 @@ function shouldShowCategories(page) {
 function renderHtml(page) {
   const canonical = pageUrl(page.slug);
   const pageSources = sourcesForPage(page);
+  const schemaQuestions = page.question ? [page.question] : page.sampleQuestions || [];
   const faqSchema = {
     '@type': 'FAQPage',
     '@id': `${canonical}#faq`,
@@ -1041,23 +1072,24 @@ function renderHtml(page) {
       publisher: { '@type': 'Organization', name: source.publisher },
       url: source.url,
     })),
-    hasPart: page.question ? { '@id': `${canonical}#quiz` } : undefined,
+    hasPart: schemaQuestions.length ? { '@id': `${canonical}#quiz` } : undefined,
   };
-  const quizSchema = page.question ? {
+  const quizSchema = schemaQuestions.length ? {
     '@type': 'Quiz',
     '@id': `${canonical}#quiz`,
     name: page.h1,
     about: page.keywords.map((name) => ({ '@type': 'Thing', name })),
     educationalLevel: 'Postulante a licencia de conducir',
-    hasPart: {
+    hasPart: schemaQuestions.map((question) => ({
       '@type': 'Question',
       eduQuestionType: 'Flashcard',
-      text: page.question.text,
+      name: question.text,
+      text: question.text,
       acceptedAnswer: {
         '@type': 'Answer',
-        text: page.question.correctAnswer,
+        text: question.correctAnswer,
       },
-    },
+    })),
   } : null;
   const webPageSchema = {
     '@type': 'WebPage',
@@ -1087,6 +1119,7 @@ function renderHtml(page) {
         logo: `${siteUrl}/og-simulador-mtc.png`,
         description: disclaimer,
         publishingPrinciples: `${siteUrl}/metodologia-simulador-mtc`,
+        sameAs: [repositoryUrl],
       },
       {
         '@type': 'WebSite',
@@ -1176,6 +1209,12 @@ function renderHtml(page) {
       .quiz-answer { margin-top:18px; border-left:5px solid var(--ok); background:#f1fbf7; padding:18px; }
       .quiz-answer strong { color:#08794e; }
       .quiz-answer p { margin:8px 0 0; line-height:1.65; color:#31445f; }
+      .section-intro { max-width:760px; color:#40536f; line-height:1.7; }
+      .sample-list { margin-top:12px; border-top:1px solid var(--line); }
+      .sample-question { padding:24px 0; border-bottom:1px solid var(--line); }
+      .sample-question h3 { margin:0; font-size:22px; line-height:1.35; }
+      .sample-answer { margin-top:14px; padding:14px 16px; border-left:5px solid var(--ok); background:#f1fbf7; line-height:1.6; }
+      .sample-answer strong { color:#08794e; }
       .grid { display:grid; gap:16px; }
       .grid.three { grid-template-columns: repeat(3, minmax(0,1fr)); }
       .info-card, details, .download-card { border:1px solid var(--line); border-radius:10px; padding:18px; background:#fff; }
@@ -1261,6 +1300,7 @@ function renderHtml(page) {
           </div>
         </div>
       </section>
+      ${renderCategorySamples(page)}
       ${shouldShowCategories(page) ? `<section>
         <div class="wrap">
           <h2>Categorías de licencia para practicar</h2>
@@ -1319,6 +1359,7 @@ function renderHtml(page) {
         <p>${disclaimer}</p>
         <p>Fuente oficial de referencia: <a href="${officialMtcSource}" rel="noopener noreferrer" style="color:#fff;">MTC en gob.pe</a>.</p>
         <p><a href="/metodologia-simulador-mtc" style="color:#fff;">Metodología editorial y criterios de revisión</a></p>
+        <p><a href="${repositoryUrl}" rel="noopener noreferrer" style="color:#fff;">Código y documentación del proyecto en GitHub</a></p>
         <p>Revisión editorial: ${contentLastReviewedLabel}. Verifica siempre la información vigente antes de rendir tu examen.</p>
       </div>
     </footer>
@@ -1340,6 +1381,8 @@ function simulatorPageFor(category) {
     ctaText: `Practicar 5 preguntas ${category.common}`,
     secondaryCta: `/?auth=register&category=${category.categoryId}&next=${encodeURIComponent(examDestination)}`,
     secondaryCtaText: 'Rendir simulacro de 40',
+    sampleSourceCode: category.code,
+    sampleQuestions: categoryQuestionSamples[category.slug],
     keywords: [`simulador mtc ${category.common}`, `simulador mtc ${category.code}`, `examen mtc ${category.common}`, `licencia ${category.common}`],
     sections: [
       [`Qué vehículos cubre ${category.code}`, category.scope],
@@ -1466,6 +1509,7 @@ ${disclaimer}
 - El MTC informa que el examen de reglas tiene 40 preguntas y una duración máxima de 40 minutos.
 - La publicación del MTC indica que se requieren al menos 35 respuestas correctas para aprobar.
 - Las preguntas y balotarios se organizan según la categoría de licencia elegida.
+- Cada página de categoría publica tres preguntas completas de muestra, con cuatro alternativas y la respuesta del balotario correspondiente.
 - Fuente del formato oficial: ${officialSources.find((source) => source.id === 'exam-format').url}
 - Balotarios oficiales: ${officialMtcSource}
 
@@ -1477,6 +1521,7 @@ ${disclaimer}
 - ${siteUrl}/reglas-de-transito-peru: reglas de tránsito en Perú.
 - ${siteUrl}/fuentes-mtc: fuentes oficiales y balotarios de referencia.
 - ${siteUrl}/metodologia-simulador-mtc: metodología editorial, alcance y actualización del contenido.
+- ${repositoryUrl}: código y documentación pública del proyecto.
 
 ## Categorías
 

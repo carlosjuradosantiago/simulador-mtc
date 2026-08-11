@@ -106,6 +106,7 @@ export default function LandingPage() {
           <a className="font-semibold text-brand hover:underline" href="/simulador-mtc">Cómo funciona</a>
           <a className="font-semibold text-brand hover:underline" href="/fuentes-mtc">Fuentes oficiales</a>
           <a className="font-semibold text-brand hover:underline" href="/metodologia-simulador-mtc">Metodología</a>
+          <a className="font-semibold text-brand hover:underline" href="https://github.com/carlosjuradosantiago/simulador-mtc" rel="noopener noreferrer">Proyecto</a>
         </nav>
         <p>{BRAND_DISCLAIMER}</p>
       </footer>
