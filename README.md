@@ -12,9 +12,20 @@ El usuario elige su licencia antes de comenzar. El banco se filtra para A1, A2A,
 ## Aplicación publicada
 
 - Sitio: <https://www.simuladormtc.com/>
-- Simulador A1: <https://www.simuladormtc.com/simulador-mtc-a1>
 - Categorías y fuentes: <https://www.simuladormtc.com/fuentes-mtc>
 - Metodología editorial: <https://www.simuladormtc.com/metodologia-simulador-mtc>
+
+## Simuladores por licencia
+
+- [A1, licencia A-I](https://www.simuladormtc.com/simulador-mtc-a1)
+- [A2A, licencia A-IIA](https://www.simuladormtc.com/simulador-mtc-a2a)
+- [A2B, licencia A-IIB](https://www.simuladormtc.com/simulador-mtc-a2b)
+- [A3A, licencia A-IIIA](https://www.simuladormtc.com/simulador-mtc-a3a)
+- [A3B, licencia A-IIIB](https://www.simuladormtc.com/simulador-mtc-a3b)
+- [A3C, licencia A-IIIC](https://www.simuladormtc.com/simulador-mtc-a3c)
+- [B2A, licencia B-IIA](https://www.simuladormtc.com/simulador-mtc-b2a)
+- [B2B, licencia B-IIB](https://www.simuladormtc.com/simulador-mtc-b2b)
+- [B2C, licencia B-IIC](https://www.simuladormtc.com/simulador-mtc-b2c)
 
 ## Preguntas completas por tema
 
