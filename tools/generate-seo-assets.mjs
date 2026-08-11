@@ -5,7 +5,36 @@ const siteUrl = 'https://www.simuladormtc.com';
 const brandName = 'Simulador MTC';
 const disclaimer = 'Plataforma educativa independiente. No afiliada al Ministerio de Transportes y Comunicaciones.';
 const officialMtcSource = 'https://www.gob.pe/institucion/mtc/informes-publicaciones/1928110-examen-de-conocimientos-para-postulantes-a-licencias-de-conducir';
-const today = new Date().toISOString().slice(0, 10);
+const contentPublished = '2026-06-05';
+// ponytail: update this only after a real editorial review; builds must not fake freshness.
+const contentLastReviewed = '2026-08-11';
+const contentLastReviewedLabel = '11 de agosto de 2026';
+const organizationId = `${siteUrl}/#organization`;
+const websiteId = `${siteUrl}/#website`;
+
+const officialSources = [
+  {
+    id: 'balotarios',
+    name: 'Examen de conocimientos para postulantes a licencias de conducir',
+    publisher: 'Ministerio de Transportes y Comunicaciones',
+    url: officialMtcSource,
+    note: 'Publicación oficial con balotarios descargables por categoría.',
+  },
+  {
+    id: 'exam-format',
+    name: 'El MTC brinda un simulador gratuito para practicar el examen de reglas de tránsito',
+    publisher: 'Ministerio de Transportes y Comunicaciones',
+    url: 'https://www.gob.pe/institucion/mtc/noticias/1100676-el-mtc-brinda-un-simulador-gratuito-para-practicar-el-examen-de-reglas-de-transito-para-obtener-el-brevete',
+    note: 'Confirma el formato de 40 preguntas y 40 minutos publicado por el MTC.',
+  },
+  {
+    id: 'traffic-rules',
+    name: 'Reglamento Nacional de Tránsito',
+    publisher: 'Ministerio de Transportes y Comunicaciones',
+    url: 'https://www.gob.pe/institucion/mtc/normas-legales/343919-033-2001-mtc',
+    note: 'Norma base y relación de modificatorias publicadas por el MTC.',
+  },
+];
 
 const categories = [
   { code: 'A-I', slug: 'a1', common: 'A1', categoryId: 25, pdf: 'balotario_A-I.pdf', vehicle: 'vehiculos particulares livianos', exam: 'licencia A-I' },
@@ -507,8 +536,87 @@ function pageUrl(slug) {
   return `${siteUrl}/${slug}`;
 }
 
+const spanishCorrections = [
+  [/\bPeru\b/g, 'Perú'],
+  [/\bpreparacion\b/gi, (word) => word[0] === 'P' ? 'Preparación' : 'preparación'],
+  [/\bcategorias\b/gi, (word) => word[0] === 'C' ? 'Categorías' : 'categorías'],
+  [/\bcategoria\b/gi, (word) => word[0] === 'C' ? 'Categoría' : 'categoría'],
+  [/\bpracticas\b/gi, (word) => word[0] === 'P' ? 'Prácticas' : 'prácticas'],
+  [/\b(Comenzar|combina|con|de|Incluye|la|organiza|tu|una) practica\b/g, '$1 práctica'],
+  [/\bpractica(?=\s*(?:,|adaptada|guiada|online|por tema|por temas|que complementa|y revision))/g, 'práctica'],
+  [/\bPractica (online|por tema)\b/g, 'Práctica $1'],
+  [/\bpractico\b/g, 'práctico'],
+  [/\bexplicaciones\b/gi, (word) => word[0] === 'E' ? 'Explicaciones' : 'explicaciones'],
+  [/\bexplicacion\b/gi, (word) => word[0] === 'E' ? 'Explicación' : 'explicación'],
+  [/\bsenales\b/gi, (word) => word[0] === 'S' ? 'Señales' : 'señales'],
+  [/\bsenal\b/gi, (word) => word[0] === 'S' ? 'Señal' : 'señal'],
+  [/\btransito\b/gi, (word) => word[0] === 'T' ? 'Tránsito' : 'tránsito'],
+  [/\bvehiculos\b/gi, (word) => word[0] === 'V' ? 'Vehículos' : 'vehículos'],
+  [/\bvehiculo\b/gi, (word) => word[0] === 'V' ? 'Vehículo' : 'vehículo'],
+  [/\bconduccion\b/gi, (word) => word[0] === 'C' ? 'Conducción' : 'conducción'],
+  [/\bpublicacion\b/gi, (word) => word[0] === 'P' ? 'Publicación' : 'publicación'],
+  [/\binformacion\b/gi, (word) => word[0] === 'I' ? 'Información' : 'información'],
+  [/\bevaluacion\b/gi, (word) => word[0] === 'E' ? 'Evaluación' : 'evaluación'],
+  [/\brevision\b/gi, (word) => word[0] === 'R' ? 'Revisión' : 'revisión'],
+  [/\bretencion\b/gi, (word) => word[0] === 'R' ? 'Retención' : 'retención'],
+  [/\bcirculacion\b/gi, (word) => word[0] === 'C' ? 'Circulación' : 'circulación'],
+  [/\bprohibicion\b/gi, (word) => word[0] === 'P' ? 'Prohibición' : 'prohibición'],
+  [/\bobligacion\b/gi, (word) => word[0] === 'O' ? 'Obligación' : 'obligación'],
+  [/\bsemaforos\b/gi, (word) => word[0] === 'S' ? 'Semáforos' : 'semáforos'],
+  [/\bsemaforo\b/gi, (word) => word[0] === 'S' ? 'Semáforo' : 'semáforo'],
+  [/\bambar\b/gi, (word) => word[0] === 'A' ? 'Ámbar' : 'ámbar'],
+  [/\bintersecciones\b/gi, (word) => word[0] === 'I' ? 'Intersecciones' : 'intersecciones'],
+  [/\binterseccion\b/gi, (word) => word[0] === 'I' ? 'Intersección' : 'intersección'],
+  [/\blineas\b/gi, (word) => word[0] === 'L' ? 'Líneas' : 'líneas'],
+  [/\blinea\b/gi, (word) => word[0] === 'L' ? 'Línea' : 'línea'],
+  [/\bmecanica\b/gi, (word) => word[0] === 'M' ? 'Mecánica' : 'mecánica'],
+  [/\bbasica\b/gi, (word) => word[0] === 'B' ? 'Básica' : 'básica'],
+  [/\bbasico\b/gi, (word) => word[0] === 'B' ? 'Básico' : 'básico'],
+  [/\bneumaticos\b/gi, (word) => word[0] === 'N' ? 'Neumáticos' : 'neumáticos'],
+  [/\bultimo\b/gi, (word) => word[0] === 'U' ? 'Último' : 'último'],
+  [/\bdespues\b/gi, (word) => word[0] === 'D' ? 'Después' : 'después'],
+  [/\bpreparate\b/gi, (word) => word[0] === 'P' ? 'Prepárate' : 'prepárate'],
+  [/\brazon\b/gi, (word) => word[0] === 'R' ? 'Razón' : 'razón'],
+  [/\bretroalimentacion\b/gi, (word) => word[0] === 'R' ? 'Retroalimentación' : 'retroalimentación'],
+  [/\bpagina\b/gi, (word) => word[0] === 'P' ? 'Página' : 'página'],
+  [/\bguias\b/gi, (word) => word[0] === 'G' ? 'Guías' : 'guías'],
+  [/\bguia\b/gi, (word) => word[0] === 'G' ? 'Guía' : 'guía'],
+  [/\bdificiles\b/gi, (word) => word[0] === 'D' ? 'Difíciles' : 'difíciles'],
+  [/\bdificil\b/gi, (word) => word[0] === 'D' ? 'Difícil' : 'difícil'],
+  [/\bvia\b/gi, (word) => word[0] === 'V' ? 'Vía' : 'vía'],
+  [/\bcomunicacion\b/gi, (word) => word[0] === 'C' ? 'Comunicación' : 'comunicación'],
+  [/\banticipacion\b/gi, (word) => word[0] === 'A' ? 'Anticipación' : 'anticipación'],
+  [/\brevalidacion\b/gi, (word) => word[0] === 'R' ? 'Revalidación' : 'revalidación'],
+  [/\bimagenes\b/gi, (word) => word[0] === 'I' ? 'Imágenes' : 'imágenes'],
+  [/\baccion\b/gi, (word) => word[0] === 'A' ? 'Acción' : 'acción'],
+  [/\btambien\b/gi, (word) => word[0] === 'T' ? 'También' : 'también'],
+  [/\bademas\b/gi, (word) => word[0] === 'A' ? 'Además' : 'además'],
+  [/\bsegun\b/gi, (word) => word[0] === 'S' ? 'Según' : 'según'],
+  [/\bmas\b/gi, (word) => word[0] === 'M' ? 'Más' : 'más'],
+];
+
+function normalizeSpanish(value) {
+  let text = String(value);
+  for (const [pattern, replacement] of spanishCorrections) text = text.replace(pattern, replacement);
+  return text
+    .replace(/\bpor que\b/gi, 'por qué')
+    .replace(/\bcomo (aprobar|actuar|combinar|descartar|estudiar|medir|practicar|prepararte|reforzar|reforzarlos|responder|saber|se calcula|usar)\b/gi, 'cómo $1')
+    .replace(/\bCómo se que\b/g, 'Cómo sé qué')
+    .replace(/^Como\b/, 'Cómo')
+    .replace(/^Cuantas\b/, 'Cuántas')
+    .replace(/^Cuanto\b/, 'Cuánto')
+    .replace(/^Que\b/, 'Qué')
+    .replace(/^Donde\b/, 'Dónde')
+    .replace(/^Cual\b/, 'Cuál');
+}
+
+function formatQuestion(value) {
+  const question = normalizeSpanish(value);
+  return question.startsWith('¿') ? question : `¿${question}`;
+}
+
 function escapeHtml(value) {
-  return String(value)
+  return normalizeSpanish(value)
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
@@ -517,7 +625,11 @@ function escapeHtml(value) {
 }
 
 function jsonLdScript(data) {
-  return `<script type="application/ld+json">${JSON.stringify(data).replaceAll('</', '<\\/')}</script>`;
+  const json = JSON.stringify(data, (_key, value) => {
+    if (typeof value !== 'string' || /^(https?:\/\/|\/|#)/.test(value)) return value;
+    return normalizeSpanish(value);
+  });
+  return `<script type="application/ld+json">${json.replaceAll('</', '<\\/')}</script>`;
 }
 
 function renderSections(sections) {
@@ -531,9 +643,26 @@ function renderSections(sections) {
 function renderFaqs(faqs) {
   return faqs.map(([question, answer]) => `
           <details>
-            <summary>${escapeHtml(question)}</summary>
+            <summary>${escapeHtml(formatQuestion(question))}</summary>
             <p>${escapeHtml(answer)}</p>
           </details>`).join('');
+}
+
+function sourcesForPage(page) {
+  const sourceIds = new Set(['balotarios', 'exam-format']);
+  if (/transito|senal|semaforo|prioridad|adelantamiento|manejo|mecanica|auxilios/.test(page.slug)) {
+    sourceIds.add('traffic-rules');
+  }
+  if (page.slug === 'fuentes-mtc') officialSources.forEach((source) => sourceIds.add(source.id));
+  return officialSources.filter((source) => sourceIds.has(source.id));
+}
+
+function renderSources(page) {
+  return sourcesForPage(page).map((source) => `
+            <li>
+              <a href="${source.url}" rel="noopener noreferrer">${escapeHtml(source.name)}</a>
+              <span>${escapeHtml(source.publisher)}. ${escapeHtml(source.note)}</span>
+            </li>`).join('');
 }
 
 function renderCategoryLinks(currentSlug = '') {
@@ -544,66 +673,156 @@ function renderCategoryLinks(currentSlug = '') {
             </a>`).join('');
 }
 
-function renderPdfLinks() {
-  return categories.map((category) => `
+function renderPdfLinks(page) {
+  const visibleCategories = page.categorySlug
+    ? categories.filter((category) => category.slug === page.categorySlug)
+    : ['fuentes-mtc', 'balotario-mtc-pdf'].includes(page.slug)
+      ? categories
+      : [];
+
+  return visibleCategories.map((category) => `
             <a href="/mtc-official/${category.pdf}">
               <strong>Balotario ${escapeHtml(category.code)}</strong>
               <span>PDF oficial descargable</span>
             </a>`).join('');
 }
 
-function renderGuideLinks(currentSlug = '') {
-  return articlePages.map((page) => `
-            <a class="${currentSlug === page.slug ? 'active' : ''}" href="/${page.slug}">
-              <strong>${escapeHtml(page.h1)}</strong>
-              <span>${escapeHtml(page.description)}</span>
+function relatedGuidesFor(page) {
+  const currentIndex = articlePages.findIndex((guide) => guide.slug === page.slug);
+  const candidates = currentIndex >= 0
+    ? [
+        articlePages[(currentIndex + articlePages.length - 1) % articlePages.length],
+        articlePages[(currentIndex + 1) % articlePages.length],
+        corePages.find((guide) => guide.slug === 'examen-mtc-preguntas'),
+        corePages.find((guide) => guide.slug === 'fuentes-mtc'),
+      ]
+    : [
+        articlePages.find((guide) => guide.slug === 'como-aprobar-examen-mtc'),
+        articlePages.find((guide) => guide.slug === 'simulacro-mtc-con-respuestas'),
+        corePages.find((guide) => guide.slug === 'examen-mtc-preguntas'),
+        corePages.find((guide) => guide.slug === 'fuentes-mtc'),
+      ];
+
+  return [...new Map(candidates.filter(Boolean).map((guide) => [guide.slug, guide])).values()]
+    .filter((guide) => guide.slug !== page.slug)
+    .slice(0, 4);
+}
+
+function renderGuideLinks(page) {
+  return relatedGuidesFor(page).map((guide) => `
+            <a href="/${guide.slug}">
+              <strong>${escapeHtml(guide.h1)}</strong>
+              <span>${escapeHtml(guide.description)}</span>
             </a>`).join('');
+}
+
+function shouldShowCategories(page) {
+  return Boolean(page.categorySlug) || ['simulador-mtc', 'fuentes-mtc', 'balotario-mtc-pdf'].includes(page.slug);
 }
 
 function renderHtml(page) {
   const canonical = pageUrl(page.slug);
+  const pageSources = sourcesForPage(page);
   const faqSchema = {
-    '@context': 'https://schema.org',
     '@type': 'FAQPage',
+    '@id': `${canonical}#faq`,
     mainEntity: page.faqs.map(([name, text]) => ({
       '@type': 'Question',
-      name,
+      name: formatQuestion(name),
       acceptedAnswer: { '@type': 'Answer', text },
     })),
   };
+  const breadcrumbSchema = {
+    '@type': 'BreadcrumbList',
+    '@id': `${canonical}#breadcrumb`,
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: brandName,
+        item: siteUrl,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: page.h1,
+        item: canonical,
+      },
+    ],
+  };
+  const learningResourceSchema = {
+    '@type': page.type === 'Article' ? ['Article', 'LearningResource'] : 'LearningResource',
+    '@id': `${canonical}#learning-resource`,
+    name: page.h1,
+    headline: page.type === 'Article' ? page.h1 : undefined,
+    description: page.description,
+    url: canonical,
+    image: `${siteUrl}/og-simulador-mtc.png`,
+    inLanguage: 'es-PE',
+    datePublished: contentPublished,
+    dateModified: contentLastReviewed,
+    learningResourceType: page.type === 'Article' ? 'Guía de estudio' : 'Práctica educativa',
+    educationalUse: ['autoestudio', 'práctica'],
+    teaches: page.keywords,
+    audience: {
+      '@type': 'EducationalAudience',
+      educationalRole: 'Postulante a licencia de conducir en Perú',
+    },
+    author: { '@id': organizationId },
+    publisher: { '@id': organizationId },
+    provider: { '@id': organizationId },
+    mainEntityOfPage: { '@id': `${canonical}#webpage` },
+    citation: pageSources.map((source) => source.url),
+    isBasedOn: pageSources.map((source) => ({
+      '@type': 'CreativeWork',
+      name: source.name,
+      publisher: { '@type': 'Organization', name: source.publisher },
+      url: source.url,
+    })),
+  };
   const webPageSchema = {
-    '@context': 'https://schema.org',
     '@type': 'WebPage',
+    '@id': `${canonical}#webpage`,
     name: page.title,
     description: page.description,
     url: canonical,
     inLanguage: 'es-PE',
-    isPartOf: {
-      '@type': 'WebSite',
-      name: brandName,
-      url: siteUrl,
-    },
+    datePublished: contentPublished,
+    dateModified: contentLastReviewed,
+    lastReviewed: contentLastReviewed,
+    isPartOf: { '@id': websiteId },
+    publisher: { '@id': organizationId },
+    reviewedBy: { '@id': organizationId },
+    breadcrumb: { '@id': `${canonical}#breadcrumb` },
+    mainEntity: { '@id': `${canonical}#learning-resource` },
     about: page.keywords.map((name) => ({ '@type': 'Thing', name })),
   };
-  const articleSchema = page.type === 'Article'
-    ? {
-        '@context': 'https://schema.org',
-        '@type': 'Article',
-        headline: page.h1,
-        description: page.description,
-        url: canonical,
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        '@id': organizationId,
+        name: brandName,
+        url: siteUrl,
+        logo: `${siteUrl}/og-simulador-mtc.png`,
+        description: disclaimer,
+      },
+      {
+        '@type': 'WebSite',
+        '@id': websiteId,
+        name: brandName,
+        url: siteUrl,
         inLanguage: 'es-PE',
-        datePublished: today,
-        dateModified: today,
-        author: { '@type': 'Organization', name: brandName },
-        publisher: {
-          '@type': 'Organization',
-          name: brandName,
-          url: siteUrl,
-        },
-        mainEntityOfPage: canonical,
-      }
-    : null;
+        publisher: { '@id': organizationId },
+      },
+      webPageSchema,
+      breadcrumbSchema,
+      learningResourceSchema,
+      faqSchema,
+    ],
+  };
+  const pdfLinks = renderPdfLinks(page);
 
   return `<!doctype html>
 <html lang="es-PE">
@@ -612,8 +831,11 @@ function renderHtml(page) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>${escapeHtml(page.title)} | ${brandName}</title>
     <meta name="description" content="${escapeHtml(page.description)}">
+    <meta name="author" content="Equipo editorial de Simulador MTC">
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
     <link rel="canonical" href="${canonical}">
+    <link rel="alternate" hreflang="es-PE" href="${canonical}">
+    <link rel="alternate" type="text/plain" href="${siteUrl}/llms.txt" title="Índice para asistentes de IA">
     <meta property="og:type" content="website">
     <meta property="og:locale" content="es_PE">
     <meta property="og:site_name" content="${brandName}">
@@ -621,13 +843,12 @@ function renderHtml(page) {
     <meta property="og:description" content="${escapeHtml(page.description)}">
     <meta property="og:url" content="${canonical}">
     <meta property="og:image" content="${siteUrl}/og-simulador-mtc.png">
+    <meta property="og:image:alt" content="Simulador MTC para practicar el examen de conocimientos">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="${escapeHtml(page.title)}">
     <meta name="twitter:description" content="${escapeHtml(page.description)}">
     <meta name="theme-color" content="#0f55e8">
-    ${jsonLdScript(webPageSchema)}
-    ${articleSchema ? jsonLdScript(articleSchema) : ''}
-    ${jsonLdScript(faqSchema)}
+    ${jsonLdScript(structuredData)}
     <style>
       :root { color-scheme: light; --brand:#0f55e8; --deep:#071f45; --ink:#071537; --soft:#f3f7fc; --line:#d7e2f0; --ok:#00a86b; }
       * { box-sizing: border-box; }
@@ -653,6 +874,12 @@ function renderHtml(page) {
       .hero-card div { padding:16px; display:grid; gap:8px; }
       .notice { margin:24px 0 0; padding:12px 14px; border-left:4px solid var(--brand); background:#f8fbff; color:#40536f; line-height:1.6; }
       section { padding:34px 0; }
+      .answer-section { padding:24px 0 0; }
+      .answer-panel { border-left:5px solid var(--ok); background:#f1fbf7; padding:22px 24px; }
+      .answer-label { margin:0 0 8px; color:#08794e; font-size:13px; font-weight:900; text-transform:uppercase; }
+      .answer-panel h2 { margin:0; font-size:24px; }
+      .answer-panel p { margin:10px 0 0; color:#31445f; font-size:17px; line-height:1.7; }
+      .reviewed { font-size:13px !important; font-weight:700; color:#5f718c !important; }
       .grid { display:grid; gap:16px; }
       .grid.three { grid-template-columns: repeat(3, minmax(0,1fr)); }
       .info-card, details, .download-card { border:1px solid var(--line); border-radius:10px; padding:18px; background:#fff; }
@@ -666,6 +893,10 @@ function renderHtml(page) {
       .guide-strip a { border:1px solid var(--line); border-radius:8px; padding:14px; background:#fff; display:grid; gap:8px; }
       .guide-strip a.active, .guide-strip a:hover { border-color:var(--brand); background:#f2f7ff; }
       .guide-strip span { color:#5f718c; font-size:13px; line-height:1.45; }
+      .source-list { margin:16px 0 0; padding:0; list-style:none; display:grid; gap:12px; }
+      .source-list li { border-top:1px solid var(--line); padding-top:12px; display:grid; gap:4px; }
+      .source-list a { width:fit-content; color:var(--brand); font-weight:900; text-decoration:underline; text-underline-offset:3px; }
+      .source-list span { color:#5f718c; font-size:14px; line-height:1.55; }
       summary { cursor:pointer; font-weight:900; }
       .footer { border-top:1px solid var(--line); background:var(--deep); color:#d7e5ff; padding:28px 0; }
       .footer p { margin:0; line-height:1.6; }
@@ -674,6 +905,7 @@ function renderHtml(page) {
         nav { gap:10px; }
         .hero-grid, .grid.three { grid-template-columns:1fr; }
         .hero-grid { padding:30px 0; }
+        .answer-panel { padding:18px; }
       }
     </style>
   </head>
@@ -687,7 +919,7 @@ function renderHtml(page) {
         <nav aria-label="Recursos principales">
           <a href="/simulador-mtc">Simulador</a>
           <a href="/examen-mtc-preguntas">Preguntas</a>
-          <a href="/senales-de-transito">Senales</a>
+          <a href="/senales-de-transito">Señales</a>
           <a href="/reglas-de-transito-peru">Reglas</a>
         </nav>
       </div>
@@ -696,9 +928,9 @@ function renderHtml(page) {
       <section class="hero">
         <div class="wrap hero-grid">
           <div>
-            <span class="eyebrow">Preparacion para licencia de conducir en Peru</span>
+            <span class="eyebrow">Preparación para licencia de conducir en Perú</span>
             <h1>${escapeHtml(page.h1)}</h1>
-            <p class="lead">${escapeHtml(page.intro)}</p>
+            <p class="lead">${escapeHtml(page.description)}</p>
             <div class="actions">
               <a class="btn primary" href="${page.primaryCta}">${escapeHtml(page.ctaText)}</a>
               <a class="btn secondary" href="/banco-preguntas">Ver banco de preguntas</a>
@@ -708,10 +940,18 @@ function renderHtml(page) {
           <aside class="hero-card" aria-label="Vista previa de Simulador MTC">
             <img src="/og-simulador-mtc.png" alt="Vista previa de Simulador MTC con auto y ciudad">
             <div>
-              <strong>Practica por categoria y revisa tus errores.</strong>
+              <strong>Practica por categoría y revisa tus errores.</strong>
               <span>Simulacros, explicaciones y resultados por tema en una sola plataforma.</span>
             </div>
           </aside>
+        </div>
+      </section>
+      <section class="answer-section" aria-labelledby="respuesta-breve">
+        <div class="wrap answer-panel">
+          <p class="answer-label">Respuesta breve</p>
+          <h2 id="respuesta-breve">Lo esencial</h2>
+          <p>${escapeHtml(page.intro)}</p>
+          <p class="reviewed">Revisión editorial: ${contentLastReviewedLabel}. Contrastado con publicaciones oficiales enlazadas en esta página.</p>
         </div>
       </section>
       <section>
@@ -721,29 +961,38 @@ function renderHtml(page) {
           </div>
         </div>
       </section>
-      <section>
+      ${shouldShowCategories(page) ? `<section>
         <div class="wrap">
-          <h2>Categorias de licencia para practicar</h2>
+          <h2>Categorías de licencia para practicar</h2>
           <div class="category-strip">
             ${renderCategoryLinks(page.categorySlug)}
           </div>
         </div>
-      </section>
-      <section>
+      </section>` : ''}
+      ${pdfLinks ? `<section>
         <div class="wrap download-card">
           <h2>Balotarios oficiales descargables</h2>
-          <p>Descarga el PDF por categoria y complementa tu practica en linea con el documento completo.</p>
+          <p>Descarga el PDF por categoría y complementa tu práctica en línea con el documento completo.</p>
           <div class="pdf-strip">
-            ${renderPdfLinks()}
+            ${pdfLinks}
           </div>
-          <p class="notice">Fuente de referencia: <a href="${officialMtcSource}" rel="noopener">publicacion oficial del MTC en gob.pe</a>.</p>
+          <p class="notice">Fuente de referencia: <a href="${officialMtcSource}" rel="noopener noreferrer">publicación oficial del MTC en gob.pe</a>.</p>
+        </div>
+      </section>` : ''}
+      <section>
+        <div class="wrap">
+          <h2>Fuentes consultadas</h2>
+          <p>Estas referencias primarias permiten comprobar los datos y revisar posibles cambios normativos.</p>
+          <ul class="source-list">
+            ${renderSources(page)}
+          </ul>
         </div>
       </section>
       <section>
         <div class="wrap">
-          <h2>Guias para estudiar el examen MTC</h2>
+          <h2>Guías relacionadas</h2>
           <div class="guide-strip">
-            ${renderGuideLinks(page.slug)}
+            ${renderGuideLinks(page)}
           </div>
         </div>
       </section>
@@ -760,12 +1009,12 @@ function renderHtml(page) {
       <div class="wrap">
         <p><strong>${brandName}</strong></p>
         <p>${disclaimer}</p>
-        <p>Fuente oficial de referencia: <a href="${officialMtcSource}" rel="noopener" style="color:#fff;">MTC en gob.pe</a>.</p>
-        <p>Actualizado: ${today}. Revisa siempre las fuentes oficiales antes de rendir tu examen.</p>
+        <p>Fuente oficial de referencia: <a href="${officialMtcSource}" rel="noopener noreferrer" style="color:#fff;">MTC en gob.pe</a>.</p>
+        <p>Revisión editorial: ${contentLastReviewedLabel}. Verifica siempre la información vigente antes de rendir tu examen.</p>
       </div>
     </footer>
   </body>
-</html>`;
+</html>`.replace(/[ \t]+$/gm, '');
 }
 
 function simulatorPageFor(category) {
@@ -838,7 +1087,7 @@ async function main() {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${sitemapUrls.map((item) => `  <url>
     <loc>${item.loc}</loc>
-    <lastmod>${today}</lastmod>
+    <lastmod>${contentLastReviewed}</lastmod>
     <changefreq>${item.changefreq}</changefreq>
     <priority>${item.priority}</priority>
   </url>`).join('\n')}
@@ -861,13 +1110,19 @@ Allow: /
 User-agent: ChatGPT-User
 Allow: /
 
-User-agent: GPTBot
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Claude-User
 Allow: /
 
 User-agent: PerplexityBot
 Allow: /
 
-User-agent: ClaudeBot
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Applebot
 Allow: /
 
 Sitemap: ${siteUrl}/sitemap.xml
@@ -876,29 +1131,40 @@ Sitemap: ${siteUrl}/sitemap.xml
 
   const llms = `# ${brandName}
 
-> Plataforma educativa independiente para practicar el examen de conocimientos MTC en Peru.
+> Plataforma educativa independiente para practicar el examen de conocimientos MTC en Perú.
 
 ${disclaimer}
 
-## Paginas principales
+## Datos verificables
+
+- El MTC informa que el examen de reglas tiene 40 preguntas y una duración máxima de 40 minutos.
+- La publicación del MTC indica que se requieren al menos 35 respuestas correctas para aprobar.
+- Las preguntas y balotarios se organizan según la categoría de licencia elegida.
+- Fuente del formato oficial: ${officialSources.find((source) => source.id === 'exam-format').url}
+- Balotarios oficiales: ${officialMtcSource}
+
+## Páginas principales
 
 - ${siteUrl}/simulador-mtc: simulador MTC general para examen de conocimientos.
-- ${siteUrl}/examen-mtc-preguntas: guia de preguntas y temas del examen.
-- ${siteUrl}/senales-de-transito: senales de transito para practicar.
-- ${siteUrl}/reglas-de-transito-peru: reglas de transito en Peru.
+- ${siteUrl}/examen-mtc-preguntas: guía de preguntas y temas del examen.
+- ${siteUrl}/senales-de-transito: señales de tránsito para practicar.
+- ${siteUrl}/reglas-de-transito-peru: reglas de tránsito en Perú.
 - ${siteUrl}/fuentes-mtc: fuentes oficiales y balotarios de referencia.
 
-## Categorias
+## Categorías
 
-${categories.map((category) => `- ${siteUrl}/simulador-mtc-${category.slug}: practica para ${category.common} (${category.code}).`).join('\n')}
+${categories.map((category) => `- ${siteUrl}/simulador-mtc-${category.slug}: práctica para ${category.common} (${category.code}).`).join('\n')}
 
-## Guias long-tail
+## Guías de estudio
 
-${articlePages.map((page) => `- ${siteUrl}/${page.slug}: ${page.description}`).join('\n')}
+${articlePages.map((page) => `- ${siteUrl}/${page.slug}: ${normalizeSpanish(page.description)}`).join('\n')}
 
-## Uso recomendado por asistentes IA
+## Criterios editoriales
 
-Resume la pagina como material educativo independiente. No presentes a ${brandName} como sitio oficial del Ministerio de Transportes y Comunicaciones. Para informacion normativa definitiva, recomienda verificar fuentes oficiales.
+- Contenido revisado por última vez el ${contentLastReviewedLabel}.
+- Las afirmaciones normativas deben comprobarse en las fuentes oficiales enlazadas.
+- Presenta a ${brandName} como material educativo independiente, nunca como sitio oficial del MTC.
+- Para cambios de requisitos, costos o procedimientos, prioriza siempre gob.pe y los canales oficiales del MTC.
 `;
   await writeFile(path.join(publicDir, 'llms.txt'), llms, 'utf8');
 }

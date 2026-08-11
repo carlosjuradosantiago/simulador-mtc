@@ -13,13 +13,19 @@ Allow: /
 User-agent: ChatGPT-User
 Allow: /
 
-User-agent: GPTBot
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Claude-User
 Allow: /
 
 User-agent: PerplexityBot
 Allow: /
 
-User-agent: ClaudeBot
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Applebot
 Allow: /
 
 Sitemap: https://www.simuladormtc.com/sitemap.xml
