@@ -3,6 +3,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const siteUrl = 'https://www.simuladormtc.com';
+const repositoryUrl = 'https://github.com/carlosjuradosantiago/simulador-mtc';
 const seoDir = path.resolve('public', 'seo');
 const questionPages = new Set([
   'flecha-verde-semaforo-pregunta-mtc.html',
@@ -22,14 +23,31 @@ function schemaTypes(graph) {
 }
 
 async function main() {
-  const [fileNames, sitemap, robots, llms, home, vercel] = await Promise.all([
+  const [fileNames, sitemap, robots, llms, home, vercel, categorySamplesText] = await Promise.all([
     readdir(seoDir),
     readFile(path.resolve('public', 'sitemap.xml'), 'utf8'),
     readFile(path.resolve('public', 'robots.txt'), 'utf8'),
     readFile(path.resolve('public', 'llms.txt'), 'utf8'),
     readFile(path.resolve('index.html'), 'utf8'),
     readFile(path.resolve('vercel.json'), 'utf8'),
+    readFile(path.resolve('tools', 'seo-category-question-samples.json'), 'utf8'),
   ]);
+  const categorySamples = JSON.parse(categorySamplesText);
+  assert.deepEqual(
+    Object.keys(categorySamples).sort(),
+    ['a1', 'a2a', 'a2b', 'a3a', 'a3b', 'a3c', 'b2a', 'b2b', 'b2c'],
+    'La muestra SEO debe cubrir exactamente las 9 categorías',
+  );
+  for (const [slug, questions] of Object.entries(categorySamples)) {
+    assert.equal(questions.length, 3, `${slug}: deben existir 3 preguntas de muestra`);
+    assert.equal(new Set(questions.map((question) => question.number)).size, 3, `${slug}: números de pregunta duplicados`);
+    for (const question of questions) {
+      assert.equal(question.options.length, 4, `${slug} #${question.number}: se requieren 4 alternativas completas`);
+      assert(question.options.includes(question.correctAnswer), `${slug} #${question.number}: la respuesta correcta no coincide con las alternativas`);
+      assert(!question.text.includes('...'), `${slug} #${question.number}: el enunciado parece truncado`);
+      assert(question.options.every((option) => !option.includes('...')), `${slug} #${question.number}: una alternativa parece truncada`);
+    }
+  }
 
   const htmlFiles = fileNames.filter((file) => file.endsWith('.html')).sort();
   assert(htmlFiles.length >= 46, `Se esperaban al menos 46 páginas SEO; se encontraron ${htmlFiles.length}`);
@@ -46,6 +64,7 @@ async function main() {
     assert(html.includes('Respuesta breve'), `${file}: falta una respuesta breve citable`);
     assert(html.includes('Fuentes consultadas'), `${file}: faltan fuentes visibles`);
     assert(html.includes('https://www.gob.pe/institucion/mtc/'), `${file}: falta una fuente primaria del MTC`);
+    assert(html.includes(repositoryUrl), `${file}: falta la referencia pública del proyecto`);
     assert(!html.includes('Práctica el simulador'), `${file}: uso verbal incorrecto de "practica"`);
     const visibleText = html
       .replace(/<script[\s\S]*?<\/script>/g, ' ')
@@ -88,6 +107,11 @@ async function main() {
     if (/^simulador-mtc-(?!con-respuestas)[a-z0-9]+\.html$/.test(file)) {
       assert(html.includes('auth=register&amp;category='), `${file}: el CTA no conserva la categoría al registrar`);
       assert(html.includes('mode%3Dexam'), `${file}: falta el acceso directo al simulacro de 40 preguntas`);
+      assert(types.has('Quiz'), `${file}: falta schema Quiz para las preguntas de muestra`);
+      assert.equal((html.match(/class="sample-question"/g) || []).length, 3, `${file}: deben mostrarse 3 preguntas completas`);
+      const sampleBlock = html.match(/<section class="sample-section"[\s\S]*?<\/section>/)?.[0] || '';
+      assert.equal((sampleBlock.match(/<li>/g) || []).length, 12, `${file}: deben mostrarse las 12 alternativas completas`);
+      assert.equal((sampleBlock.match(/Respuesta correcta:/g) || []).length, 3, `${file}: faltan respuestas oficiales visibles`);
     }
 
     const webpage = graph.find((item) => item['@type'] === 'WebPage');
@@ -120,6 +144,7 @@ async function main() {
   assert(schemaTypes(homeSchemas).has('LearningResource'), 'index.html: falta schema LearningResource');
   const organization = homeSchemas.find((item) => item['@type'] === 'Organization');
   assert.equal(organization?.publishingPrinciples, `${siteUrl}/metodologia-simulador-mtc`, 'index.html: falta la metodología editorial de la organización');
+  assert(organization?.sameAs?.includes(repositoryUrl), 'index.html: falta la identidad pública del proyecto');
 
   console.log(`SEO/GEO OK: ${htmlFiles.length} páginas, ${canonicals.size} canonicals únicos y rastreadores de IA habilitados.`);
 }

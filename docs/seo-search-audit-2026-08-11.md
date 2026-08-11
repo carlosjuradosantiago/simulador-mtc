@@ -22,8 +22,10 @@ Fecha de medición: 11 de agosto de 2026
 
 - Contenido único para A1, A2A, A2B, A3A, A3B, A3C, B2A, B2B y B2C.
 - Cuatro páginas de preguntas oficiales con enunciado y alternativas completas, respuesta explicada y fuente primaria.
+- Veintisiete preguntas completas de muestra en las nueve páginas de categoría: tres enunciados, doce alternativas y tres respuestas por licencia, comparadas con la extracción de los PDF sin diferencias.
 - Schema `Quiz`, `Question`, `LearningResource`, `WebPage` y datos editoriales conectados.
 - Página de metodología, fuentes visibles, `publishingPrinciples`, `llms.txt` y permisos explícitos para rastreadores web y de IA.
+- Documentación pública en GitHub con enlace hacia la aplicación y referencia recíproca `sameAs` desde el sitio.
 - Registro preseleccionado por categoría desde cada página SEO.
 - PDF oficiales con `noindex, follow` para concentrar la relevancia en páginas HTML explicativas y mantener los enlaces de consulta.
 
