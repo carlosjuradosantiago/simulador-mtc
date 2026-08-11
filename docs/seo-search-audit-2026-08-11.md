@@ -8,7 +8,9 @@ Fecha de medición: 11 de agosto de 2026
 - Ese puesto no equivale a una posición universal: cambia por buscador, ubicación, historial y fecha.
 - Google devolvió una página de redirección durante la medición automatizada, sin resultados verificables. Por ese motivo no se asignó una posición exacta de Google.
 - Las doce páginas temáticas nuevas fueron descubiertas y rastreadas por el buscador de IA desde los enlaces públicos de GitHub. Las leyó con las preguntas, cuatro alternativas y respuestas completas.
+- Las nueve páginas de licencia fueron rastreadas después de la ampliación y el buscador leyó sus 40 preguntas, 160 alternativas y respuestas completas.
 - Las páginas temáticas todavía no aparecían como resultados para sus títulos exactos inmediatamente después del rastreo.
+- Las páginas de licencia todavía no aparecían como resultados independientes inmediatamente después del rastreo; la portada seguía concentrando la visibilidad del dominio.
 - Googlebot, OAI-SearchBot, Claude-SearchBot y PerplexityBot reciben el mismo HTML completo.
 - La autoridad externa continúa siendo la principal limitación para consultas genéricas competidas.
 
@@ -32,7 +34,7 @@ Fecha de medición: 11 de agosto de 2026
 - Las pruebas comparan el texto visible y el schema `Quiz` con el banco fuente para impedir alteraciones silenciosas.
 - Schema `Quiz`, `Question`, `LearningResource`, `WebPage` y datos editoriales conectados.
 - Página de metodología, fuentes visibles, `publishingPrinciples`, `llms.txt` y permisos explícitos para rastreadores web y de IA.
-- Enlaces internos desde la portada y enlaces públicos desde GitHub hacia las doce páginas temáticas.
+- Enlaces internos desde la portada y enlaces públicos desde GitHub hacia las nueve licencias y las doce páginas temáticas.
 - Registro preseleccionado por categoría desde cada página SEO.
 - PDF oficiales con `noindex, follow` para concentrar la relevancia en páginas HTML explicativas y mantener los enlaces de consulta.
 - Sitemap con 59 URLs aceptado por IndexNow con estado HTTP 200.

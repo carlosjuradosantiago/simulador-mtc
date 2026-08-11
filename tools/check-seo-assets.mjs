@@ -32,12 +32,13 @@ function escapeRawHtml(value) {
 }
 
 async function main() {
-  const [fileNames, sitemap, robots, llms, home, vercel, categoryBankText, topicBankText] = await Promise.all([
+  const [fileNames, sitemap, robots, llms, home, readme, vercel, categoryBankText, topicBankText] = await Promise.all([
     readdir(seoDir),
     readFile(path.resolve('public', 'sitemap.xml'), 'utf8'),
     readFile(path.resolve('public', 'robots.txt'), 'utf8'),
     readFile(path.resolve('public', 'llms.txt'), 'utf8'),
     readFile(path.resolve('index.html'), 'utf8'),
+    readFile(path.resolve('README.md'), 'utf8'),
     readFile(path.resolve('vercel.json'), 'utf8'),
     readFile(path.resolve('tools', 'seo-category-question-bank.json'), 'utf8'),
     readFile(path.resolve('tools', 'seo-topic-question-bank.json'), 'utf8'),
@@ -235,6 +236,12 @@ async function main() {
   }
   assert(llms.includes('/metodologia-simulador-mtc'), 'llms.txt: falta la metodología editorial');
   assert(llms.includes('## Criterios editoriales'), 'llms.txt: faltan criterios editoriales');
+  for (const category of categoryBank.categories) {
+    const categoryPath = `/simulador-mtc-${category.slug}`;
+    assert(llms.includes(categoryPath), `llms.txt: falta ${categoryPath}`);
+    assert(home.includes(`href="${categoryPath}"`), `index.html: falta enlace estático a ${categoryPath}`);
+    assert(readme.includes(`${siteUrl}${categoryPath}`), `README.md: falta enlace público a ${categoryPath}`);
+  }
   assert(vercel.includes('"value": "noindex, follow"'), 'vercel.json: los PDF oficiales deben delegar la indexación a las páginas explicativas');
   for (const file of questionPages) {
     assert(vercel.includes(`/${file.replace(/\.html$/, '')}`), `vercel.json: falta rewrite para ${file}`);
