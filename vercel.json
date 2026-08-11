@@ -2,6 +2,24 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/index.html",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/seo/:slug.html",
+      "destination": "/:slug",
+      "permanent": true
+    },
+    {
+      "source": "/seo/:slug",
+      "destination": "/:slug",
+      "permanent": true
+    }
+  ],
   "headers": [
     {
       "source": "/auth/callback",
