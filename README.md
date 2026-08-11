@@ -16,6 +16,21 @@ El usuario elige su licencia antes de comenzar. El banco se filtra para A1, A2A,
 - Categorías y fuentes: <https://www.simuladormtc.com/fuentes-mtc>
 - Metodología editorial: <https://www.simuladormtc.com/metodologia-simulador-mtc>
 
+## Preguntas completas por tema
+
+- [Reglamento de tránsito y señales](https://www.simuladormtc.com/preguntas-reglamento-transito-mtc)
+- [Obligaciones del conductor](https://www.simuladormtc.com/preguntas-obligaciones-conductor-mtc)
+- [Regulación del transporte](https://www.simuladormtc.com/preguntas-regulacion-transporte-mtc)
+- [Reglamento Nacional de Vehículos](https://www.simuladormtc.com/preguntas-reglamento-vehiculos-mtc)
+- [Mercancías peligrosas](https://www.simuladormtc.com/preguntas-mercancias-peligrosas-mtc)
+- [Sistema de licencias de conducir](https://www.simuladormtc.com/preguntas-licencias-conducir-mtc)
+- [Conducción eficiente](https://www.simuladormtc.com/preguntas-conduccion-eficiente-mtc)
+- [Mecánica para la conducción](https://www.simuladormtc.com/preguntas-mecanica-conduccion-mtc)
+- [Inspección técnica vehicular](https://www.simuladormtc.com/preguntas-inspeccion-tecnica-vehicular-mtc)
+- [SOAT y responsabilidad civil](https://www.simuladormtc.com/preguntas-soat-mtc)
+- [Placa Única Nacional de Rodaje](https://www.simuladormtc.com/preguntas-placa-unica-mtc)
+- [Primeros auxilios](https://www.simuladormtc.com/preguntas-primeros-auxilios-mtc)
+
 ## Fuentes
 
 El contenido se contrasta con los balotarios y publicaciones del Ministerio de Transportes y Comunicaciones. La aplicación no pertenece al MTC ni lo representa.
@@ -36,6 +51,7 @@ Verificaciones principales:
 npm run check:question-fidelity
 npm run check:practice-selection
 npm run check:exam-submission
+npm run check:seo-bank
 npm run check:seo
 npm run build
 ```
