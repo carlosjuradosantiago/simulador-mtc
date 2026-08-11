@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import Button from '../components/ui/Button.jsx';
 import { OptionContent, QuestionImage } from '../components/ui/QuestionMedia.jsx';
-import { api } from '../services/api.js';
+import { useAuth } from '../hooks/useAuth.js';
+import { api, resolveCategoryId } from '../services/api.js';
 import { cn } from '../utils/cn.js';
 import { getLearningTopicById } from '../utils/learningTopics.js';
 
@@ -85,8 +86,12 @@ function QuestionItem({ question, number }) {
 }
 
 export default function QuestionBankPage() {
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
-  const [category, setCategory] = useState(searchParams.get('category') ?? 'Todas');
+  const preferredCategory = user?.categoryConfirmed && user?.category
+    ? String(resolveCategoryId(user.category))
+    : 'Todas';
+  const [category, setCategory] = useState(searchParams.get('category') ?? preferredCategory);
   const [section, setSection] = useState('Todas');
   const [search, setSearch] = useState(searchParams.get('search') ?? '');
   const [learningTopicId, setLearningTopicId] = useState(searchParams.get('topic') ?? '');
@@ -102,11 +107,11 @@ export default function QuestionBankPage() {
   }, []);
 
   useEffect(() => {
-    setCategory(searchParams.get('category') ?? 'Todas');
+    setCategory(searchParams.get('category') ?? preferredCategory);
     setSearch(searchParams.get('search') ?? '');
     setLearningTopicId(searchParams.get('topic') ?? '');
     setPage(0);
-  }, [searchParams]);
+  }, [preferredCategory, searchParams]);
 
   const categoryLabel = useMemo(() => getCategoryLabel(categories, category), [categories, category]);
   const activeLearningTopic = useMemo(() => getLearningTopicById(learningTopicId), [learningTopicId]);

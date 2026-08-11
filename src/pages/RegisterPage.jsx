@@ -12,14 +12,13 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const { register, isAuthenticated } = useAuth();
   const [categories, setCategories] = useState([]);
-  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '', category: 25 });
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '', category: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     api.getCategories().then((items) => {
       setCategories(items);
-      setForm((currentForm) => ({ ...currentForm, category: items[0]?.id ?? currentForm.category }));
     }).catch(() => null);
   }, []);
 
@@ -30,7 +29,7 @@ export default function RegisterPage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
-    if (!form.name || !form.email || !form.password) {
+    if (!form.name || !form.email || !form.password || !form.category) {
       setError('Completa los campos obligatorios.');
       return;
     }
@@ -61,6 +60,7 @@ export default function RegisterPage() {
           <Input label="Contraseña" type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
           <Input label="Confirmar contraseña" type="password" value={form.confirmPassword} onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })} />
           <Select label="Categoría inicial de licencia" value={form.category} onChange={(event) => setForm({ ...form, category: Number(event.target.value) })}>
+            <option value="">Elige tu categoría</option>
             {categories.map((category) => <option key={category.id} value={category.id}>{category.title} - {category.vehicle}</option>)}
           </Select>
           <div className="md:pt-7"><Button type="submit" className="w-full" disabled={loading}>{loading ? 'Creando cuenta...' : 'Crear cuenta'}</Button></div>

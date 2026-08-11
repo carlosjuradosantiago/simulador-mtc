@@ -8,6 +8,7 @@ import { exchangeSupabaseOAuthCode, getStoredToken, supabaseAuth } from '../serv
 import { safeInternalPath } from '../utils/navigation.js';
 
 const oauthCodeExchangePromises = new Map();
+const PENDING_GOOGLE_CATEGORY_KEY = 'simulamanejo:pending-google-category';
 
 export default function AuthCallbackPage() {
   const navigate = useNavigate();
@@ -71,7 +72,8 @@ export default function AuthCallbackPage() {
 
         if (cancelled) return;
 
-        const result = await loginWithToken(token);
+        const pendingCategory = Number(window.sessionStorage.getItem(PENDING_GOOGLE_CATEGORY_KEY)) || null;
+        const result = await loginWithToken(token, { category: pendingCategory });
         if (cancelled) return;
 
         if (!result.ok) {
@@ -79,6 +81,7 @@ export default function AuthCallbackPage() {
           return;
         }
 
+        window.sessionStorage.removeItem(PENDING_GOOGLE_CATEGORY_KEY);
         navigate(nextPath, { replace: true });
       } catch (oauthError) {
         if (!cancelled) setError(oauthError.message || 'No pudimos validar la respuesta de Google.');

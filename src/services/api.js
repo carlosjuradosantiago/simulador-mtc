@@ -198,7 +198,8 @@ export function toFrontendUser(user, extra = {}) {
     email,
     role,
     isAdmin: isAdminRole(role),
-    category: extra.category ?? user.category ?? user.categoriaPreferidaId ?? 25,
+    category: extra.category ?? user.category ?? user.categoriaPreferidaId ?? null,
+    categoryConfirmed: extra.categoryConfirmed ?? user.categoryConfirmed ?? user.categoriaConfirmada ?? false,
     avatar: user.avatar ?? initialsFromName(name),
     registeredAt: (user.createdAt || user.registeredAt || new Date().toISOString()).slice(0, 10),
     stats: extra.stats ?? user.stats ?? null,
@@ -475,12 +476,16 @@ export const api = {
   getClasses: () => apiRequest('/classes'),
   updateClassProgress: (classId, payload) => apiRequest(`/classes/${classId}/progress`, { method: 'PUT', body: payload, auth: true }),
   getProfile: () => apiRequest('/user/profile', { auth: true }),
-  getStats: () => apiRequest('/user/stats', { auth: true }),
+  getStats: (categoryId = null) => apiRequest(`/user/stats${categoryId ? `?categoryId=${encodeURIComponent(categoryId)}` : ''}`, { auth: true }),
   getSettings: () => apiRequest('/user/settings', { auth: true }),
   updateSettings: (payload) => apiRequest('/user/settings', { method: 'PUT', body: payload, auth: true }),
   getBillingData: () => apiRequest('/user/billing-data', { auth: true }),
   updateBillingData: (payload) => apiRequest('/user/billing-data', { method: 'PUT', body: payload, auth: true }),
-  getExamHistory: ({ page = 0, size = 10 } = {}) => apiRequest(`/user/exam-history?page=${page}&size=${size}`, { auth: true }),
+  getExamHistory: ({ page = 0, size = 10, categoryId = null } = {}) => {
+    const params = new URLSearchParams({ page: String(page), size: String(size) });
+    if (categoryId) params.set('categoryId', String(categoryId));
+    return apiRequest(`/user/exam-history?${params}`, { auth: true });
+  },
   getRecentHistory: (limit = 5) => apiRequest(`/user/exam-history/recent?limit=${limit}`, { auth: true }),
   getAttemptDetail: (id) => apiRequest(`/user/exam-history/${id}`, { auth: true }).then(toResult),
   getMemberships: () => apiRequest('/user/memberships', { auth: true }),

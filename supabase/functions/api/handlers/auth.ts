@@ -14,6 +14,36 @@ const AUTH_CODE_TTL_MINUTES = 15;
 const MAX_AUTH_CODE_ATTEMPTS = 5;
 const FREE_EXAM_LIMIT = null;
 
+async function getRegistrationCategoryId(supabase: any, value: unknown) {
+  const categoryId = Number(value);
+  if (!Number.isInteger(categoryId)) return null;
+
+  const { data } = await supabase
+    .from('categoria')
+    .select('id')
+    .eq('id', categoryId)
+    .eq('id_tipo_examen', 2)
+    .eq('estado', 1)
+    .maybeSingle();
+
+  return data?.id ?? null;
+}
+
+async function saveConfirmedCategory(supabase: any, userId: number, categoryId: number) {
+  const { error } = await supabase
+    .from('configuracion_usuario')
+    .upsert({
+      id_usuario: userId,
+      categoria_preferida_id: categoryId,
+      categoria_confirmada: true,
+      notificaciones_habilitadas: true,
+      tema: 'light',
+      actualizado_en: new Date().toISOString()
+    }, { onConflict: 'id_usuario' });
+
+  if (error) throw new Error('No se pudo guardar la categoria elegida');
+}
+
 function normalizeEmail(email: string) {
   return String(email || '').trim().toLowerCase();
 }
@@ -371,6 +401,7 @@ export async function handleRegister(req: Request) {
     const body = await req.json();
     const supabase = getSupabaseClient();
     const email = normalizeEmail(body.email);
+    const categoryId = await getRegistrationCategoryId(supabase, body.category);
 
     if (!body.username || body.username.length < 3) {
       return errorResponse('El nombre de usuario debe tener al menos 3 caracteres');
@@ -381,10 +412,14 @@ export async function handleRegister(req: Request) {
     if (!body.password || body.password.length < 6) {
       return errorResponse('La contraseña debe tener al menos 6 caracteres');
     }
+    if (!categoryId) {
+      return errorResponse('Elige la categoria de licencia que vas a preparar');
+    }
 
     const existingEmail = await findCanonicalUsuarioByEmail(supabase, email);
     if (existingEmail) {
       if (existingEmail.correo_verificado === false && existingEmail.esta_verificado === false) {
+        await saveConfirmedCategory(supabase, existingEmail.id, categoryId);
         const emailResult = await sendVerificationCode(supabase, existingEmail).catch((sendError) => {
           console.error('Register resend verification email error:', sendError);
           return { success: false };
@@ -434,6 +469,7 @@ export async function handleRegister(req: Request) {
       return errorResponse('Error al crear usuario', 500);
     }
 
+    await saveConfirmedCategory(supabase, usuario.id, categoryId);
     await ensureLegacyUser(supabase, usuario, hashedPassword);
     const emailResult = await sendVerificationCode(supabase, usuario).catch((sendError) => {
       console.error('Register verification email error:', sendError);

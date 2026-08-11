@@ -5,6 +5,7 @@ import { jsonResponse, errorResponse, unauthorizedResponse } from '../_shared/re
 function toDto(settings: any) {
   return {
     categoriaPreferidaId: settings?.categoria_preferida_id ?? null,
+    categoriaConfirmada: settings?.categoria_confirmada ?? false,
     notificacionesHabilitadas: settings?.notificaciones_habilitadas ?? true,
     tema: settings?.tema ?? 'light',
     actualizadoEn: settings?.actualizado_en ?? null
@@ -47,9 +48,11 @@ export async function handleUpdateSettings(req: Request) {
     const supabase = getSupabaseClient();
     const now = new Date().toISOString();
 
+    const preferredCategoryId = body.categoriaPreferidaId ?? body.preferredCategoryId ?? null;
     const payload = {
       id_usuario: user.userId,
-      categoria_preferida_id: body.categoriaPreferidaId ?? body.preferredCategoryId ?? null,
+      categoria_preferida_id: preferredCategoryId,
+      categoria_confirmada: body.categoriaConfirmada ?? body.categoryConfirmed ?? Boolean(preferredCategoryId),
       notificaciones_habilitadas: body.notificacionesHabilitadas ?? body.notificationsEnabled ?? true,
       tema: body.tema ?? body.theme ?? 'light',
       actualizado_en: now

@@ -88,7 +88,7 @@ function resultMessage(result) {
   if (result.aprobado) {
     return { title: '¡Aprobaste el simulacro!', text: 'Tu resultado está listo para revisar.' };
   }
-  return { title: 'Sigue practicando', text: 'Revisa tus errores antes de volver a intentar el examen real.' };
+  return { title: 'Sigue practicando', text: 'Revisa tus errores antes de volver a intentar el simulacro.' };
 }
 
 export default function ResultsPage() {
@@ -148,7 +148,7 @@ export default function ResultsPage() {
         <Target className="mx-auto h-14 w-14 text-brand" />
         <h1 className="mt-4 font-display text-3xl font-black text-ink">Aún no hay un resultado</h1>
         <p className="mt-3 text-lg text-slate-600">
-          Termina un examen real de 40 preguntas para medir tu avance.
+          Termina un simulacro de 40 preguntas para medir tu avance.
         </p>
         {loadError ? <p className="mt-4 text-sm font-bold text-danger">{loadError}</p> : null}
         <Button as={Link} to="/dashboard" className="mt-7">
@@ -208,7 +208,7 @@ export default function ResultsPage() {
         <p className="mt-2 text-right text-sm font-bold text-slate-600">{result.porcentaje}% correcto</p>
         {quickPractice ? (
           <p className="mt-4 border-l-4 border-brand bg-blue-50 px-4 py-3 text-left text-sm leading-6 text-slate-700">
-            Esta práctica sirve para aprender y no cambia tus estadísticas. Tu avance se calcula solo con exámenes reales de 40 preguntas.
+            Esta práctica sirve para aprender y no cambia tus estadísticas. Tu avance se calcula solo con simulacros cronometrados de 40 preguntas.
           </p>
         ) : null}
       </section>
@@ -223,7 +223,7 @@ export default function ResultsPage() {
               className="flex-1"
             >
               <Clock3 className="h-6 w-6" />
-              Comenzar examen real
+              Iniciar simulacro
             </Button>
             <Button as={Link} to={`/simulacro/${categoryId}?mode=quick&strategy=weak`} variant="secondary" size="lg" className="flex-1">
               <Target className="h-6 w-6" />

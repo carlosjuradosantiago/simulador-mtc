@@ -8,6 +8,7 @@
     "check:question-fidelity": "node tools/check-question-fidelity.mjs",
     "check:practice-selection": "node tools/check-practice-selection.mjs",
     "check:membership-access": "node tools/check-membership-access.mjs",
+    "check:category-preference": "node tools/check-category-preference.mjs",
     "check:exam-submission": "node tools/check-exam-submission.mjs",
     "check:email-recipient": "node tools/check-email-recipient.mjs",
     "check:admin-access": "node tools/check-admin-access.mjs",

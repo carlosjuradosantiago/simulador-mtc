@@ -1,5 +1,6 @@
 import { Calendar, Mail, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Card from '../components/ui/Card.jsx';
 import StatCard from '../components/ui/StatCard.jsx';
 import { FULL_EXAM_IS_FREE } from '../data/examRules.js';
@@ -45,7 +46,11 @@ export default function ProfilePage() {
             <h2 className="text-3xl font-black">{user?.name}</h2>
             <div className="mt-3 grid gap-2 text-sm text-slate-600">
               <span className="inline-flex items-center gap-2"><Mail className="h-4 w-4 text-brand" /> {user?.email}</span>
-              <span className="inline-flex items-center gap-2"><User className="h-4 w-4 text-brand" /> Categoría principal {normalizeCategoryName(user?.category)}</span>
+              <span className="flex flex-wrap items-center gap-2">
+                <User className="h-4 w-4 text-brand" />
+                Categoría principal {user?.categoryConfirmed ? normalizeCategoryName(user?.category) : 'sin elegir'}
+                <Link to="/dashboard?chooseCategory=1" className="font-bold text-brand hover:underline">Cambiar</Link>
+              </span>
               <span className="inline-flex items-center gap-2"><Calendar className="h-4 w-4 text-brand" /> Registro {user?.registeredAt}</span>
               <span className="inline-flex items-center gap-2"><Calendar className="h-4 w-4 text-brand" /> Plan {FULL_EXAM_IS_FREE ? 'Acceso gratuito' : membership?.planName ?? 'Sin membresía activa'}</span>
             </div>

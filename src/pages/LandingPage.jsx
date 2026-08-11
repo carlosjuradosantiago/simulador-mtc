@@ -33,7 +33,7 @@ export default function LandingPage() {
 
     openAuthModal(authMode, {
       redirectTo: searchParams.get('next') || '/dashboard',
-      category: Number(searchParams.get('category')) || 25,
+      category: Number(searchParams.get('category')) || null,
     });
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete('auth');

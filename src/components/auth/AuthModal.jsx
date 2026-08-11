@@ -12,6 +12,7 @@ import Input from '../ui/Input.jsx';
 const AUTH_CALLBACK_ORIGIN_BY_HOST = {
   'simuladormtc.com': 'https://www.simuladormtc.com',
 };
+const PENDING_GOOGLE_CATEGORY_KEY = 'simulamanejo:pending-google-category';
 
 const titleByMode = {
   login: 'Iniciar sesión',
@@ -52,10 +53,10 @@ export default function AuthModal() {
   } = useAuth();
   const [mode, setMode] = useState('login');
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
-  const [registerForm, setRegisterForm] = useState({ name: '', email: '', password: '', category: 25 });
+  const [registerForm, setRegisterForm] = useState({ name: '', email: '', password: '', category: '' });
   const [verifyForm, setVerifyForm] = useState({ email: '', code: '' });
   const [resetForm, setResetForm] = useState({ email: '', code: '', password: '', confirmPassword: '' });
-  const [pendingCategory, setPendingCategory] = useState(25);
+  const [pendingCategory, setPendingCategory] = useState(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
@@ -73,7 +74,7 @@ export default function AuthModal() {
 
   useEffect(() => {
     if (!authModal.open) return;
-    const initialCategory = Number(authModal.category) || 25;
+    const initialCategory = Number(authModal.category) || '';
     setMode(authModal.mode ?? 'login');
     setPendingCategory(initialCategory);
     setRegisterForm((currentForm) => ({ ...currentForm, category: initialCategory }));
@@ -93,7 +94,9 @@ export default function AuthModal() {
 
   const redirectTo = authModal.redirectTo || '/dashboard';
   const busy = loading || googleLoading;
-  const selectedCategory = getCategoryById(fallbackLicenseCategories, registerForm.category);
+  const selectedCategory = registerForm.category
+    ? getCategoryById(fallbackLicenseCategories, registerForm.category)
+    : null;
 
   const finishAuth = () => {
     closeAuthModal();
@@ -109,7 +112,16 @@ export default function AuthModal() {
   const handleGoogleLogin = async () => {
     setError('');
     setNotice('');
+    if (mode === 'register' && !registerForm.category) {
+      setError('Elige la licencia que vas a preparar.');
+      return;
+    }
     setGoogleLoading(true);
+    if (mode === 'register') {
+      window.sessionStorage.setItem(PENDING_GOOGLE_CATEGORY_KEY, String(registerForm.category));
+    } else {
+      window.sessionStorage.removeItem(PENDING_GOOGLE_CATEGORY_KEY);
+    }
     const callbackOrigin = AUTH_CALLBACK_ORIGIN_BY_HOST[window.location.hostname] || window.location.origin;
     const callbackUrl = `${callbackOrigin}/auth/callback?next=${encodeURIComponent(redirectTo)}`;
     try {
@@ -147,7 +159,7 @@ export default function AuthModal() {
     event.preventDefault();
     setError('');
     setNotice('');
-    if (!registerForm.name || !registerForm.email || !registerForm.password) {
+    if (!registerForm.name || !registerForm.email || !registerForm.password || !registerForm.category) {
       setError('Completa los campos obligatorios.');
       return;
     }
@@ -252,9 +264,9 @@ export default function AuthModal() {
           <div>
             <p className="font-bold text-brand">{BRAND_NAME}</p>
             <h2 id="auth-title" className="mt-1 font-display text-3xl font-black">{titleByMode[mode]}</h2>
-            {mode === 'register' ? (
+            {mode === 'register' && selectedCategory ? (
               <p className="mt-2 text-base text-slate-600">
-                Practicarás para {selectedCategory.vehicle}, licencia {selectedCategory.title}.
+                Prepararemos todo para {selectedCategory.vehicle}, licencia {selectedCategory.title}.
               </p>
             ) : null}
           </div>
@@ -290,7 +302,22 @@ export default function AuthModal() {
 
         {mode === 'register' ? (
           <form className="grid gap-4" onSubmit={handleRegister}>
-            <Input label="Tu nombre" autoComplete="name" value={registerForm.name} onChange={(event) => setRegisterForm({ ...registerForm, name: event.target.value })} required autoFocus />
+            <label className="grid gap-2 font-bold text-ink">
+              ¿Qué licencia vas a sacar?
+              <select
+                value={registerForm.category}
+                onChange={(event) => setRegisterForm({ ...registerForm, category: Number(event.target.value) || '' })}
+                className="min-h-12 rounded-lg border border-line bg-white px-4 text-base font-normal focus:border-brand focus:outline-none focus:ring-4 focus:ring-blue-100"
+                required
+                autoFocus
+              >
+                <option value="">Elige tu categoría</option>
+                {fallbackLicenseCategories.map((category) => (
+                  <option key={category.id} value={category.id}>{category.title} · {category.shortLabel}</option>
+                ))}
+              </select>
+            </label>
+            <Input label="Tu nombre" autoComplete="name" value={registerForm.name} onChange={(event) => setRegisterForm({ ...registerForm, name: event.target.value })} required />
             <Input label="Tu correo" type="email" autoComplete="email" value={registerForm.email} onChange={(event) => setRegisterForm({ ...registerForm, email: event.target.value })} required />
             <Input label="Crea una contraseña" type="password" autoComplete="new-password" minLength={8} value={registerForm.password} onChange={(event) => setRegisterForm({ ...registerForm, password: event.target.value })} required />
             <Feedback error={error} notice={notice} />
