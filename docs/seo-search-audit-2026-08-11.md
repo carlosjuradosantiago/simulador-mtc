@@ -13,6 +13,7 @@ Fecha de medición: 11 de agosto de 2026
 - Las páginas de licencia todavía no aparecían como resultados independientes inmediatamente después del rastreo; la portada seguía concentrando la visibilidad del dominio.
 - Googlebot, OAI-SearchBot, Claude-SearchBot y PerplexityBot reciben el mismo HTML completo.
 - La autoridad externa continúa siendo la principal limitación para consultas genéricas competidas.
+- El registro RDAP de `simuladormtc.com` indica creación el 5 de junio de 2026; la poca antigüedad del dominio limita todavía las señales históricas y menciones externas.
 
 ## Problemas encontrados
 
@@ -35,6 +36,7 @@ Fecha de medición: 11 de agosto de 2026
 - Schema `Quiz`, `Question`, `LearningResource`, `WebPage` y datos editoriales conectados.
 - Página de metodología, fuentes visibles, `publishingPrinciples`, `llms.txt` y permisos explícitos para rastreadores web y de IA.
 - Enlaces internos desde la portada y enlaces públicos desde GitHub hacia las nueve licencias y las doce páginas temáticas.
+- Enlaces visibles a las nueve licencias en la interfaz renderizada y schema `ItemList` en la portada para describir la colección completa.
 - Registro preseleccionado por categoría desde cada página SEO.
 - PDF oficiales con `noindex, follow` para concentrar la relevancia en páginas HTML explicativas y mantener los enlaces de consulta.
 - Sitemap con 59 URLs aceptado por IndexNow con estado HTTP 200.
