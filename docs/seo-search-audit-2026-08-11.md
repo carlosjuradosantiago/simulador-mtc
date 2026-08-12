@@ -6,7 +6,9 @@ Fecha de medición: 11 de agosto de 2026
 
 - `simuladormtc.com` está indexado. En la medición posterior a la publicación, la consulta exacta `simulador MTC` lo mostró como primer resultado del buscador web asistido por IA utilizado.
 - Ese puesto no equivale a una posición universal: cambia por buscador, ubicación, historial y fecha.
-- Google devolvió una página de redirección durante la medición automatizada, sin resultados verificables. Por ese motivo no se asignó una posición exacta de Google.
+- En una consulta renderizada de Google Perú, `simulador MTC` no mostró el dominio entre los 10 resultados web visibles. `simulador MTC A1 40 preguntas` tampoco lo mostró entre los 8 resultados visibles.
+- La consulta `site:simuladormtc.com` devolvió cinco páginas indexadas: portada, `/simulador-mtc`, preguntas frecuentes, guía para aprobar y guía sobre cantidad de preguntas. Las nueve páginas por licencia todavía no aparecían en el índice de Google.
+- El dominio publica una verificación DNS `google-site-verification`, por lo que la siguiente acción de mayor impacto es solicitar inspección e indexación desde la propiedad existente de Google Search Console.
 - Las doce páginas temáticas nuevas fueron descubiertas y rastreadas por el buscador de IA desde los enlaces públicos de GitHub. Las leyó con las preguntas, cuatro alternativas y respuestas completas.
 - Las nueve páginas de licencia fueron rastreadas después de la ampliación y el buscador leyó sus 40 preguntas, 160 alternativas y respuestas completas.
 - Las páginas temáticas todavía no aparecían como resultados para sus títulos exactos inmediatamente después del rastreo.
@@ -37,9 +39,10 @@ Fecha de medición: 11 de agosto de 2026
 - Página de metodología, fuentes visibles, `publishingPrinciples`, `llms.txt` y permisos explícitos para rastreadores web y de IA.
 - Enlaces internos desde la portada y enlaces públicos desde GitHub hacia las nueve licencias y las doce páginas temáticas.
 - Enlaces visibles a las nueve licencias en la interfaz renderizada y schema `ItemList` en la portada para describir la colección completa.
+- Cubierta inicial en el HTML de la portada con H1, propuesta de 5/40 preguntas y enlaces a las nueve licencias; React la reemplaza al cargar sin errores ni cambios en el flujo.
 - Registro preseleccionado por categoría desde cada página SEO.
 - PDF oficiales con `noindex, follow` para concentrar la relevancia en páginas HTML explicativas y mantener los enlaces de consulta.
-- Sitemap con 59 URLs aceptado por IndexNow con estado HTTP 200.
+- Sitemap con 59 URLs y envíos de IndexNow aceptados con estado HTTP 200. IndexNow no sustituye la solicitud de rastreo de Google Search Console.
 
 ## Evidencia de despliegue
 
@@ -48,6 +51,8 @@ Fecha de medición: 11 de agosto de 2026
 - Las variantes con barra final y las rutas internas `/seo/` redirigen con HTTP 308 a la URL canónica.
 - Los cuatro rastreadores comprobados reciben las 40 preguntas completas.
 - Las doce páginas fueron rastreadas por el buscador de IA el mismo día de la publicación.
+- La portada pública entrega el H1 y nueve enlaces de categoría en el HTML inicial, antes de ejecutar JavaScript.
+- En un viewport de 375 px, React reemplaza la cubierta inicial sin errores de consola, overlay ni desborde horizontal.
 
 ## Próxima medición
 
