@@ -165,7 +165,7 @@ export default function VehicleStartPanel({
         <p className="mx-auto mt-2 max-w-2xl text-base leading-6 text-slate-600 sm:text-lg sm:leading-7">
           {focusSelected && selectedCategory
             ? `Todo está preparado para ${selectedCategory.vehicle}.`
-            : 'Elige tu vehículo y categoría. Luego practica 5 preguntas o rinde el simulacro completo de 40.'}
+            : 'Prepárate con preguntas actualizadas para el examen MTC 2026, según la categoría de tu licencia.'}
         </p>
         <div className="mx-auto mt-4 flex max-w-3xl items-start gap-3 border-y border-blue-200 bg-blue-50 px-4 py-3 text-left sm:items-center sm:px-5">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand text-white">
