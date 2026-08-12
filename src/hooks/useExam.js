@@ -41,6 +41,8 @@ export function useExam(category, mode = 'quick', strategy = 'random') {
   const [error, setError] = useState('');
   const [errorStatus, setErrorStatus] = useState(null);
   const [saveError, setSaveError] = useState('');
+  const [feedbackByQuestion, setFeedbackByQuestion] = useState({});
+  const [savingAnswer, setSavingAnswer] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,6 +53,8 @@ export function useExam(category, mode = 'quick', strategy = 'random') {
     setQuestions([]);
     setAnswers({});
     setMarked([]);
+    setFeedbackByQuestion({});
+    setSavingAnswer(false);
     setCurrentIndex(0);
     setSessionId(null);
     setTimeRemaining(quickPractice ? null : OFFICIAL_EXAM_RULES.durationSeconds);
@@ -99,14 +103,25 @@ export function useExam(category, mode = 'quick', strategy = 'random') {
 
   const currentQuestion = questions[currentIndex];
 
-  const selectAnswer = useCallback((questionId, optionId) => {
+  const selectAnswer = useCallback(async (questionId, optionId) => {
     setAnswers((currentAnswers) => ({ ...currentAnswers, [questionId]: optionId }));
-    if (sessionId) {
-      api.savePracticeAnswer(sessionId, questionId, optionId)
-        .then(() => setSaveError(''))
-        .catch(() => setSaveError('No pudimos guardar esta respuesta todavía. Puedes continuar e intentaremos guardarla al terminar.'));
+    if (!sessionId) return null;
+
+    setSavingAnswer(true);
+    try {
+      const feedback = await api.savePracticeAnswer(sessionId, questionId, optionId);
+      setFeedbackByQuestion((current) => ({ ...current, [questionId]: feedback }));
+      setSaveError('');
+      return feedback;
+    } catch {
+      setSaveError(quickPractice
+        ? 'No pudimos guardar esta respuesta todavía. Puedes continuar con la práctica.'
+        : 'No pudimos revisar esta respuesta. Revisa tu conexión y vuelve a intentarlo.');
+      return null;
+    } finally {
+      setSavingAnswer(false);
     }
-  }, [sessionId]);
+  }, [quickPractice, sessionId]);
 
   const toggleMarked = useCallback((questionId) => {
     setMarked((currentMarked) => (
@@ -195,6 +210,8 @@ export function useExam(category, mode = 'quick', strategy = 'random') {
     error,
     errorStatus,
     saveError,
+    feedbackByQuestion,
+    savingAnswer,
     sessionId,
     quickPractice,
     practiceStrategy,

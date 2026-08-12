@@ -43,6 +43,8 @@ export default function SimulatorPage() {
     error,
     errorStatus,
     saveError,
+    feedbackByQuestion,
+    savingAnswer,
     quickPractice,
     selectAnswer,
     goToQuestion,
@@ -53,23 +55,43 @@ export default function SimulatorPage() {
   const [pendingAnswers, setPendingAnswers] = useState({});
   const [speechState, setSpeechState] = useState('idle');
   const speechRef = useRef(null);
+  const feedbackRef = useRef(null);
+  const feedbackQuestionRef = useRef(null);
 
   const currentAnswer = currentQuestion ? answers[currentQuestion.id] : null;
   const pendingAnswer = currentQuestion ? pendingAnswers[currentQuestion.id] : null;
+  const currentFeedback = currentQuestion ? feedbackByQuestion[currentQuestion.id] : null;
   const isAnswered = hasAnswer(currentAnswer);
-  const isRevealed = quickPractice && isAnswered;
+  const isRevealed = isAnswered && (quickPractice || Boolean(currentFeedback));
   const selectedAnswerId = isRevealed ? currentAnswer : (hasAnswer(pendingAnswer) ? pendingAnswer : currentAnswer);
   const selectedOption = currentQuestion?.opciones.find((option) => String(option.id) === String(currentAnswer));
-  const correctOption = currentQuestion?.opciones.find((option) => option.esCorrecta || option.isCorrect);
-  const answeredCorrectly = Boolean(isRevealed && selectedOption && (selectedOption.esCorrecta || selectedOption.isCorrect));
-  const explanation = currentQuestion?.explicacion || currentQuestion?.fundamento || '';
+  const correctOption = currentQuestion?.opciones.find((option) => (
+    String(option.id) === String(currentFeedback?.opcionCorrecta?.id)
+    || option.esCorrecta
+    || option.isCorrect
+  ));
+  const feedbackCorrectness = currentFeedback?.esCorrecta ?? currentFeedback?.es_correcta;
+  const answeredCorrectly = Boolean(
+    isRevealed
+    && (feedbackCorrectness ?? selectedOption?.esCorrecta ?? selectedOption?.isCorrect),
+  );
+  const explanation = currentFeedback?.explicacion || currentQuestion?.explicacion || currentQuestion?.fundamento || '';
+  const selectedOptionIndex = currentQuestion?.opciones.indexOf(selectedOption) ?? -1;
+  const correctOptionIndex = currentQuestion?.opciones.indexOf(correctOption) ?? -1;
+  const selectedAnswerLabel = selectedOption
+    ? `${String.fromCharCode(65 + selectedOptionIndex)}. ${selectedOption.texto || 'Respuesta con imagen'}`
+    : currentFeedback?.opcionSeleccionada?.texto || 'Sin respuesta';
+  const correctAnswerLabel = correctOption
+    ? `${String.fromCharCode(65 + correctOptionIndex)}. ${correctOption.texto || 'Respuesta con imagen'}`
+    : currentFeedback?.opcionCorrecta?.texto || currentQuestion?.respuestaCorrecta || 'No disponible';
   const isLastQuestion = currentIndex === questions.length - 1;
-  const canContinue = quickPractice ? (isRevealed || hasAnswer(pendingAnswer)) : isAnswered;
+  const canContinue = quickPractice ? (isRevealed || hasAnswer(pendingAnswer)) : isRevealed;
   const examLabel = normalizeCategoryName(categoria);
   const practiceLabel = strategy === 'weak' ? 'Refuerzo de errores' : 'Preguntas aleatorias';
 
   useEffect(() => {
     finishedRef.current = false;
+    feedbackQuestionRef.current = null;
     setFinishError('');
     setPendingAnswers({});
   }, [categoria, mode, strategy]);
@@ -88,6 +110,25 @@ export default function SimulatorPage() {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0 });
   }, [currentIndex]);
+
+  useEffect(() => {
+    if (
+      !isRevealed
+      || feedbackQuestionRef.current !== currentQuestion?.id
+      || !feedbackRef.current
+      || !window.matchMedia('(max-width: 639px)').matches
+    ) return undefined;
+
+    feedbackQuestionRef.current = null;
+    const frameId = window.requestAnimationFrame(() => {
+      feedbackRef.current?.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'start',
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [currentQuestion?.id, isRevealed]);
 
   const handleFinish = useCallback(async () => {
     if (finishedRef.current || finishing || loading || !questions.length) return;
@@ -149,16 +190,18 @@ export default function SimulatorPage() {
   };
 
   const chooseAnswer = (optionId) => {
-    if (isRevealed || !currentQuestion) return;
+    if (isAnswered || savingAnswer || !currentQuestion) return;
     if (quickPractice) {
       setPendingAnswers((current) => ({ ...current, [currentQuestion.id]: optionId }));
       return;
     }
+    feedbackQuestionRef.current = currentQuestion.id;
     selectAnswer(currentQuestion.id, optionId);
   };
 
   const revealAnswer = () => {
     if (!currentQuestion || !hasAnswer(pendingAnswer)) return;
+    feedbackQuestionRef.current = currentQuestion.id;
     selectAnswer(currentQuestion.id, pendingAnswer);
     setPendingAnswers((current) => {
       const next = { ...current };
@@ -170,6 +213,11 @@ export default function SimulatorPage() {
   const handlePrimaryAction = () => {
     if (quickPractice && !isRevealed) {
       revealAnswer();
+      return;
+    }
+    if (!quickPractice && isAnswered && !isRevealed) {
+      feedbackQuestionRef.current = currentQuestion.id;
+      void selectAnswer(currentQuestion.id, currentAnswer);
       return;
     }
     if (isLastQuestion) {
@@ -225,7 +273,7 @@ export default function SimulatorPage() {
     <div className="min-h-screen bg-white text-ink">
       <header className="sticky top-0 z-30 border-b border-line bg-white">
         <div className="mx-auto flex min-h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
-          <BrandLogo />
+          <BrandLogo className="[&>span:last-child]:hidden sm:[&>span:last-child]:inline" />
           <span className="hidden h-7 w-px bg-line sm:block" />
           <span className="hidden text-sm font-bold text-slate-600 sm:block">
             {quickPractice ? practiceLabel : 'Simulacro completo'} · {examLabel}
@@ -251,7 +299,7 @@ export default function SimulatorPage() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl px-4 pb-32 pt-4 sm:px-6 sm:pt-6">
+      <main className="mx-auto w-full max-w-6xl px-4 pb-40 pt-4 sm:px-6 sm:pb-32 sm:pt-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="font-bold text-brand">
@@ -336,7 +384,11 @@ export default function SimulatorPage() {
           <div className="mt-4 grid gap-2.5">
             {currentQuestion.opciones.map((option, index) => {
               const selected = hasAnswer(selectedAnswerId) && String(selectedAnswerId) === String(option.id);
-              const optionIsCorrect = option.esCorrecta || option.isCorrect;
+              const optionIsCorrect = (
+                String(option.id) === String(currentFeedback?.opcionCorrecta?.id)
+                || option.esCorrecta
+                || option.isCorrect
+              );
               const showCorrect = isRevealed && optionIsCorrect;
               const showIncorrect = isRevealed && selected && !optionIsCorrect;
 
@@ -346,10 +398,10 @@ export default function SimulatorPage() {
                   type="button"
                   aria-pressed={selected}
                   data-testid="answer-option"
-                  disabled={isRevealed}
+                  disabled={isAnswered || savingAnswer}
                   onClick={() => chooseAnswer(option.id)}
                   className={cn(
-                    'flex min-h-14 w-full items-center gap-3 rounded-lg border-2 border-line bg-white px-3 py-2.5 text-left text-base leading-6 text-ink transition hover:border-blue-300 hover:bg-blue-50 disabled:cursor-default sm:min-h-16 sm:px-4 sm:text-lg',
+                    'flex min-h-14 w-full items-start gap-3 rounded-lg border-2 border-line bg-white px-3 py-3 text-left text-base leading-6 text-ink transition hover:border-blue-300 hover:bg-blue-50 disabled:cursor-default sm:min-h-16 sm:items-center sm:px-4 sm:text-lg',
                     selected && !isRevealed && 'border-brand bg-blue-50 ring-2 ring-blue-100',
                     showCorrect && 'border-success bg-emerald-50',
                     showIncorrect && 'border-danger bg-red-50',
@@ -357,7 +409,7 @@ export default function SimulatorPage() {
                 >
                   <span
                     className={cn(
-                      'grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 font-black text-slate-600 sm:h-10 sm:w-10',
+                      'mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 font-black text-slate-600 sm:mt-0 sm:h-10 sm:w-10',
                       selected && !isRevealed && 'bg-brand text-white',
                       showCorrect && 'bg-success text-white',
                       showIncorrect && 'bg-danger text-white',
@@ -373,8 +425,10 @@ export default function SimulatorPage() {
 
           {isRevealed ? (
             <div
+              ref={feedbackRef}
+              data-testid="answer-feedback"
               className={cn(
-                'mt-3 border-l-4 px-4 py-3 text-base leading-6',
+                'mt-3 scroll-mt-20 border-l-4 px-4 py-4 text-base leading-6',
                 answeredCorrectly
                   ? 'border-success bg-emerald-50 text-emerald-950'
                   : 'border-danger bg-red-50 text-red-950',
@@ -383,16 +437,27 @@ export default function SimulatorPage() {
             >
               <p className="flex items-center gap-2 font-display text-lg font-black">
                 {answeredCorrectly ? <Check className="h-5 w-5 text-success" /> : <X className="h-5 w-5 text-danger" />}
-                {answeredCorrectly ? '¡Muy bien!' : 'Mira la respuesta correcta'}
+                {answeredCorrectly ? 'Respuesta correcta' : 'Respuesta incorrecta'}
               </p>
-              <p className="mt-1 whitespace-pre-wrap break-words">
-                <strong>Respuesta correcta:</strong> {correctOption?.texto || currentQuestion.respuestaCorrecta}
-              </p>
+              <div className="mt-3 grid gap-2">
+                <p className="whitespace-pre-wrap break-words">
+                  <strong>Marcaste:</strong> {selectedAnswerLabel}
+                </p>
+                <p className="whitespace-pre-wrap break-words">
+                  <strong>Respuesta correcta:</strong> {correctAnswerLabel}
+                </p>
+              </div>
               {explanation ? (
                 <div className="mt-3 border-t border-current/15 pt-3">
                   <p className="font-bold">Explicación</p>
                   <p className="mt-1 whitespace-pre-wrap break-words text-slate-700">{explanation}</p>
                 </div>
+              ) : null}
+              {!quickPractice ? (
+                <p className="mt-3 flex items-center gap-2 border-t border-current/15 pt-3 text-sm font-bold">
+                  <Clock3 className="h-4 w-4 shrink-0" />
+                  El cronómetro sigue avanzando.
+                </p>
               ) : null}
             </div>
           ) : null}
@@ -425,11 +490,15 @@ export default function SimulatorPage() {
           <Button
             size="lg"
             onClick={handlePrimaryAction}
-            disabled={!canContinue || finishing}
+            disabled={(!canContinue && !(isAnswered && !isRevealed)) || finishing || savingAnswer}
             className="ml-auto w-full sm:w-auto sm:min-w-72"
           >
             {finishing
               ? 'Guardando resultado...'
+              : savingAnswer
+                ? 'Revisando respuesta...'
+                : !quickPractice && isAnswered && !isRevealed
+                  ? 'Volver a intentar'
               : quickPractice && !isRevealed
                 ? 'Responder'
                 : isLastQuestion
