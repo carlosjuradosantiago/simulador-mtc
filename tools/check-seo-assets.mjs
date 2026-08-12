@@ -242,6 +242,15 @@ async function main() {
     assert(home.includes(`href="${categoryPath}"`), `index.html: falta enlace estático a ${categoryPath}`);
     assert(readme.includes(`${siteUrl}${categoryPath}`), `README.md: falta enlace público a ${categoryPath}`);
   }
+  const initialAppShell = home.slice(home.indexOf('<div id="root">'), home.indexOf('<noscript>'));
+  assert(initialAppShell.includes('data-static-app-shell'), 'index.html: el HTML inicial no debe entregar un #root vacío');
+  assert(initialAppShell.includes('<h1'), 'index.html: el HTML inicial debe incluir el H1 de la portada');
+  for (const category of categoryBank.categories) {
+    assert(
+      initialAppShell.includes(`href="/simulador-mtc-${category.slug}"`),
+      `index.html: el HTML inicial no enlaza simulador-mtc-${category.slug}`,
+    );
+  }
   assert(vercel.includes('"value": "noindex, follow"'), 'vercel.json: los PDF oficiales deben delegar la indexación a las páginas explicativas');
   for (const file of questionPages) {
     assert(vercel.includes(`/${file.replace(/\.html$/, '')}`), `vercel.json: falta rewrite para ${file}`);
