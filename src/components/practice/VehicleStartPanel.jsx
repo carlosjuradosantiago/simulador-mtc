@@ -8,6 +8,7 @@ import {
   Pause,
   Play,
   Shuffle,
+  Sparkles,
   Target,
   TrendingUp,
   Volume2,
@@ -166,6 +167,17 @@ export default function VehicleStartPanel({
             ? `Todo está preparado para ${selectedCategory.vehicle}.`
             : 'Elige tu vehículo y categoría. Luego practica 5 preguntas o rinde el simulacro completo de 40.'}
         </p>
+        <div className="mx-auto mt-4 flex max-w-3xl items-start gap-3 border-y border-blue-200 bg-blue-50 px-4 py-3 text-left sm:items-center sm:px-5">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand text-white">
+            <Sparkles className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <p className="font-display text-base font-black text-ink sm:text-lg">La IA aprende de tus resultados</p>
+            <p className="mt-0.5 text-sm leading-5 text-slate-700 sm:text-base sm:leading-6">
+              Detecta las preguntas y temas que más fallas, los prioriza en tus prácticas y te muestra tu progreso para ayudarte a mejorar.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className={cn(
