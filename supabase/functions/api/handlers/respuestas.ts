@@ -1,6 +1,7 @@
 import { getSupabaseClient } from '../_shared/supabase.ts';
 import { getUserFromToken } from '../_shared/auth.ts';
 import { jsonResponse, errorResponse, unauthorizedResponse } from '../_shared/response.ts';
+import { normalizeSessionQuestionIds } from '../_shared/exam-submission.ts';
 
 export async function handleGuardarRespuesta(req: Request, sessionId: string) {
   try {
@@ -10,9 +11,15 @@ export async function handleGuardarRespuesta(req: Request, sessionId: string) {
     }
 
     const body = await req.json();
-    const { id_pregunta, id_opcion_seleccionada } = body;
+    const questionId = Number(body.id_pregunta);
+    const selectedOptionId = Number(body.id_opcion_seleccionada);
 
-    if (!id_pregunta || !id_opcion_seleccionada) {
+    if (
+      !Number.isInteger(questionId)
+      || questionId <= 0
+      || !Number.isInteger(selectedOptionId)
+      || selectedOptionId <= 0
+    ) {
       return errorResponse('Faltan datos: id_pregunta e id_opcion_seleccionada son requeridos', 400);
     }
 
@@ -33,11 +40,15 @@ export async function handleGuardarRespuesta(req: Request, sessionId: string) {
       return errorResponse('La sesión ya fue finalizada', 409);
     }
 
+    if (!normalizeSessionQuestionIds(session.ids_preguntas).includes(questionId)) {
+      return errorResponse('La pregunta no pertenece a esta sesión', 400);
+    }
+
     const { data: opcion } = await supabase
       .from('opcion_pregunta')
       .select('id, texto, es_correcta')
-      .eq('id', id_opcion_seleccionada)
-      .eq('id_pregunta', id_pregunta)
+      .eq('id', selectedOptionId)
+      .eq('id_pregunta', questionId)
       .single();
 
     if (!opcion) {
@@ -50,15 +61,15 @@ export async function handleGuardarRespuesta(req: Request, sessionId: string) {
 
     const now = new Date().toISOString();
     const updatedAnswer = {
-      id_pregunta,
-      id_opcion_seleccionada,
+      id_pregunta: questionId,
+      id_opcion_seleccionada: selectedOptionId,
       opcion_texto: opcion.texto,
       es_correcta: opcion.es_correcta,
       respondido_en: now
     };
 
     const nextDetalle = [
-      ...respuestasDetalle.filter((respuesta: any) => respuesta.id_pregunta !== id_pregunta),
+      ...respuestasDetalle.filter((respuesta: any) => Number(respuesta.id_pregunta) !== questionId),
       updatedAnswer
     ];
 
@@ -86,9 +97,41 @@ export async function handleGuardarRespuesta(req: Request, sessionId: string) {
       return errorResponse('Error al guardar respuesta', 500);
     }
 
+    const [correctOptionResult, questionResult] = await Promise.all([
+      supabase
+        .from('opcion_pregunta')
+        .select('id, texto')
+        .eq('id_pregunta', questionId)
+        .eq('es_correcta', true)
+        .maybeSingle(),
+      supabase
+        .from('pregunta')
+        .select('explicacion, fundamento')
+        .eq('id', questionId)
+        .maybeSingle()
+    ]);
+    const opcionCorrecta = correctOptionResult.data;
+    const pregunta = questionResult.data;
+
+    if (correctOptionResult.error || !opcionCorrecta || questionResult.error || !pregunta) {
+      console.error('Error loading answer feedback:', correctOptionResult.error || questionResult.error);
+      return errorResponse('La respuesta se guardó, pero no pudimos cargar su explicación. Vuelve a intentarlo.', 500);
+    }
+
+
     return jsonResponse({
       success: true,
+      esCorrecta: opcion.es_correcta,
       es_correcta: opcion.es_correcta,
+      opcionSeleccionada: {
+        id: opcion.id,
+        texto: opcion.texto
+      },
+      opcionCorrecta: opcionCorrecta ? {
+        id: opcionCorrecta.id,
+        texto: opcionCorrecta.texto
+      } : null,
+      explicacion: pregunta?.explicacion || pregunta?.fundamento || null,
       total_respondidas: totalRespondidas,
       total_correctas: totalCorrectas,
       total_incorrectas: totalIncorrectas,

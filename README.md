@@ -51,6 +51,13 @@ El contenido se contrasta con los balotarios y publicaciones del Ministerio de T
 
 ## Desarrollo
 
+El proyecto usa ambientes remotos separados:
+
+- `development` se publica como Preview de Vercel y usa `bdsimulador-dev` en Supabase;
+- `main` se publica en <https://www.simuladormtc.com/> y usa `bdsimulador` en Supabase.
+
+Los cambios se suben primero a `development`. Solo después de validarlos se promueven a `main` mediante un pull request. El build selecciona el Supabase correspondiente y falla de forma segura hacia DEV cuando no es un despliegue de produccion.
+
 ```bash
 npm install
 npm run dev
@@ -62,6 +69,7 @@ Verificaciones principales:
 npm run check:question-fidelity
 npm run check:practice-selection
 npm run check:exam-submission
+npm run check:remote-environments
 npm run check:seo-bank
 npm run check:seo
 npm run build

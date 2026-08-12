@@ -2,9 +2,9 @@ import { createClient } from '@supabase/supabase-js';
 import { DEFAULT_LEARNING_TOPIC, deriveLearningTopic, getLearningTopicById } from '../utils/learningTopics.js';
 import { isAdminRole } from '../utils/admin.js';
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://wazikdsfacrawhphzltn.supabase.co/functions/v1/api';
-export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? 'https://wazikdsfacrawhphzltn.supabase.co';
-export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndhemlrZHNmYWNyYXdocGh6bHRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4NTk2OTIsImV4cCI6MjA3NTQzNTY5Mn0.--xoCk-6Xq0qmUYDDuatBTLOl2q1Nxns_85A4xaiDOU';
+export const API_BASE_URL = __SIMULADOR_API_BASE_URL__;
+export const SUPABASE_URL = __SIMULADOR_SUPABASE_URL__;
+export const SUPABASE_ANON_KEY = __SIMULADOR_SUPABASE_PUBLISHABLE_KEY__;
 
 export const AUTH_TOKEN_KEY = 'simulamanejo:authToken';
 

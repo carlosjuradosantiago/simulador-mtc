@@ -2,6 +2,7 @@ import { getSupabaseClient } from '../_shared/supabase.ts';
 import { getUserFromToken } from '../_shared/auth.ts';
 import { jsonResponse, errorResponse, unauthorizedResponse } from '../_shared/response.ts';
 import { selectPracticeQuestionIds, type PracticeSelectionMode } from '../_shared/practice-selection.ts';
+import { TIMED_SESSION_TYPE } from '../_shared/membership-access.ts';
 
 // Get category base - determines which questions to fetch
 async function getCategoriaBase(supabase, idCategoria) {
@@ -211,14 +212,15 @@ export async function handleGetEstadoPractica(req, practiceSessionId) {
         opcion_pregunta(id, texto, es_correcta, orden, tipo_multimedia, datos_multimedia),
         multimedia_pregunta(id, tipo_multimedia, datos, orden, descripcion)
       `).in('id', preguntaIds);
+    const includeAnswerDetails = session.tipo_sesion !== TIMED_SESSION_TYPE;
     const preguntasDto = (preguntas || []).map((p)=>({
         id: p.id,
         texto: p.texto,
-        explicacion: p.explicacion,
+        explicacion: includeAnswerDetails ? p.explicacion : undefined,
         opciones: (p.opcion_pregunta || []).map((o)=>({
             id: o.id,
             texto: o.texto,
-            esCorrecta: o.es_correcta,
+            esCorrecta: includeAnswerDetails ? o.es_correcta : undefined,
             orden: o.orden,
             mediaType: o.tipo_multimedia || 'Text',
             mediaData: o.datos_multimedia || null

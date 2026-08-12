@@ -307,11 +307,9 @@ function jsonResponse(data: unknown, status = 200) {
       tipo_seccion,
       clase,
       fundamento,
-      explicacion,
       opcion_pregunta (
         id,
         texto,
-        es_correcta,
         orden,
         tipo_multimedia,
         datos_multimedia
