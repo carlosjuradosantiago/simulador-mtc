@@ -9,6 +9,18 @@ import { fallbackLicenseCategories } from '../data/vehicleChoices.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { api } from '../services/api.js';
 
+const licenseGuides = [
+  { href: '/simulador-mtc-a1', label: 'A1' },
+  { href: '/simulador-mtc-a2a', label: 'A2A' },
+  { href: '/simulador-mtc-a2b', label: 'A2B' },
+  { href: '/simulador-mtc-a3a', label: 'A3A' },
+  { href: '/simulador-mtc-a3b', label: 'A3B' },
+  { href: '/simulador-mtc-a3c', label: 'A3C' },
+  { href: '/simulador-mtc-b2a', label: 'B2A' },
+  { href: '/simulador-mtc-b2b', label: 'B2B' },
+  { href: '/simulador-mtc-b2c', label: 'B2C' },
+];
+
 export default function LandingPage() {
   const { openAuthModal } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -102,6 +114,14 @@ export default function LandingPage() {
       </main>
 
       <footer className="border-t border-line px-4 py-6 text-center text-sm leading-6 text-slate-500">
+        <nav aria-label="Guías por licencia" className="mb-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+          <span className="font-bold text-slate-600">Guías por licencia:</span>
+          {licenseGuides.map((guide) => (
+            <a key={guide.href} className="font-semibold text-brand hover:underline" href={guide.href}>
+              {guide.label}
+            </a>
+          ))}
+        </nav>
         <nav aria-label="Información del simulador" className="mb-2 flex flex-wrap justify-center gap-x-5 gap-y-1">
           <a className="font-semibold text-brand hover:underline" href="/simulador-mtc">Cómo funciona</a>
           <a className="font-semibold text-brand hover:underline" href="/fuentes-mtc">Fuentes oficiales</a>

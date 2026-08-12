@@ -252,6 +252,16 @@ async function main() {
     .map((match) => JSON.parse(match[1]))
     .flatMap((document) => document['@graph'] || [document]);
   assert(schemaTypes(homeSchemas).has('WebApplication'), 'index.html: falta schema WebApplication');
+  assert(schemaTypes(homeSchemas).has('ItemList'), 'index.html: falta schema ItemList para las licencias');
+  const categoryList = homeSchemas.find((item) => item['@type'] === 'ItemList');
+  assert.equal(categoryList.numberOfItems, 9, 'index.html: ItemList debe declarar 9 licencias');
+  assert.equal(categoryList.itemListElement?.length, 9, 'index.html: ItemList debe enlazar las 9 licencias');
+  for (const category of categoryBank.categories) {
+    assert(
+      categoryList.itemListElement.some((item) => item.url === `${siteUrl}/simulador-mtc-${category.slug}`),
+      `index.html: ItemList no enlaza simulador-mtc-${category.slug}`,
+    );
+  }
   assert(schemaTypes(homeSchemas).has('LearningResource'), 'index.html: falta schema LearningResource');
   const organization = homeSchemas.find((item) => item['@type'] === 'Organization');
   assert.equal(organization?.publishingPrinciples, `${siteUrl}/metodologia-simulador-mtc`, 'index.html: falta la metodología editorial de la organización');
