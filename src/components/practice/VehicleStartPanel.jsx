@@ -101,8 +101,8 @@ export default function VehicleStartPanel({
     window.speechSynthesis.cancel();
     const message = new SpeechSynthesisUtterance(
       selectedCategory
-        ? `¿Qué simulacro vas a rendir? Elegiste ${selectedCategory.vehicle}, licencia ${selectedCategory.title}.`
-        : '¿Qué simulacro vas a rendir? Elige un vehículo y después la categoría que aparece en tu licencia.',
+        ? `Tu simulacro MTC es para ${selectedCategory.vehicle}, licencia ${selectedCategory.title}.`
+        : 'Elige tu simulacro MTC. Elige un vehículo y después la categoría que aparece en tu licencia.',
     );
     message.lang = 'es-PE';
     message.rate = 0.9;
@@ -137,7 +137,7 @@ export default function VehicleStartPanel({
       <div className="mx-auto max-w-5xl text-center">
         <div className="flex items-center justify-center gap-3 sm:flex-nowrap">
           <h1 className="font-display text-3xl font-black text-ink sm:whitespace-nowrap sm:text-4xl lg:text-5xl">
-            {focusSelected && selectedCategory ? `Tu simulacro ${selectedCategory.title}` : '¿Qué simulacro vas a rendir?'}
+            {focusSelected && selectedCategory ? `Tu simulacro ${selectedCategory.title}` : 'Elige tu simulacro MTC'}
           </h1>
           <button
             type="button"
@@ -164,7 +164,7 @@ export default function VehicleStartPanel({
         <p className="mx-auto mt-2 max-w-2xl text-base leading-6 text-slate-600 sm:text-lg sm:leading-7">
           {focusSelected && selectedCategory
             ? `Todo está preparado para ${selectedCategory.vehicle}.`
-            : 'Elige tu vehículo y después la categoría exacta de tu licencia.'}
+            : 'Elige tu vehículo y categoría. Luego practica 5 preguntas o rinde el simulacro completo de 40.'}
         </p>
       </div>
 
