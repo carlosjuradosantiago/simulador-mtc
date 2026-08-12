@@ -5,15 +5,12 @@ import {
   CircleGauge,
   Clock3,
   LockKeyhole,
-  Pause,
-  Play,
   Shuffle,
   Sparkles,
   Target,
   TrendingUp,
-  Volume2,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { OFFICIAL_EXAM_RULES } from '../../data/examRules.js';
 import { fallbackLicenseCategories, getCategoryById, getVehicleChoice, vehicleChoices } from '../../data/vehicleChoices.js';
@@ -59,8 +56,6 @@ export default function VehicleStartPanel({
 }) {
   const [practiceMode, setPracticeMode] = useState('random');
   const [categoryVehicleId, setCategoryVehicleId] = useState(null);
-  const [speechState, setSpeechState] = useState('idle');
-  const speechRef = useRef(null);
   const selectedCategory = selectedCategoryId ? getCategoryById(categories, selectedCategoryId) : null;
   const selectedVehicle = selectedCategory ? getVehicleChoice(selectedCategoryId) : null;
   const categoryVehicle = vehicleChoices.find((choice) => choice.id === categoryVehicleId) ?? null;
@@ -73,51 +68,6 @@ export default function VehicleStartPanel({
     : fullExamHasAccess
       ? `Acceso activo${membershipEndDate ? ` hasta ${new Date(membershipEndDate).toLocaleDateString('es-PE')}` : ''}`
       : `${priceLabel} por 1 mes de acceso`;
-
-  useEffect(() => {
-    speechRef.current = null;
-    window.speechSynthesis?.cancel();
-    setSpeechState('idle');
-
-    return () => {
-      speechRef.current = null;
-      window.speechSynthesis?.cancel();
-    };
-  }, [selectedCategory?.id]);
-
-  const readPrompt = () => {
-    if (!('speechSynthesis' in window)) return;
-
-    if (speechState === 'speaking') {
-      window.speechSynthesis.pause();
-      setSpeechState('paused');
-      return;
-    }
-    if (speechState === 'paused') {
-      window.speechSynthesis.resume();
-      setSpeechState('speaking');
-      return;
-    }
-
-    window.speechSynthesis.cancel();
-    const message = new SpeechSynthesisUtterance(
-      selectedCategory
-        ? `Tu simulacro MTC es para ${selectedCategory.vehicle}, licencia ${selectedCategory.title}.`
-        : 'Elige tu simulacro MTC. Elige un vehículo y después la categoría que aparece en tu licencia.',
-    );
-    message.lang = 'es-PE';
-    message.rate = 0.9;
-    message.onend = () => {
-      if (speechRef.current === message) {
-        speechRef.current = null;
-        setSpeechState('idle');
-      }
-    };
-    message.onerror = message.onend;
-    speechRef.current = message;
-    setSpeechState('speaking');
-    window.speechSynthesis.speak(message);
-  };
 
   const chooseVehicle = (choice) => {
     setCategoryVehicleId(choice.id);
@@ -136,32 +86,9 @@ export default function VehicleStartPanel({
   return (
     <section className="mx-auto w-full max-w-[1280px] px-4 pb-10 pt-4 sm:px-6 lg:px-8 lg:pb-14 lg:pt-5">
       <div className="mx-auto max-w-5xl text-center">
-        <div className="flex items-center justify-center gap-3 sm:flex-nowrap">
-          <h1 className="font-display text-3xl font-black text-ink sm:whitespace-nowrap sm:text-4xl lg:text-5xl">
-            {focusSelected && selectedCategory ? `Tu simulacro ${selectedCategory.title}` : 'Elige tu simulacro MTC'}
-          </h1>
-          <button
-            type="button"
-            aria-label={
-              speechState === 'speaking'
-                ? 'Pausar instrucciones'
-                : speechState === 'paused'
-                  ? 'Continuar instrucciones'
-                  : 'Escuchar las instrucciones'
-            }
-            onClick={readPrompt}
-            className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-line bg-white px-3 font-bold text-brand transition hover:border-brand hover:bg-blue-50"
-          >
-            {speechState === 'speaking'
-              ? <Pause className="h-5 w-5" />
-              : speechState === 'paused'
-                ? <Play className="h-5 w-5" />
-                : <Volume2 className="h-5 w-5" />}
-            <span className="hidden sm:inline">
-              {speechState === 'speaking' ? 'Pausar' : speechState === 'paused' ? 'Continuar' : 'Escuchar'}
-            </span>
-          </button>
-        </div>
+        <h1 className="font-display text-3xl font-black text-ink sm:text-4xl lg:text-5xl">
+          {focusSelected && selectedCategory ? `Tu simulacro ${selectedCategory.title}` : 'Elige tu simulacro MTC'}
+        </h1>
         <p className="mx-auto mt-2 max-w-2xl text-base leading-6 text-slate-600 sm:text-lg sm:leading-7">
           {focusSelected && selectedCategory
             ? `Todo está preparado para ${selectedCategory.vehicle}.`
