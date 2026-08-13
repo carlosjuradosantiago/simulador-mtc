@@ -186,17 +186,22 @@ function buildInvoiceXml(receipt: ReceiptRow) {
   <ext:UBLExtensions><ext:UBLExtension><ext:ExtensionContent/></ext:UBLExtension></ext:UBLExtensions>
   <cbc:UBLVersionID>2.1</cbc:UBLVersionID>
   <cbc:CustomizationID schemeAgencyName="PE:SUNAT">2.0</cbc:CustomizationID>
+  <cbc:ProfileID schemeName="SUNAT:Identificador de Tipo de Operación" schemeAgencyName="PE:SUNAT" schemeURI="urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo17">0101</cbc:ProfileID>
   <cbc:ID>${escapeXml(documentId)}</cbc:ID>
   <cbc:IssueDate>${issueDate}</cbc:IssueDate>
   <cbc:IssueTime>${peruTime()}</cbc:IssueTime>
   <cbc:DueDate>${issueDate}</cbc:DueDate>
-  <cbc:InvoiceTypeCode listAgencyName="PE:SUNAT" listName="Tipo de Documento" listURI="urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo01">${documentType}</cbc:InvoiceTypeCode>
+  <cbc:InvoiceTypeCode listID="0101" listAgencyName="PE:SUNAT" listName="Tipo de Documento" listURI="urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo01">${documentType}</cbc:InvoiceTypeCode>
   <cbc:Note languageLocaleID="1000">${escapeXml(amountInWords(Number(receipt.total)))}</cbc:Note>
   <cbc:DocumentCurrencyCode listID="ISO 4217 Alpha" listName="Currency" listAgencyName="United Nations Economic Commission for Europe">PEN</cbc:DocumentCurrencyCode>
   <cbc:LineCountNumeric>1</cbc:LineCountNumeric>
   ${signatureBlock(receipt)}
   ${supplierBlock(receipt)}
   ${customerBlock(receipt)}
+  <cac:PaymentTerms>
+    <cbc:ID>FormaPago</cbc:ID>
+    <cbc:PaymentMeansID>Contado</cbc:PaymentMeansID>
+  </cac:PaymentTerms>
   <cac:TaxTotal>
     <cbc:TaxAmount currencyID="PEN">${igv}</cbc:TaxAmount>
     <cac:TaxSubtotal>
@@ -237,9 +242,16 @@ function buildInvoiceXml(receipt: ReceiptRow) {
 </Invoice>`;
 }
 
+function summaryIdentifier(summarySequence: number) {
+  const numericSequence = Math.max(1, Math.abs(Math.trunc(Number(summarySequence))) || 1);
+  // ponytail: five digits cover 99,999 daily sends; use a persisted daily counter before exceeding that ceiling.
+  const sequence = String(((numericSequence - 1) % 99999) + 1).padStart(5, '0');
+  return `RC-${peruDate().replaceAll('-', '')}-${sequence}`;
+}
+
 function buildSummaryXml(receipt: ReceiptRow, summarySequence: number) {
   const referenceDate = peruDate();
-  const identifier = `RC-${referenceDate.replaceAll('-', '')}-${summarySequence}`;
+  const identifier = summaryIdentifier(summarySequence);
   const subtotal = money(receipt.subtotal);
   const igv = money(receipt.igv);
   const total = money(receipt.total);
@@ -261,9 +273,12 @@ function buildSummaryXml(receipt: ReceiptRow, summarySequence: number) {
   <sac:SummaryDocumentsLine>
     <cbc:LineID>1</cbc:LineID>
     <cbc:DocumentTypeCode>03</cbc:DocumentTypeCode>
-    <sac:DocumentSerialID>${escapeXml(receipt.serie)}</sac:DocumentSerialID>
-    <sac:StartDocumentNumberID>${receipt.numero}</sac:StartDocumentNumberID>
-    <sac:EndDocumentNumberID>${receipt.numero}</sac:EndDocumentNumberID>
+    <cbc:ID>${escapeXml(receipt.serie)}-${receipt.numero}</cbc:ID>
+    <cac:AccountingCustomerParty>
+      <cbc:CustomerAssignedAccountID>${escapeXml(receipt.numero_documento_cliente)}</cbc:CustomerAssignedAccountID>
+      <cbc:AdditionalAccountID>${escapeXml(receipt.tipo_documento_cliente)}</cbc:AdditionalAccountID>
+    </cac:AccountingCustomerParty>
+    <cac:Status><cbc:ConditionCode>1</cbc:ConditionCode></cac:Status>
     <sac:TotalAmount currencyID="PEN">${total}</sac:TotalAmount>
     <sac:BillingPayment><cbc:PaidAmount currencyID="PEN">${subtotal}</cbc:PaidAmount><cbc:InstructionID>01</cbc:InstructionID></sac:BillingPayment>
     <cac:TaxTotal><cbc:TaxAmount currencyID="PEN">${igv}</cbc:TaxAmount><cac:TaxSubtotal><cbc:TaxAmount currencyID="PEN">${igv}</cbc:TaxAmount><cac:TaxCategory><cac:TaxScheme><cbc:ID>1000</cbc:ID><cbc:Name>IGV</cbc:Name><cbc:TaxTypeCode>VAT</cbc:TaxTypeCode></cac:TaxScheme></cac:TaxCategory></cac:TaxSubtotal></cac:TaxTotal>
@@ -479,6 +494,7 @@ export async function generateAndSendTaxDocument(supabase: any, receipt: Receipt
 
   let cdr: Uint8Array;
   let ticket: string | null = null;
+  let responseBaseName = baseName;
 
   if (receipt.tipo_comprobante === 'FACTURA') {
     const zipName = `${baseName}.zip`;
@@ -486,8 +502,9 @@ export async function generateAndSendTaxDocument(supabase: any, receipt: Receipt
     cdr = await sendBill(config, zipName, zip);
   } else {
     const sequence = receipt.id;
-    const summaryId = `RC-${peruDate().replaceAll('-', '')}-${sequence}`;
+    const summaryId = summaryIdentifier(sequence);
     const summaryBaseName = `${receipt.ruc_emisor}-${summaryId}`;
+    responseBaseName = summaryBaseName;
     const signedSummary = signXml(buildSummaryXml(receipt, sequence), config);
     const zip = zipSync({ [`${summaryBaseName}.xml`]: strToU8(signedSummary) });
     await uploadPrivateFile(supabase, `${folder}/${summaryBaseName}.xml`, signedSummary, 'application/xml');
@@ -496,7 +513,7 @@ export async function generateAndSendTaxDocument(supabase: any, receipt: Receipt
   }
 
   const cdrInfo = parseCdr(cdr);
-  const cdrPath = `${folder}/R-${baseName}.zip`;
+  const cdrPath = `${folder}/R-${responseBaseName}.zip`;
   await uploadPrivateFile(supabase, cdrPath, cdr, 'application/zip');
 
   const status = cdrInfo.accepted ? 'aceptado' : 'rechazado';
