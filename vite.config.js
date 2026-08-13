@@ -11,5 +11,6 @@ export default defineConfig({
     __SIMULADOR_API_BASE_URL__: JSON.stringify(remoteEnvironment.apiBaseUrl),
     __SIMULADOR_SUPABASE_URL__: JSON.stringify(remoteEnvironment.supabaseUrl),
     __SIMULADOR_SUPABASE_PUBLISHABLE_KEY__: JSON.stringify(remoteEnvironment.supabasePublishableKey),
+    __SIMULADOR_FULL_EXAM_FREE__: JSON.stringify(remoteEnvironment.fullExamFree),
   },
 });
