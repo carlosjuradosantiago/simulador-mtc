@@ -252,6 +252,11 @@ Deno.serve(async (req)=>{
     }
     
     // ============ PAGOS (CULQI) ============
+    const culqiWebhookMatch = path.match(/^\/pagos\/webhook\/culqi\/([A-Za-z0-9_-]{32,128})$/);
+    if (culqiWebhookMatch && method === 'POST') {
+      const { handleCulqiWebhook } = await import('./handlers/pagos.ts');
+      return await withLogging(req, path, 'handleCulqiWebhook', () => handleCulqiWebhook(req, culqiWebhookMatch[1]));
+    }
     if (path === '/pagos/config' && method === 'GET') {
       const { handleGetCulqiConfig } = await import('./handlers/pagos.ts');
       return await withLogging(req, path, 'handleGetCulqiConfig', () => handleGetCulqiConfig(req));
@@ -267,6 +272,11 @@ Deno.serve(async (req)=>{
     if (path === '/pagos/historial' && method === 'GET') {
       const { handleGetHistorialPagos } = await import('./handlers/pagos.ts');
       return await withLogging(req, path, 'handleGetHistorialPagos', () => handleGetHistorialPagos(req));
+    }
+    const receiptMatch = path.match(/^\/pagos\/comprobantes\/(\d+)$/);
+    if (receiptMatch && method === 'GET') {
+      const { handleGetReceipt } = await import('./handlers/pagos.ts');
+      return await withLogging(req, path, 'handleGetReceipt', () => handleGetReceipt(req, receiptMatch[1]));
     }
     
     // ============ LIBRO DE RECLAMACIONES (INDECOPI) ============
@@ -367,6 +377,7 @@ Deno.serve(async (req)=>{
         'POST /pagos/procesar',
         'POST /pagos/simular',
         'GET /pagos/historial',
+        'GET /pagos/comprobantes/:id',
         'POST /libro-reclamaciones',
         'GET /libro-reclamaciones/info',
         'GET /libro-reclamaciones/:numeroReclamo'
