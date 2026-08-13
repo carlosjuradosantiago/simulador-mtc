@@ -14,6 +14,7 @@
     "check:admin-access": "node tools/check-admin-access.mjs",
     "check:remote-environments": "node tools/check-remote-environments.mjs",
     "check:payment-security": "node tools/check-payment-security.mjs",
+    "check:sunat-documents": "node tools/check-sunat-documents.mjs",
     "check:navigation": "node tools/check-safe-navigation.mjs",
     "check:seo-bank": "node tools/build-seo-topic-bank.mjs --check",
     "check:seo-category-bank": "node tools/build-seo-category-bank.mjs --check",
