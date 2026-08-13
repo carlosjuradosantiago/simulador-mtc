@@ -188,7 +188,7 @@ function requires3ds(status: number, data: any) {
     || type.includes('revision')
     || message.includes('autenticacion')
     || message.includes('autenticarse')
-    || (status === 201 && !data?.id);
+    || (status === 200 && !data?.id);
 }
 
 function isApprovedCharge(data: any) {

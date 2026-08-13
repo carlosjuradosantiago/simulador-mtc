@@ -171,7 +171,7 @@ export default function PlansPage() {
       if (result.requires3ds) {
         window.Culqi3DS.settings = {
           charge: {
-            totalAmount: plan.price,
+            totalAmount: Math.round(plan.price * 100),
             returnUrl: window.location.href,
             currency: 'PEN',
           },
