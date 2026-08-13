@@ -25,7 +25,7 @@ const FROM_EMAIL = 'Simulador MTC <noreply@simuladormtc.pe>';
 const FROM_EMAIL_DEV = 'Simulador MTC <onboarding@resend.dev>';
 /**
  * Envía un email usando la API de Resend
- */ export async function sendEmail(to, subject, html) {
+ */ export async function sendEmail(to, subject, html, options = {}) {
   const resendKey = Deno.env.get('RESEND_API_KEY') || Deno.env.get('RESEND_KEY');
   if (!resendKey) {
     console.error('[EMAIL] RESEND_API_KEY/RESEND_KEY no configurada');
@@ -55,7 +55,8 @@ const FROM_EMAIL_DEV = 'Simulador MTC <onboarding@resend.dev>';
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${resendKey}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...(options.idempotencyKey ? { 'Idempotency-Key': options.idempotencyKey } : {})
       },
       body: JSON.stringify({
         from: FROM_EMAIL_DEV,
@@ -63,7 +64,8 @@ const FROM_EMAIL_DEV = 'Simulador MTC <onboarding@resend.dev>';
           recipient.deliveryRecipient
         ],
         subject,
-        html
+        html,
+        ...(options.attachments?.length ? { attachments: options.attachments } : {})
       })
     });
     const data = await response.json();
