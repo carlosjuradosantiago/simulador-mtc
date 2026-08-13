@@ -265,6 +265,14 @@ Deno.serve(async (req)=>{
       const { handleProcesarPago } = await import('./handlers/pagos.ts');
       return await withLogging(req, path, 'handleProcesarPago', () => handleProcesarPago(req));
     }
+    if (path === '/pagos/suscripcion' && method === 'GET') {
+      const { handleGetCulqiSubscription } = await import('./handlers/pagos.ts');
+      return await withLogging(req, path, 'handleGetCulqiSubscription', () => handleGetCulqiSubscription(req));
+    }
+    if (path === '/pagos/suscripcion' && method === 'DELETE') {
+      const { handleCancelCulqiSubscription } = await import('./handlers/pagos.ts');
+      return await withLogging(req, path, 'handleCancelCulqiSubscription', () => handleCancelCulqiSubscription(req));
+    }
     if (path === '/pagos/simular' && method === 'POST') {
       const { handleSimularPago } = await import('./handlers/pagos.ts');
       return await withLogging(req, path, 'handleSimularPago', () => handleSimularPago(req));
@@ -375,6 +383,8 @@ Deno.serve(async (req)=>{
         'POST /user/membership/subscribe',
         'GET /pagos/config',
         'POST /pagos/procesar',
+        'GET /pagos/suscripcion',
+        'DELETE /pagos/suscripcion',
         'POST /pagos/simular',
         'GET /pagos/historial',
         'GET /pagos/comprobantes/:id',

@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const [frontend, backend, migration, environments] = await Promise.all([
+const [frontend, apiClient, backend, migration, recurringMigration, environments] = await Promise.all([
   readFile(new URL('../src/pages/PlansPage.jsx', import.meta.url), 'utf8'),
+  readFile(new URL('../src/services/api.js', import.meta.url), 'utf8'),
   readFile(new URL('../supabase/functions/api/handlers/pagos.ts', import.meta.url), 'utf8'),
   readFile(new URL('../supabase/migrations/20260812193000_secure_culqi_sunat_flow.sql', import.meta.url), 'utf8'),
+  readFile(new URL('../supabase/migrations/20260813205555_culqi_recurring_subscriptions.sql', import.meta.url), 'utf8'),
   readFile(new URL('../src/config/remoteEnvironments.js', import.meta.url), 'utf8'),
 ]);
 
@@ -16,9 +18,17 @@ assert.match(backend, /email:\s*culqiProviderEmail\(dbUser\.correo_electronico\)
 assert.match(backend, /isTest && !isProduction \? 'review@culqi\.com' : userEmail/);
 assert.match(frontend, /client:\s*\{ email: config\.checkoutEmail \|\| user\.email \}/);
 assert.match(frontend, /culqi\.token\.id\.startsWith\('ype_'\)/, 'Yape tokens must be recorded as Yape payments.');
+assert.match(frontend, /amount:\s*paymentChoice === 'tarjeta' \? 0 : plan\.price/, 'Card subscription checkout must only tokenize the card.');
+assert.match(frontend, /accept_recurring:\s*attempt\.paymentMethod === 'tarjeta'/, 'Recurring card charges require explicit consent.');
+assert.match(apiClient, /PAYMENTS_BASE_URL = API_BASE_URL\.replace/, 'Payments must use the isolated DEV Edge Function.');
 assert.match(backend, /retrieveCulqiCharge\(created\.charge\.id\)/);
 assert.match(backend, /status === 201 && !data\?\.id/, 'HTTP 201 without a charge must enter the Culqi 3DS flow.');
-assert.match(frontend, /totalAmount:\s*Math\.round\(plan\.price \* 100\)/, 'Culqi 3DS expects the amount in cents.');
+assert.match(frontend, /totalAmount:\s*plan\.price/, 'Culqi 3DS expects the already-normalized amount in cents.');
+assert.match(backend, /culqiRequest\('\/cards'/);
+assert.match(backend, /culqiRequest\('\/recurrent\/subscriptions\/create'/);
+assert.match(backend, /interval_unit_time:\s*3/, 'The Culqi plan must be monthly.');
+assert.match(backend, /body\.accept_recurring === true/);
+assert.match(backend, /typeof payload\?\.data !== 'string'/, 'Webhook payloads serialized by Culqi must be parsed.');
 assert.match(backend, /culqi_outcome_code:\s*providerError\.providerCode \|\| null/);
 assert.match(backend, /data\?\.param \|\| data\?\.parameter \|\| data\?\.field/);
 assert.match(backend, /console\.warn\('\[CULQI\] Charge rejected'/);
@@ -29,6 +39,9 @@ assert.doesNotMatch(backend, /console\.(log|error)\([^\n]*(tokenId|chargePayload
 assert.match(migration, /enable row level security/g);
 assert.match(migration, /revoke all on table public\.comprobantes_electronicos from anon, authenticated/);
 assert.match(migration, /culqi_token_id = null/);
+assert.match(recurringMigration, /create table if not exists public\.suscripciones_culqi/);
+assert.match(recurringMigration, /enable row level security/g);
+assert.match(recurringMigration, /revoke all on table public\.suscripciones_culqi from public, anon, authenticated/);
 assert.match(environments, /development:[\s\S]*fullExamFree:\s*false/);
 assert.match(environments, /production:[\s\S]*fullExamFree:\s*true/);
 

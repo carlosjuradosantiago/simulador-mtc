@@ -5,6 +5,7 @@ import { isAdminRole } from '../utils/admin.js';
 export const API_BASE_URL = __SIMULADOR_API_BASE_URL__;
 export const SUPABASE_URL = __SIMULADOR_SUPABASE_URL__;
 export const SUPABASE_ANON_KEY = __SIMULADOR_SUPABASE_PUBLISHABLE_KEY__;
+const PAYMENTS_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, '/payments');
 
 export const AUTH_TOKEN_KEY = 'simulamanejo:authToken';
 
@@ -80,7 +81,14 @@ export function setStoredToken(token) {
   }
 }
 
-export async function apiRequest(path, { method = 'GET', body, token = getStoredToken(), auth = false, headers = {} } = {}) {
+export async function apiRequest(path, {
+  method = 'GET',
+  body,
+  token = getStoredToken(),
+  auth = false,
+  headers = {},
+  baseUrl = API_BASE_URL,
+} = {}) {
   const requestHeaders = { ...headers };
 
   if (body !== undefined && !(body instanceof FormData)) {
@@ -92,7 +100,7 @@ export async function apiRequest(path, { method = 'GET', body, token = getStored
     requestHeaders['X-Auth-Token'] = token;
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`${baseUrl}${path}`, {
     method,
     headers: requestHeaders,
     body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
@@ -491,14 +499,17 @@ export const api = {
   getMemberships: () => apiRequest('/user/memberships', { auth: true }),
   getActiveMembership: () => apiRequest('/user/membership/active', { auth: true }),
   getExamCount: () => apiRequest('/user/exam-count', { auth: true }),
-  getPaymentConfig: () => apiRequest('/pagos/config'),
-  getPaymentHistory: () => apiRequest('/pagos/historial', { auth: true }),
-  getReceipt: (receiptId) => apiRequest(`/pagos/comprobantes/${receiptId}`, { auth: true }),
-  processPayment: (payload) => apiRequest('/pagos/procesar', { method: 'POST', body: payload, auth: true }),
-  simulatePayment: (planId) => apiRequest('/pagos/simular', {
+  getPaymentConfig: () => apiRequest('/config', { baseUrl: PAYMENTS_BASE_URL }),
+  getPaymentHistory: () => apiRequest('/historial', { auth: true, baseUrl: PAYMENTS_BASE_URL }),
+  getReceipt: (receiptId) => apiRequest(`/comprobantes/${receiptId}`, { auth: true, baseUrl: PAYMENTS_BASE_URL }),
+  processPayment: (payload) => apiRequest('/procesar', { method: 'POST', body: payload, auth: true, baseUrl: PAYMENTS_BASE_URL }),
+  getSubscription: () => apiRequest('/suscripcion', { auth: true, baseUrl: PAYMENTS_BASE_URL }),
+  cancelSubscription: () => apiRequest('/suscripcion', { method: 'DELETE', auth: true, baseUrl: PAYMENTS_BASE_URL }),
+  simulatePayment: (planId) => apiRequest('/simular', {
     method: 'POST',
     body: { plan_id: planId },
     auth: true,
+    baseUrl: PAYMENTS_BASE_URL,
   }),
   startTimedExam: (category) => apiRequest(`/preguntas/examen-cronometrado/tipo-examen/2/categoria/${resolveCategoryId(category)}`, { auth: true }),
   startPractice: (category, questionCount = 5, strategy = 'random') => apiRequest('/practica-temporal/iniciar', {

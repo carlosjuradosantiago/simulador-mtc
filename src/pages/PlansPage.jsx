@@ -3,9 +3,11 @@ import {
   ArrowRight,
   Check,
   Clock3,
+  CreditCard,
   FileCheck2,
   LockKeyhole,
   ShieldCheck,
+  Smartphone,
   Target,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -72,11 +74,15 @@ export default function PlansPage() {
   const examPath = `/simulacro/${categoryId}?mode=exam`;
   const [plan, setPlan] = useState(fallbackPlan);
   const [membership, setMembership] = useState(null);
+  const [subscription, setSubscription] = useState(null);
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(null);
+  const [paymentChoice, setPaymentChoice] = useState('tarjeta');
+  const [acceptRecurring, setAcceptRecurring] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [form, setForm] = useState({
     receiptType: 'boleta',
     documentNumber: '',
@@ -94,15 +100,17 @@ export default function PlansPage() {
     Promise.all([
       api.getPlans(),
       api.getActiveMembership().catch(() => null),
+      api.getSubscription().catch(() => null),
       api.getBillingData().catch(() => null),
       api.getPaymentConfig(),
       loadScript(CULQI_CHECKOUT_SRC, 'CulqiCheckout'),
       loadScript(CULQI_3DS_SRC, 'Culqi3DS'),
-    ]).then(async ([plans, activeMembership, billing, paymentConfig]) => {
+    ]).then(async ([plans, activeMembership, activeSubscription, billing, paymentConfig]) => {
       if (cancelled) return;
       const selectedPlan = plans?.[0] || fallbackPlan;
       setPlan(selectedPlan);
       setMembership(activeMembership);
+      setSubscription(activeSubscription);
       setConfig(paymentConfig);
       setForm((current) => ({
         ...current,
@@ -155,6 +163,7 @@ export default function PlansPage() {
         plan_id: plan.id,
         idempotency_key: attempt.idempotencyKey,
         payment_method: attempt.paymentMethod,
+        accept_recurring: attempt.paymentMethod === 'tarjeta' && attempt.acceptRecurring,
         device_fingerprint_id: deviceIdRef.current || undefined,
         billing: {
           receiptType: form.receiptType,
@@ -171,7 +180,7 @@ export default function PlansPage() {
       if (result.requires3ds) {
         window.Culqi3DS.settings = {
           charge: {
-            totalAmount: Math.round(plan.price * 100),
+            totalAmount: plan.price,
             returnUrl: window.location.href,
             currency: 'PEN',
           },
@@ -188,7 +197,10 @@ export default function PlansPage() {
       }
 
       setSuccess(result);
-      setMembership({ isActive: true, endDate: result.membership?.membership_end });
+      if (result.membership?.membership_end) {
+        setMembership({ isActive: true, endDate: result.membership.membership_end });
+      }
+      if (result.subscription) setSubscription(result.subscription);
       attemptRef.current = null;
       window.Culqi3DS?.reset?.();
     } catch (requestError) {
@@ -212,17 +224,22 @@ export default function PlansPage() {
       setError('La pasarela todavia no esta lista. Recarga la pagina.');
       return;
     }
+    if (paymentChoice === 'tarjeta' && !acceptRecurring) {
+      setError('Autoriza el cobro mensual para continuar con la suscripcion.');
+      return;
+    }
 
     setError('');
     attemptRef.current = {
       idempotencyKey: crypto.randomUUID(),
       tokenId: '',
-      paymentMethod: 'tarjeta',
+      paymentMethod: paymentChoice,
+      acceptRecurring: paymentChoice === 'tarjeta' && acceptRecurring,
     };
     const settings = {
       title: 'Simulador MTC',
       currency: 'PEN',
-      amount: plan.price,
+      amount: paymentChoice === 'tarjeta' ? 0 : plan.price,
       xculqirsaid: config.rsaId,
       rsapublickey: config.rsaPublicKey,
     };
@@ -233,17 +250,17 @@ export default function PlansPage() {
         lang: 'es',
         installments: false,
         modal: true,
-        paymentMethods: { tarjeta: true, yape: true },
-        paymentMethodsSort: ['tarjeta', 'yape'],
+        paymentMethods: { tarjeta: paymentChoice === 'tarjeta', yape: paymentChoice === 'yape' },
+        paymentMethodsSort: [paymentChoice],
       },
       appearance: {
         theme: 'default',
         hiddenBannerContent: false,
         hiddenBanner: false,
-        hiddenToolBarAmount: false,
+        hiddenToolBarAmount: paymentChoice === 'tarjeta',
         hiddenEmail: true,
         menuType: 'sliderTop',
-        buttonCardPayText: `Pagar ${priceLabel(plan.price)}`,
+        buttonCardPayText: paymentChoice === 'tarjeta' ? 'Activar suscripcion' : `Pagar ${priceLabel(plan.price)}`,
         defaultStyle: {
           bannerColor: '#082a5f',
           buttonBackground: '#0f55e8',
@@ -270,6 +287,25 @@ export default function PlansPage() {
     culqi.open();
   };
 
+  const cancelRecurring = async () => {
+    if (!window.confirm('Se detendran los proximos cobros. Mantendras el acceso hasta que termine el mes ya pagado.')) return;
+    setCancelling(true);
+    setError('');
+    try {
+      const result = await api.cancelSubscription();
+      setSubscription(result.subscription);
+      setSuccess({ cancellation: true, accessUntil: result.accessUntil });
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const hasAccess = membership?.isActive === true;
+  const paymentPending = success?.pending === true && !hasAccess;
+  const autoRenew = subscription?.autoRenew === true;
+
   if (loading) {
     return <div className="grid min-h-[60vh] place-items-center px-6 text-center"><div><span className="mx-auto block h-10 w-10 animate-spin rounded-full border-4 border-blue-100 border-t-brand" /><p className="mt-4 text-lg font-bold text-slate-600">Preparando tu acceso seguro...</p></div></div>;
   }
@@ -280,8 +316,8 @@ export default function PlansPage() {
 
       <header className="mt-3 max-w-3xl">
         <p className="font-bold text-brand">Simulacro completo · {normalizeCategoryName(categoryId)}</p>
-        <h1 className="mt-2 font-display text-3xl font-black leading-tight text-ink sm:text-4xl">Activa un mes de simulacros completos</h1>
-        <p className="mt-3 text-base leading-7 text-slate-600 sm:text-lg">Un solo pago de {priceLabel(plan.price)}. Sin renovacion automatica.</p>
+        <h1 className="mt-2 font-display text-3xl font-black leading-tight text-ink sm:text-4xl">Acceso Premium al simulador MTC</h1>
+        <p className="mt-3 text-base leading-7 text-slate-600 sm:text-lg">Suscripcion mensual con tarjeta o acceso por un mes con Yape.</p>
       </header>
 
       <div className="mt-7 grid gap-8 lg:grid-cols-[minmax(0,1fr)_370px] lg:gap-10">
@@ -313,20 +349,53 @@ export default function PlansPage() {
         </section>
 
         <aside className="border-t border-line pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0" aria-label="Resumen de compra">
-          <p className="text-sm font-bold text-slate-500">{plan.name} · {plan.durationMonths || 1} mes</p>
-          <p className="mt-1 font-display text-5xl font-black text-ink">{priceLabel(plan.price)}</p>
-          <p className="mt-1 text-sm text-slate-600">Pago unico. No guardamos datos de tu tarjeta.</p>
+          <p className="text-sm font-bold text-slate-500">{plan.name} mensual</p>
+          <p className="mt-1 font-display text-5xl font-black text-ink">{priceLabel(plan.price)}<span className="ml-1 text-base font-bold text-slate-500">/mes</span></p>
+          <p className="mt-1 text-sm text-slate-600">Culqi procesa el pago. Nosotros nunca recibimos el numero completo de tu tarjeta.</p>
+
+          {!hasAccess ? <>
+            <h2 className="mt-6 font-display text-xl font-black text-ink">Elige como pagar</h2>
+            <div className="mt-3 grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1" role="radiogroup" aria-label="Forma de pago">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={paymentChoice === 'tarjeta'}
+                className={`min-h-16 rounded-md px-2 py-2 text-left text-sm font-bold ${paymentChoice === 'tarjeta' ? 'bg-white text-brand shadow-sm' : 'text-slate-600'}`}
+                onClick={() => { setPaymentChoice('tarjeta'); setError(''); }}
+              >
+                <span className="flex items-center gap-2"><CreditCard className="h-5 w-5" />Tarjeta</span>
+                <span className="mt-1 block text-xs font-medium">Cobro automatico mensual</span>
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={paymentChoice === 'yape'}
+                className={`min-h-16 rounded-md px-2 py-2 text-left text-sm font-bold ${paymentChoice === 'yape' ? 'bg-white text-brand shadow-sm' : 'text-slate-600'}`}
+                onClick={() => { setPaymentChoice('yape'); setError(''); }}
+              >
+                <span className="flex items-center gap-2"><Smartphone className="h-5 w-5" />Yape</span>
+                <span className="mt-1 block text-xs font-medium">Un mes, sin renovacion</span>
+              </button>
+            </div>
+            {paymentChoice === 'tarjeta' ? <label className="mt-4 flex cursor-pointer items-start gap-3 text-sm leading-5 text-slate-700">
+              <input type="checkbox" className="mt-1 h-5 w-5 shrink-0 accent-blue-600" checked={acceptRecurring} onChange={(event) => setAcceptRecurring(event.target.checked)} />
+              <span>Autorizo el cobro de {priceLabel(plan.price)} cada mes hasta que cancele la suscripcion.</span>
+            </label> : <p className="mt-4 text-sm leading-5 text-slate-600">Yape activa un mes de acceso y no realiza cobros futuros.</p>}
+          </> : null}
 
           {config?.testMode ? <div className="mt-5 border-l-4 border-traffic-yellow bg-amber-50 px-4 py-3 text-sm leading-5 text-amber-950"><p className="font-black">Prueba segura en DEV</p><p className="mt-1">Culqi no realizara un cobro real y SUNAT BETA no genera un comprobante fiscal.</p></div> : null}
-          {membership?.isActive ? <div className="mt-5 border-l-4 border-success bg-emerald-50 px-4 py-3 text-sm text-emerald-950"><p className="font-black">Tu acceso ya esta activo</p>{membership.endDate ? <p className="mt-1">Vigente hasta {new Date(membership.endDate).toLocaleDateString('es-PE')}.</p> : null}</div> : null}
-          {success ? <div className="mt-5 border-l-4 border-success bg-emerald-50 px-4 py-3 text-sm text-emerald-950" role="status"><p className="flex items-center gap-2 font-black"><FileCheck2 className="h-5 w-5" />Pago confirmado</p><p className="mt-1">{success.receipt?.status === 'aceptado' ? `${success.receipt.type} ${success.receipt.number} aceptada por SUNAT BETA.` : 'Tu acceso esta activo. El comprobante quedo registrado para revision.'}</p></div> : null}
+          {hasAccess ? <div className="mt-5 border-l-4 border-success bg-emerald-50 px-4 py-3 text-sm text-emerald-950"><p className="font-black">Tu acceso ya esta activo</p>{membership.endDate ? <p className="mt-1">Vigente hasta {new Date(membership.endDate).toLocaleDateString('es-PE')}.</p> : null}{autoRenew ? <p className="mt-1 font-bold">Renovacion automatica activa{subscription.nextBillingAt ? ` · proximo cobro ${new Date(subscription.nextBillingAt).toLocaleDateString('es-PE')}` : ''}.</p> : <p className="mt-1">Este acceso no se renovara automaticamente.</p>}</div> : null}
+          {paymentPending ? <div className="mt-5 border-l-4 border-traffic-yellow bg-amber-50 px-4 py-3 text-sm text-amber-950" role="status"><p className="font-black">Suscripcion creada</p><p className="mt-1">Culqi esta confirmando el primer cobro. Tu acceso se activara cuando llegue la confirmacion.</p></div> : null}
+          {success?.cancellation ? <div className="mt-5 border-l-4 border-brand bg-blue-50 px-4 py-3 text-sm text-blue-950" role="status"><p className="font-black">Renovacion cancelada</p><p className="mt-1">No habra mas cobros. Tu acceso conserva la fecha ya pagada.</p></div> : null}
+          {success && !success.pending && !success.cancellation ? <div className="mt-5 border-l-4 border-success bg-emerald-50 px-4 py-3 text-sm text-emerald-950" role="status"><p className="flex items-center gap-2 font-black"><FileCheck2 className="h-5 w-5" />Pago confirmado</p><p className="mt-1">{success.receipt?.status === 'aceptado' ? `${success.receipt.type} ${success.receipt.number} aceptada por SUNAT BETA.` : 'Tu acceso esta activo. El comprobante quedo registrado para revision.'}</p></div> : null}
           {error ? <p className="mt-4 border-l-4 border-danger bg-red-50 px-4 py-3 text-sm font-bold text-danger" role="alert">{error}</p> : null}
 
-          <Button size="lg" className="mt-5 w-full" onClick={success || membership?.isActive ? () => navigate(examPath) : openCheckout} disabled={processing}>
-            {success || membership?.isActive ? <Target className="h-6 w-6" /> : <LockKeyhole className="h-5 w-5" />}
-            {processing ? 'Confirmando pago...' : success || membership?.isActive ? 'Rendir simulacro' : `Pagar ${priceLabel(plan.price)} con Culqi`}
+          <Button size="lg" className="mt-5 w-full" onClick={hasAccess ? () => navigate(examPath) : openCheckout} disabled={processing || cancelling || paymentPending}>
+            {hasAccess ? <Target className="h-6 w-6" /> : <LockKeyhole className="h-5 w-5" />}
+            {processing ? 'Confirmando pago...' : paymentPending ? 'Esperando a Culqi...' : hasAccess ? 'Rendir simulacro' : paymentChoice === 'tarjeta' ? `Suscribirme por ${priceLabel(plan.price)}/mes` : `Pagar ${priceLabel(plan.price)} con Yape`}
             <ArrowRight className="h-5 w-5" />
           </Button>
+          {hasAccess && autoRenew ? <Button variant="secondary" className="mt-3 w-full" onClick={cancelRecurring} disabled={cancelling}>{cancelling ? 'Cancelando...' : 'Cancelar renovacion automatica'}</Button> : null}
           <p className="mt-4 flex items-start gap-2 text-xs leading-5 text-slate-500"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" />Culqi procesa la tarjeta dentro de su formulario protegido y aplica autenticacion 3DS cuando el banco la solicita.</p>
         </aside>
       </div>
