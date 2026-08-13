@@ -175,7 +175,7 @@ export default function PlansPage() {
             returnUrl: window.location.href,
             currency: 'PEN',
           },
-          card: { email: user.email },
+          card: { email: config.checkoutEmail || user.email },
         };
         window.Culqi3DS.options = {
           showModal: true,
@@ -228,7 +228,7 @@ export default function PlansPage() {
     };
     const checkoutConfig = {
       settings,
-      client: { email: user.email },
+      client: { email: config.checkoutEmail || user.email },
       options: {
         lang: 'es',
         installments: false,

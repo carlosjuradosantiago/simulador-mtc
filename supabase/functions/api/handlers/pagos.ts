@@ -33,12 +33,23 @@ class ProviderError extends Error {
   publicCode: string;
   status: number;
   requires3ds: boolean;
+  providerCode: string;
+  requestId: string;
 
-  constructor(message: string, publicCode = 'payment_failed', status = 422, requires3ds = false) {
+  constructor(
+    message: string,
+    publicCode = 'payment_failed',
+    status = 422,
+    requires3ds = false,
+    providerCode = '',
+    requestId = '',
+  ) {
     super(message);
     this.publicCode = publicCode;
     this.status = status;
     this.requires3ds = requires3ds;
+    this.providerCode = providerCode;
+    this.requestId = requestId;
   }
 }
 
@@ -155,6 +166,12 @@ function safeProviderMessage(data: any, fallback: string) {
   );
 }
 
+function culqiProviderEmail(userEmail = '') {
+  const isTest = (Deno.env.get('CULQI_PUBLIC_KEY') || '').startsWith('pk_test_');
+  const isProduction = (Deno.env.get('APP_ENV') || 'development') === 'production';
+  return isTest && !isProduction ? 'review@culqi.com' : userEmail;
+}
+
 async function culqiRequest(path: string, init: RequestInit = {}) {
   const secretKey = requiredEnv('CULQI_SECRET_KEY');
   if ((Deno.env.get('APP_ENV') || 'development') !== 'production' && !secretKey.startsWith('sk_test_')) {
@@ -188,14 +205,16 @@ function requires3ds(status: number, data: any) {
     || type.includes('revision')
     || message.includes('autenticacion')
     || message.includes('autenticarse')
-    || (status === 200 && !data?.id);
+    || (status === 201 && !data?.id);
 }
 
 function isApprovedCharge(data: any) {
   const type = cleanText(data?.outcome?.type, 80).toLowerCase();
-  const code = cleanText(data?.outcome?.code || data?.action_code, 40).toUpperCase();
+  const code = cleanText(data?.outcome?.code || data?.action_code || data?.response_code, 40).toUpperCase();
   if (['venta_denegada', 'declined', 'rejected', 'denied', 'venta_rechazada'].includes(type)) return false;
+  if (['VENTA_DENEGADA', 'VENTA_RECHAZADA', 'DECLINED', 'REJECTED', 'DENIED'].includes(code)) return false;
   return ['venta_autorizada', 'venta_exitosa', 'authorized', 'approved'].includes(type)
+    || ['VENTA_AUTORIZADA', 'VENTA_EXITOSA', 'AUTHORIZED', 'APPROVED'].includes(code)
     || code.startsWith('AUT')
     || (data?.object === 'charge' && Boolean(data?.id) && !type && !code && !requires3ds(200, data));
 }
@@ -213,6 +232,13 @@ async function createCulqiCharge(payload: Record<string, unknown>) {
     method: 'POST',
     body: JSON.stringify(payload),
   });
+  const providerType = cleanText(
+    data?.outcome?.code || data?.code || data?.action_code || data?.type,
+    60,
+  ).replace(/[^a-zA-Z0-9_-]/g, '_');
+  const providerParam = cleanText(data?.param || data?.parameter || data?.field, 60)
+    .replace(/[^a-zA-Z0-9_.-]/g, '_');
+  const providerCode = [providerType, providerParam].filter(Boolean).join(':');
 
   if (requires3ds(response.status, data)) {
     throw new ProviderError(
@@ -220,10 +246,20 @@ async function createCulqiCharge(payload: Record<string, unknown>) {
       'requires_3ds',
       200,
       true,
+      providerCode,
+      requestId,
     );
   }
   if (!response.ok || !isApprovedCharge(data)) {
-    throw new ProviderError(safeProviderMessage(data, 'No se pudo aprobar el pago'));
+    console.warn('[CULQI] Charge rejected', { status: response.status, providerCode, requestId });
+    throw new ProviderError(
+      safeProviderMessage(data, 'No se pudo aprobar el pago'),
+      'payment_failed',
+      422,
+      false,
+      providerCode,
+      requestId,
+    );
   }
   return { charge: data, requestId };
 }
@@ -241,8 +277,8 @@ function verifyCharge(charge: any, transaction: any, dbUser: any, plan: any) {
   const amount = Math.round(Number(plan.precio) * 100);
   const matches = charge?.id
     && Number(charge.amount) === amount
-    && String(charge.currency_code || '').toUpperCase() === 'PEN'
-    && String(charge.email || '').toLowerCase() === String(dbUser.correo_electronico || '').toLowerCase()
+    && String(charge.currency_code || charge.currency || '').toUpperCase() === 'PEN'
+    && String(charge.email || '').toLowerCase() === culqiProviderEmail(dbUser.correo_electronico).toLowerCase()
     && String(metadata.transaction_id || '') === String(transaction.id)
     && String(metadata.user_id || '') === String(dbUser.id)
     && String(metadata.plan_id || '') === String(plan.id)
@@ -420,6 +456,7 @@ export async function handleGetCulqiConfig(_req: Request) {
       rsaPublicKey,
       currency: 'PEN',
       testMode: publicKey.startsWith('pk_test_'),
+      checkoutEmail: culqiProviderEmail(),
       sunatBetaReady: isSunatConfigurationReady(),
       paymentMethods: ['tarjeta', 'yape'],
     });
@@ -541,14 +578,14 @@ export async function handleProcesarPago(req: Request) {
     const chargePayload: Record<string, unknown> = {
       amount: amountInCents,
       currency_code: 'PEN',
-      email: dbUser.correo_electronico,
+      email: culqiProviderEmail(dbUser.correo_electronico),
       source_id: tokenId,
       description: `${plan.nombre} - Simulador MTC`,
       installments: 0,
       antifraud_details: {
         first_name: cleanText(dbUser.primer_nombre || billing.customerName.split(' ')[0] || 'Cliente', 50),
         last_name: cleanText(dbUser.apellido || billing.customerName.split(' ').slice(1).join(' ') || 'Simulador', 50),
-        address: billing.fiscalAddress || 'Lima',
+        address: billing.fiscalAddress || 'Avenida Lima 123',
         address_city: 'Lima',
         country_code: 'PE',
         phone_number: billing.phone || '999999999',
@@ -570,7 +607,12 @@ export async function handleProcesarPago(req: Request) {
       if (error instanceof ProviderError && error.requires3ds) {
         await supabase
           .from('transacciones_pago')
-          .update({ estado: 'pendiente_3ds', actualizado_en: new Date().toISOString() })
+          .update({
+            estado: 'pendiente_3ds',
+            culqi_outcome_code: error.providerCode || null,
+            culqi_request_id: error.requestId || null,
+            actualizado_en: new Date().toISOString(),
+          })
           .eq('id', transaction.id);
         return jsonResponse({
           success: false,
@@ -620,6 +662,8 @@ export async function handleProcesarPago(req: Request) {
         .update({
           estado: 'fallido',
           mensaje_error: `${providerError.publicCode}: ${cleanText(providerError.message, 180)}`,
+          culqi_outcome_code: providerError.providerCode || null,
+          culqi_request_id: providerError.requestId || null,
           culqi_token_id: null,
           respuesta_culqi: null,
           actualizado_en: new Date().toISOString(),
