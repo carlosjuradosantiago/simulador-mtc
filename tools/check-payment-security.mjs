@@ -14,6 +14,8 @@ assert.doesNotMatch(processPaymentPayload, /^\s*(amount|currency|email)\s*:/m, '
 assert.match(backend, /amount:\s*amountInCents/);
 assert.match(backend, /email:\s*dbUser\.correo_electronico/);
 assert.match(backend, /retrieveCulqiCharge\(created\.charge\.id\)/);
+assert.match(backend, /status === 200 && !data\?\.id/, 'HTTP 200 without a charge must enter the Culqi 3DS flow.');
+assert.match(frontend, /totalAmount:\s*Math\.round\(plan\.price \* 100\)/, 'Culqi 3DS expects the amount in cents.');
 assert.match(backend, /handleCulqiWebhook/);
 assert.match(backend, /handleSimularPago[\s\S]*simulacion fue deshabilitada/);
 assert.doesNotMatch(backend, /console\.(log|error)\([^\n]*(tokenId|chargePayload|CULQI_SECRET_KEY)/);
