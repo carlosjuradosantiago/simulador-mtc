@@ -493,6 +493,7 @@ export const api = {
   getExamCount: () => apiRequest('/user/exam-count', { auth: true }),
   getPaymentConfig: () => apiRequest('/pagos/config'),
   getPaymentHistory: () => apiRequest('/pagos/historial', { auth: true }),
+  getReceipt: (receiptId) => apiRequest(`/pagos/comprobantes/${receiptId}`, { auth: true }),
   processPayment: (payload) => apiRequest('/pagos/procesar', { method: 'POST', body: payload, auth: true }),
   simulatePayment: (planId) => apiRequest('/pagos/simular', {
     method: 'POST',
