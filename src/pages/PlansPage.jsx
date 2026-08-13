@@ -257,7 +257,8 @@ export default function PlansPage() {
     const culqi = new window.CulqiCheckout(config.publicKey, checkoutConfig);
     culqi.culqi = () => {
       if (culqi.token?.id) {
-        const method = String(culqi.token?.metadata?.payment_type || culqi.token?.object || '').toLowerCase().includes('yape') ? 'yape' : 'tarjeta';
+        const tokenKind = String(culqi.token?.metadata?.payment_type || culqi.token?.object || '').toLowerCase();
+        const method = culqi.token.id.startsWith('ype_') || tokenKind.includes('yape') ? 'yape' : 'tarjeta';
         attemptRef.current = { ...attemptRef.current, tokenId: culqi.token.id, paymentMethod: method };
         culqi.close();
         processToken(culqi.token.id);
