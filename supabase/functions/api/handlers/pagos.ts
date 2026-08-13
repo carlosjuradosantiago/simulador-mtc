@@ -349,6 +349,8 @@ async function retrieveCulqiSubscription(subscriptionId: string) {
 async function ensureCulqiPlan(supabase: any, plan: any) {
   const amount = Math.round(Number(plan.precio) * 100);
   const environment = requiredEnv('CULQI_SECRET_KEY').startsWith('sk_test_') ? 'test' : 'live';
+  // ponytail: Culqi sandbox limits plans to three cycles; live uses 0 for indefinite renewal.
+  const intervalCount = environment === 'test' ? 3 : 0;
   const { data: configured } = await supabase
     .from('configuracion_planes_culqi')
     .select('culqi_plan_id')
@@ -362,6 +364,7 @@ async function ensureCulqiPlan(supabase: any, plan: any) {
       && Number(data?.amount) === amount
       && String(data?.currency || '').toUpperCase() === 'PEN'
       && Number(data?.interval_unit_time) === 3
+      && Number(data?.interval_count) === intervalCount
       && Number(data?.status) === 1) {
       return configured.culqi_plan_id;
     }
@@ -382,7 +385,7 @@ async function ensureCulqiPlan(supabase: any, plan: any) {
         amount,
         currency: 'PEN',
         interval_unit_time: 3,
-        interval_count: 0,
+        interval_count: intervalCount,
         initial_cycles: {
           count: 0,
           has_initial_charge: false,
@@ -413,7 +416,8 @@ async function ensureCulqiPlan(supabase: any, plan: any) {
   if (!planId
     || Number(providerPlan?.amount) !== amount
     || String(providerPlan?.currency || '').toUpperCase() !== 'PEN'
-    || Number(providerPlan?.interval_unit_time) !== 3) {
+    || Number(providerPlan?.interval_unit_time) !== 3
+    || Number(providerPlan?.interval_count) !== intervalCount) {
     throw new ProviderError('Culqi devolvio un plan mensual invalido', 'subscription_plan_mismatch', 502);
   }
 

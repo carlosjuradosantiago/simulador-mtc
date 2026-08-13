@@ -51,7 +51,7 @@ create table if not exists public.suscripciones_culqi (
   mensaje_error text,
   creado_en timestamptz not null default now(),
   actualizado_en timestamptz not null default now(),
-  check (culqi_card_last4 is null or culqi_card_last4 ~ '^\\d{4}$'),
+  check (culqi_card_last4 is null or culqi_card_last4 ~ '^[0-9]{4}$'),
   check (culqi_subscription_id is not null or estado in ('preparando', 'fallida'))
 );
 
