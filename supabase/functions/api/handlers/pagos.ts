@@ -24,6 +24,7 @@ type PaymentRequest = {
   plan_id?: unknown;
   idempotency_key?: unknown;
   payment_method?: unknown;
+  accept_recurring?: unknown;
   device_fingerprint_id?: unknown;
   billing?: Record<string, unknown>;
   authentication_3DS?: Record<string, unknown>;
@@ -227,6 +228,71 @@ function cardSummary(charge: any) {
   return { brand, last4: /^\d{4}$/.test(last4) ? last4 : '' };
 }
 
+function chargeSourceId(charge: any) {
+  return cleanText(charge?.source?.id || charge?.card?.id, 80);
+}
+
+function providerId(value: unknown, prefix: string) {
+  const id = cleanText(value, 100);
+  return id.startsWith(`${prefix}_test_`) || id.startsWith(`${prefix}_live_`) ? id : '';
+}
+
+function epochToIso(value: unknown) {
+  const timestamp = Number(value);
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return null;
+  const date = new Date(timestamp < 1_000_000_000_000 ? timestamp * 1000 : timestamp);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function subscriptionState(status: unknown) {
+  return ({ 1: 'creada', 2: 'creada', 3: 'activa', 4: 'cancelada', 5: 'en_cola', 6: 'finalizada' } as Record<number, string>)[Number(status)] || 'creada';
+}
+
+function subscriptionChargeIds(subscription: any) {
+  const periods = Array.isArray(subscription?.periods)
+    ? subscription.periods
+    : subscription?.periods ? [subscription.periods] : [];
+  const ids: string[] = [];
+  for (const period of periods) {
+    const charges = Array.isArray(period?.charges)
+      ? period.charges
+      : period?.charges ? [period.charges] : [];
+    for (const charge of charges) {
+      const id = providerId(charge?.charge_id || charge?.id, 'chr');
+      if (id && !ids.includes(id)) ids.push(id);
+    }
+  }
+  return ids;
+}
+
+function subscriptionPlanId(subscription: any) {
+  return providerId(subscription?.plan?.plan_id || subscription?.plan_id, 'pln');
+}
+
+function providerItems(data: any) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  return data?.data ? [data.data] : [];
+}
+
+function providerErrorCode(data: any) {
+  return cleanText(data?.code || data?.type || data?.action_code || data?.outcome?.code, 60)
+    .replace(/[^a-zA-Z0-9_.-]/g, '_');
+}
+
+function culqiPersonName(value: unknown, fallback: string) {
+  const normalized = cleanText(value, 50).replace(/[^\p{L}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+  return normalized.length >= 2 ? normalized : fallback;
+}
+
+function subscriptionSnapshot(subscription: any) {
+  return {
+    state: subscriptionState(subscription?.status),
+    nextBillingAt: epochToIso(subscription?.next_billing_date),
+    currentPeriod: Number.isInteger(Number(subscription?.current_period)) ? Number(subscription.current_period) : null,
+  };
+}
+
 async function createCulqiCharge(payload: Record<string, unknown>) {
   const { response, data, requestId } = await culqiRequest('/charges', {
     method: 'POST',
@@ -272,6 +338,206 @@ async function retrieveCulqiCharge(chargeId: string) {
   return { charge: data, requestId };
 }
 
+async function retrieveCulqiSubscription(subscriptionId: string) {
+  const { response, data, requestId } = await culqiRequest(`/recurrent/subscriptions/${encodeURIComponent(subscriptionId)}`);
+  if (!response.ok || !providerId(data?.id, 'sxn')) {
+    throw new ProviderError('No se pudo verificar la suscripcion con Culqi', 'subscription_verification_failed', 502, false, providerErrorCode(data), requestId);
+  }
+  return { subscription: data, requestId };
+}
+
+async function ensureCulqiPlan(supabase: any, plan: any) {
+  const amount = Math.round(Number(plan.precio) * 100);
+  const environment = requiredEnv('CULQI_SECRET_KEY').startsWith('sk_test_') ? 'test' : 'live';
+  const { data: configured } = await supabase
+    .from('configuracion_planes_culqi')
+    .select('culqi_plan_id')
+    .eq('id_plan_membresia', plan.id)
+    .eq('ambiente', environment)
+    .maybeSingle();
+
+  if (providerId(configured?.culqi_plan_id, 'pln')) {
+    const { response, data } = await culqiRequest(`/recurrent/plans/${encodeURIComponent(configured.culqi_plan_id)}`);
+    if (response.ok
+      && Number(data?.amount) === amount
+      && String(data?.currency || '').toUpperCase() === 'PEN'
+      && Number(data?.interval_unit_time) === 3
+      && Number(data?.status) === 1) {
+      return configured.culqi_plan_id;
+    }
+    if (response.ok) throw new ProviderError('El plan mensual de Culqi no coincide con S/ 12', 'subscription_plan_mismatch', 500);
+  }
+
+  const shortName = `simulador-mtc-${environment}-${plan.id}-mensual`;
+  const listed = await culqiRequest('/recurrent/plans?limit=100');
+  let providerPlan = providerItems(listed.data).find((item: any) => item?.short_name === shortName);
+
+  if (!providerPlan) {
+    const created = await culqiRequest('/recurrent/plans/create', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: `${cleanText(plan.nombre, 36)} mensual`,
+        short_name: shortName,
+        description: 'Acceso mensual al Simulador MTC con renovacion automatica',
+        amount,
+        currency: 'PEN',
+        interval_unit_time: 3,
+        interval_count: 0,
+        initial_cycles: {
+          count: 0,
+          has_initial_charge: false,
+          amount: 0,
+          interval_unit_time: 3,
+        },
+        metadata: {
+          app_plan_id: String(plan.id),
+          environment: Deno.env.get('APP_ENV') || 'development',
+        },
+      }),
+    });
+    if (!created.response.ok || !providerId(created.data?.id, 'pln')) {
+      throw new ProviderError(
+        safeProviderMessage(created.data, 'No se pudo configurar el plan mensual'),
+        'subscription_plan_failed',
+        502,
+        false,
+        providerErrorCode(created.data),
+        created.requestId,
+      );
+    }
+    const verified = await culqiRequest(`/recurrent/plans/${encodeURIComponent(created.data.id)}`);
+    providerPlan = verified.response.ok ? verified.data : created.data;
+  }
+
+  const planId = providerId(providerPlan?.id, 'pln');
+  if (!planId
+    || Number(providerPlan?.amount) !== amount
+    || String(providerPlan?.currency || '').toUpperCase() !== 'PEN'
+    || Number(providerPlan?.interval_unit_time) !== 3) {
+    throw new ProviderError('Culqi devolvio un plan mensual invalido', 'subscription_plan_mismatch', 502);
+  }
+
+  const { error } = await supabase.from('configuracion_planes_culqi').upsert({
+    id_plan_membresia: plan.id,
+    ambiente: environment,
+    culqi_plan_id: planId,
+    monto_centimos: amount,
+    moneda: 'PEN',
+    intervalo_unidad: 3,
+    actualizado_en: new Date().toISOString(),
+  }, { onConflict: 'id_plan_membresia,ambiente' });
+  if (error) throw new Error(`No se pudo guardar el plan Culqi: ${error.message}`);
+  return planId;
+}
+
+async function ensureCulqiCustomer(supabase: any, dbUser: any, billing: BillingInput) {
+  const email = culqiProviderEmail(dbUser.correo_electronico).toLowerCase();
+  const { data: previous } = await supabase
+    .from('suscripciones_culqi')
+    .select('culqi_customer_id')
+    .eq('id_usuario', dbUser.id)
+    .not('culqi_customer_id', 'is', null)
+    .order('creado_en', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (providerId(previous?.culqi_customer_id, 'cus')) {
+    const existing = await culqiRequest(`/customers/${encodeURIComponent(previous.culqi_customer_id)}`);
+    if (existing.response.ok && String(existing.data?.email || '').toLowerCase() === email) return previous.culqi_customer_id;
+  }
+
+  const listed = await culqiRequest(`/customers?email=${encodeURIComponent(email)}&limit=100`);
+  const listedCustomer = providerItems(listed.data).find((item: any) => String(item?.email || '').toLowerCase() === email);
+  if (providerId(listedCustomer?.id, 'cus')) return listedCustomer.id;
+
+  const created = await culqiRequest('/customers', {
+    method: 'POST',
+    body: JSON.stringify({
+      first_name: culqiPersonName(dbUser.primer_nombre || billing.customerName.split(' ')[0], 'Cliente'),
+      last_name: culqiPersonName(dbUser.apellido || billing.customerName.split(' ').slice(1).join(' '), 'Simulador'),
+      email,
+      address: billing.fiscalAddress || 'Lima Peru',
+      address_city: 'Lima',
+      country_code: 'PE',
+      phone_number: billing.phone || '999999999',
+      metadata: { app_user_id: String(dbUser.id) },
+    }),
+  });
+  if (!created.response.ok || !providerId(created.data?.id, 'cus')) {
+    throw new ProviderError(
+      safeProviderMessage(created.data, 'No se pudo registrar al cliente en Culqi'),
+      'subscription_customer_failed',
+      422,
+      false,
+      providerErrorCode(created.data),
+      created.requestId,
+    );
+  }
+  return created.data.id;
+}
+
+async function createCulqiCard(customerId: string, tokenId: string, authentication3ds: any, transactionId: number) {
+  const created = await culqiRequest('/cards', {
+    method: 'POST',
+    body: JSON.stringify({
+      customer_id: customerId,
+      token_id: tokenId,
+      validate: false,
+      metadata: { transaction_id: String(transactionId) },
+      ...(authentication3ds ? { authentication_3DS: authentication3ds } : {}),
+    }),
+  });
+  if (requires3ds(created.response.status, created.data)) {
+    throw new ProviderError(
+      safeProviderMessage(created.data, 'Tu banco necesita confirmar que eres el titular'),
+      'requires_3ds',
+      200,
+      true,
+      providerErrorCode(created.data),
+      created.requestId,
+    );
+  }
+  if (!created.response.ok || !providerId(created.data?.id, 'crd')) {
+    throw new ProviderError(
+      safeProviderMessage(created.data, 'No se pudo registrar la tarjeta para la suscripcion'),
+      'subscription_card_failed',
+      422,
+      false,
+      providerErrorCode(created.data),
+      created.requestId,
+    );
+  }
+  return created.data;
+}
+
+async function createCulqiSubscription(cardId: string, planId: string, transaction: any, dbUser: any) {
+  const created = await culqiRequest('/recurrent/subscriptions/create', {
+    method: 'POST',
+    body: JSON.stringify({
+      card_id: cardId,
+      plan_id: planId,
+      tyc: true,
+      metadata: {
+        transaction_id: String(transaction.id),
+        user_id: String(dbUser.id),
+        plan_id: String(transaction.id_plan_membresia),
+        environment: Deno.env.get('APP_ENV') || 'development',
+      },
+    }),
+  });
+  if (!created.response.ok || !providerId(created.data?.id, 'sxn')) {
+    throw new ProviderError(
+      safeProviderMessage(created.data, 'No se pudo activar la renovacion mensual'),
+      'subscription_creation_failed',
+      422,
+      false,
+      providerErrorCode(created.data),
+      created.requestId,
+    );
+  }
+  return created.data;
+}
+
 function verifyCharge(charge: any, transaction: any, dbUser: any, plan: any) {
   const metadata = charge?.metadata || {};
   const amount = Math.round(Number(plan.precio) * 100);
@@ -286,6 +552,24 @@ function verifyCharge(charge: any, transaction: any, dbUser: any, plan: any) {
 
   if (!matches) {
     throw new ProviderError('La verificacion del cargo no coincide con la compra', 'provider_verification_failed', 502);
+  }
+}
+
+function verifyRecurringCharge(charge: any, recurring: any, providerSubscription: any, dbUser: any, plan: any) {
+  const amount = Math.round(Number(plan.precio) * 100);
+  const providerChargeIds = subscriptionChargeIds(providerSubscription);
+  const matches = providerId(charge?.id, 'chr')
+    && Number(charge.amount) === amount
+    && String(charge.currency_code || charge.currency || '').toUpperCase() === 'PEN'
+    && String(charge.email || '').toLowerCase() === culqiProviderEmail(dbUser.correo_electronico).toLowerCase()
+    && chargeSourceId(charge) === recurring.culqi_card_id
+    && subscriptionPlanId(providerSubscription) === recurring.culqi_plan_id
+    && providerId(providerSubscription?.id, 'sxn') === recurring.culqi_subscription_id
+    && (providerChargeIds.length === 0 || providerChargeIds.includes(charge.id))
+    && isApprovedCharge(charge);
+
+  if (!matches) {
+    throw new ProviderError('La verificacion del cobro recurrente no coincide con la suscripcion', 'subscription_charge_verification_failed', 502);
   }
 }
 
@@ -444,6 +728,227 @@ async function completeVerifiedPayment(supabase: any, transaction: any, dbUser: 
   return { membership, receipt };
 }
 
+async function syncRecurringSubscription(supabase: any, recurringId: number, providerSubscription: any, extra: Record<string, unknown> = {}) {
+  const snapshot = subscriptionSnapshot(providerSubscription);
+  const { data, error } = await supabase
+    .from('suscripciones_culqi')
+    .update({
+      estado: snapshot.state,
+      renovacion_automatica: !['cancelada', 'finalizada'].includes(snapshot.state),
+      proximo_cobro_en: snapshot.nextBillingAt,
+      periodo_actual: snapshot.currentPeriod,
+      mensaje_error: null,
+      actualizado_en: new Date().toISOString(),
+      ...extra,
+    })
+    .eq('id', recurringId)
+    .select('*')
+    .single();
+  if (error || !data) throw new Error(`No se pudo actualizar la suscripcion: ${error?.message || 'sin datos'}`);
+  return data;
+}
+
+async function completeRecurringCharge(
+  supabase: any,
+  recurring: any,
+  providerSubscription: any,
+  charge: any,
+  requestId: string,
+) {
+  const { dbUser, plan } = await getCanonicalData(supabase, recurring.id_usuario, recurring.id_plan_membresia);
+  verifyRecurringCharge(charge, recurring, providerSubscription, dbUser, plan);
+
+  let { data: transaction } = await supabase
+    .from('transacciones_pago')
+    .select('*')
+    .eq('culqi_charge_id', charge.id)
+    .maybeSingle();
+
+  if (!transaction) {
+    const { data: initial } = await supabase
+      .from('transacciones_pago')
+      .select('*')
+      .eq('id', recurring.id_transaccion_inicial)
+      .single();
+    if (initial && initial.estado !== 'exitoso' && !initial.culqi_charge_id) {
+      const { data: updated, error } = await supabase
+        .from('transacciones_pago')
+        .update({
+          culqi_charge_id: charge.id,
+          culqi_subscription_id: recurring.culqi_subscription_id,
+          estado: 'procesando',
+          actualizado_en: new Date().toISOString(),
+        })
+        .eq('id', initial.id)
+        .select()
+        .single();
+      if (error || !updated) throw new Error(`No se pudo asociar el primer cobro: ${error?.message || 'sin datos'}`);
+      transaction = updated;
+    }
+  }
+
+  if (!transaction) {
+    const { data: inserted, error } = await supabase
+      .from('transacciones_pago')
+      .insert({
+        id_usuario: recurring.id_usuario,
+        id_plan_membresia: recurring.id_plan_membresia,
+        culqi_charge_id: charge.id,
+        culqi_subscription_id: recurring.culqi_subscription_id,
+        monto: Number(plan.precio),
+        moneda: 'PEN',
+        metodo_pago: 'tarjeta',
+        origen_cobro: 'renovacion_automatica',
+        estado: 'procesando',
+        descripcion: `${plan.nombre} - renovacion mensual`,
+        correo_cliente: dbUser.correo_electronico,
+        telefono_cliente: recurring.datos_facturacion?.phone || null,
+        datos_facturacion: recurring.datos_facturacion,
+        culqi_token_id: null,
+        respuesta_culqi: null,
+      })
+      .select()
+      .single();
+    if (error || !inserted) {
+      if (error?.code === '23505') {
+        const { data: concurrent } = await supabase.from('transacciones_pago').select('*').eq('culqi_charge_id', charge.id).single();
+        transaction = concurrent;
+      } else {
+        throw new Error(`No se pudo registrar la renovacion: ${error?.message || 'sin datos'}`);
+      }
+    } else {
+      transaction = inserted;
+    }
+  }
+
+  if (!transaction) throw new Error('No se encontro la transaccion recurrente');
+  const billing = normalizeBilling(recurring.datos_facturacion, `${dbUser.primer_nombre || ''} ${dbUser.apellido || ''}`.trim());
+  const membership = await finalizePayment(supabase, transaction, charge, requestId);
+  const receipt = await ensureReceipt(supabase, transaction, billing);
+  await sendConfirmationEmail(supabase, dbUser, plan, transaction, membership, receipt).catch((error) => {
+    console.error('[PAYMENT] Recurring Resend error', { transactionId: transaction.id, message: cleanText(error, 200) });
+  });
+  await syncRecurringSubscription(supabase, recurring.id, providerSubscription);
+  return { transaction, membership, receipt };
+}
+
+async function startRecurringSubscription(
+  supabase: any,
+  transaction: any,
+  dbUser: any,
+  plan: any,
+  billing: BillingInput,
+  tokenId: string,
+  authentication3ds: any,
+) {
+  const acceptedAt = new Date().toISOString();
+  let { data: recurring, error: recurringError } = await supabase
+    .from('suscripciones_culqi')
+    .select('*')
+    .eq('id_transaccion_inicial', transaction.id)
+    .maybeSingle();
+
+  if (!recurring) {
+    const inserted = await supabase
+      .from('suscripciones_culqi')
+      .insert({
+        id_usuario: dbUser.id,
+        id_plan_membresia: plan.id,
+        id_transaccion_inicial: transaction.id,
+        estado: 'preparando',
+        renovacion_automatica: true,
+        datos_facturacion: billing,
+        terminos_aceptados_en: acceptedAt,
+      })
+      .select()
+      .single();
+    recurring = inserted.data;
+    recurringError = inserted.error;
+  }
+  if (recurringError || !recurring) {
+    if (recurringError?.code === '23505') {
+      throw new ProviderError('Ya tienes una suscripcion mensual activa', 'subscription_already_active', 409);
+    }
+    throw new Error(`No se pudo preparar la suscripcion: ${recurringError?.message || 'sin datos'}`);
+  }
+
+  let createdCardId = '';
+  let createdSubscriptionId = '';
+  try {
+    const planId = recurring.culqi_plan_id || await ensureCulqiPlan(supabase, plan);
+    const customerId = recurring.culqi_customer_id || await ensureCulqiCustomer(supabase, dbUser, billing);
+    const card = await createCulqiCard(customerId, tokenId, authentication3ds, transaction.id);
+    createdCardId = card.id;
+    const cardData = cardSummary(card);
+    await supabase.from('suscripciones_culqi').update({
+      culqi_plan_id: planId,
+      culqi_customer_id: customerId,
+      culqi_card_id: card.id,
+      culqi_card_brand: cardData.brand || null,
+      culqi_card_last4: cardData.last4 || null,
+      actualizado_en: new Date().toISOString(),
+    }).eq('id', recurring.id);
+
+    const createdSubscription = await createCulqiSubscription(card.id, planId, transaction, dbUser);
+    const subscriptionId = createdSubscription.id;
+    createdSubscriptionId = subscriptionId;
+    const verified = await retrieveCulqiSubscription(subscriptionId);
+    recurring = await syncRecurringSubscription(supabase, recurring.id, verified.subscription, {
+      culqi_plan_id: planId,
+      culqi_customer_id: customerId,
+      culqi_card_id: card.id,
+      culqi_subscription_id: subscriptionId,
+      culqi_card_brand: cardData.brand || null,
+      culqi_card_last4: cardData.last4 || null,
+    });
+    await supabase.from('transacciones_pago').update({
+      culqi_subscription_id: subscriptionId,
+      actualizado_en: new Date().toISOString(),
+    }).eq('id', transaction.id);
+
+    let providerSubscription = verified.subscription;
+    let chargeId = subscriptionChargeIds(providerSubscription).at(-1) || '';
+    for (let attempt = 0; !chargeId && attempt < 3; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 700));
+      providerSubscription = (await retrieveCulqiSubscription(subscriptionId)).subscription;
+      chargeId = subscriptionChargeIds(providerSubscription).at(-1) || '';
+    }
+
+    if (!chargeId) {
+      return {
+        pending: true,
+        subscription: recurring,
+      };
+    }
+
+    const verifiedCharge = await retrieveCulqiCharge(chargeId);
+    const completed = await completeRecurringCharge(
+      supabase,
+      recurring,
+      providerSubscription,
+      verifiedCharge.charge,
+      verifiedCharge.requestId || verified.requestId,
+    );
+    return { pending: false, subscription: recurring, ...completed };
+  } catch (error) {
+    if (createdSubscriptionId && !(error instanceof ProviderError && error.requires3ds)) {
+      await culqiRequest(`/recurrent/subscriptions/${encodeURIComponent(createdSubscriptionId)}`, { method: 'DELETE' }).catch(() => undefined);
+    }
+    if (createdCardId && !(error instanceof ProviderError && error.requires3ds)) {
+      await culqiRequest(`/cards/${encodeURIComponent(createdCardId)}`, { method: 'DELETE' }).catch(() => undefined);
+    }
+    if (!(error instanceof ProviderError && error.requires3ds)) {
+      await supabase.from('suscripciones_culqi').update({
+        estado: 'fallida',
+        renovacion_automatica: false,
+        mensaje_error: cleanText(error instanceof Error ? error.message : error, 240),
+        actualizado_en: new Date().toISOString(),
+      }).eq('id', recurring.id);
+    }
+    throw error;
+  }
+}
+
 export async function handleGetCulqiConfig(_req: Request) {
   try {
     const publicKey = requiredEnv('CULQI_PUBLIC_KEY');
@@ -477,7 +982,8 @@ export async function handleProcesarPago(req: Request) {
     const planId = Number(body.plan_id);
     const tokenId = cleanText(body.token_id, 160);
     const idempotencyKey = cleanText(body.idempotency_key, 40);
-    const paymentMethod = cleanText(body.payment_method, 20).toLowerCase() === 'yape' ? 'yape' : 'tarjeta';
+    const paymentMethod = tokenId.startsWith('ype_') ? 'yape' : 'tarjeta';
+    const acceptsRecurring = body.accept_recurring === true;
     const deviceId = cleanText(body.device_fingerprint_id, 80);
     const authentication3ds = normalize3ds(body.authentication_3DS);
 
@@ -489,6 +995,12 @@ export async function handleProcesarPago(req: Request) {
     }
     if (!TOKEN_PATTERN.test(tokenId)) {
       throw new ProviderError('El token de pago no es valido', 'invalid_token', 400);
+    }
+    if (paymentMethod === 'tarjeta' && !tokenId.startsWith('tkn_')) {
+      throw new ProviderError('La suscripcion mensual requiere una tarjeta valida', 'invalid_card_token', 400);
+    }
+    if (paymentMethod === 'tarjeta' && !acceptsRecurring) {
+      throw new ProviderError('Debes autorizar el cobro mensual para suscribirte', 'recurring_terms_required', 400);
     }
     if ((Deno.env.get('APP_ENV') || 'development') !== 'production' && !tokenId.includes('_test_')) {
       throw new ProviderError('DEV solo admite tokens Culqi de prueba', 'live_token_blocked', 400);
@@ -513,7 +1025,7 @@ export async function handleProcesarPago(req: Request) {
     if (existing) {
       transaction = existing;
       if (existing.estado === 'exitoso') {
-        const [{ data: membership }, { data: receipt }] = await Promise.all([
+        const [{ data: membership }, { data: receipt }, { data: recurring }] = await Promise.all([
           supabase
             .from('membresias_usuario')
             .select('id, fecha_inicio, fecha_fin')
@@ -527,6 +1039,11 @@ export async function handleProcesarPago(req: Request) {
             .select('id, tipo_comprobante, serie, numero, estado_sunat')
             .eq('id_transaccion', existing.id)
             .maybeSingle(),
+          supabase
+            .from('suscripciones_culqi')
+            .select('estado, renovacion_automatica, proximo_cobro_en, culqi_card_brand, culqi_card_last4')
+            .eq('id_transaccion_inicial', existing.id)
+            .maybeSingle(),
         ]);
         return jsonResponse({
           success: true,
@@ -534,6 +1051,7 @@ export async function handleProcesarPago(req: Request) {
           transactionId: existing.id,
           membership,
           receipt,
+          subscription: recurring,
         });
       }
       if (existing.culqi_token_hash !== tokenHash) {
@@ -541,6 +1059,14 @@ export async function handleProcesarPago(req: Request) {
       }
       if (existing.estado === 'pendiente_3ds' && !authentication3ds) {
         return jsonResponse({ success: false, requires3ds: true, transactionId: existing.id });
+      }
+      if (existing.estado === 'procesando' && paymentMethod === 'tarjeta') {
+        const { data: recurring } = await supabase
+          .from('suscripciones_culqi')
+          .select('estado, renovacion_automatica, proximo_cobro_en, culqi_subscription_id')
+          .eq('id_transaccion_inicial', existing.id)
+          .maybeSingle();
+        return jsonResponse({ success: true, pending: true, transactionId: existing.id, subscription: recurring });
       }
       if (existing.estado !== 'pendiente_3ds') {
         throw new ProviderError('Este intento ya fue procesado. Vuelve a abrir Culqi.', 'idempotency_conflict', 409);
@@ -556,6 +1082,7 @@ export async function handleProcesarPago(req: Request) {
           monto: Number(plan.precio),
           moneda: 'PEN',
           metodo_pago: paymentMethod,
+          origen_cobro: paymentMethod === 'tarjeta' ? 'suscripcion_inicial' : 'pago_unico',
           estado: 'procesando',
           descripcion: `${plan.nombre} - Simulador MTC`,
           correo_cliente: dbUser.correo_electronico,
@@ -573,6 +1100,53 @@ export async function handleProcesarPago(req: Request) {
         throw new Error(`No se pudo crear la transaccion: ${insertError?.message || 'sin datos'}`);
       }
       transaction = inserted;
+    }
+
+    if (paymentMethod === 'tarjeta') {
+      try {
+        const recurring = await startRecurringSubscription(
+          supabase,
+          transaction,
+          dbUser,
+          plan,
+          billing,
+          tokenId,
+          authentication3ds,
+        );
+        return jsonResponse({
+          success: true,
+          pending: recurring.pending,
+          transactionId: transaction.id,
+          subscription: recurring.subscription ? {
+            status: recurring.subscription.estado,
+            autoRenew: recurring.subscription.renovacion_automatica,
+            nextBillingAt: recurring.subscription.proximo_cobro_en,
+            cardBrand: recurring.subscription.culqi_card_brand,
+            cardLast4: recurring.subscription.culqi_card_last4,
+          } : null,
+          membership: recurring.membership,
+          receipt: recurring.receipt,
+        });
+      } catch (error) {
+        if (error instanceof ProviderError && error.requires3ds) {
+          await supabase
+            .from('transacciones_pago')
+            .update({
+              estado: 'pendiente_3ds',
+              culqi_outcome_code: error.providerCode || null,
+              culqi_request_id: error.requestId || null,
+              actualizado_en: new Date().toISOString(),
+            })
+            .eq('id', transaction.id);
+          return jsonResponse({
+            success: false,
+            requires3ds: true,
+            transactionId: transaction.id,
+            message: error.message,
+          });
+        }
+        throw error;
+      }
     }
 
     const chargePayload: Record<string, unknown> = {
@@ -684,6 +1258,149 @@ export async function handleSimularPago(_req: Request) {
   return errorResponse('La simulacion fue deshabilitada. Usa Culqi DEV.', 503);
 }
 
+function publicSubscription(recurring: any) {
+  if (!recurring) return null;
+  return {
+    status: recurring.estado,
+    autoRenew: recurring.renovacion_automatica === true,
+    nextBillingAt: recurring.proximo_cobro_en,
+    currentPeriod: recurring.periodo_actual,
+    cardBrand: recurring.culqi_card_brand,
+    cardLast4: recurring.culqi_card_last4,
+    cancelledAt: recurring.cancelada_en,
+    createdAt: recurring.creado_en,
+  };
+}
+
+export async function handleGetCulqiSubscription(req: Request) {
+  try {
+    const user = await getUserFromToken(req);
+    if (!user) return unauthorizedResponse();
+    const supabase = getSupabaseClient();
+    const { data: recurring, error } = await supabase
+      .from('suscripciones_culqi')
+      .select('*')
+      .eq('id_usuario', user.userId)
+      .order('creado_en', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    if (!recurring) return jsonResponse(null);
+
+    let current = recurring;
+    if (providerId(recurring.culqi_subscription_id, 'sxn') && recurring.renovacion_automatica) {
+      try {
+        const provider = await retrieveCulqiSubscription(recurring.culqi_subscription_id);
+        current = await syncRecurringSubscription(supabase, recurring.id, provider.subscription, {
+          cancelada_en: [4, 6].includes(Number(provider.subscription?.status))
+            ? recurring.cancelada_en || new Date().toISOString()
+            : recurring.cancelada_en,
+        });
+
+        for (const chargeId of subscriptionChargeIds(provider.subscription)) {
+          const { data: paid } = await supabase
+            .from('transacciones_pago')
+            .select('estado')
+            .eq('culqi_charge_id', chargeId)
+            .maybeSingle();
+          if (paid?.estado === 'exitoso') continue;
+
+          try {
+            const verifiedCharge = await retrieveCulqiCharge(chargeId);
+            await completeRecurringCharge(
+              supabase,
+              current,
+              provider.subscription,
+              verifiedCharge.charge,
+              verifiedCharge.requestId,
+            );
+          } catch (chargeError) {
+            console.warn('[PAYMENT] Subscription charge reconciliation skipped', {
+              subscriptionId: recurring.culqi_subscription_id,
+              chargeId,
+              message: cleanText(chargeError, 160),
+            });
+          }
+        }
+      } catch (providerError) {
+        console.warn('[PAYMENT] Subscription status refresh failed', { subscriptionId: recurring.culqi_subscription_id });
+      }
+    }
+    return jsonResponse(publicSubscription(current));
+  } catch (error) {
+    console.error('[PAYMENT] Subscription status error', { message: cleanText(error, 160) });
+    return errorResponse('No pudimos consultar tu renovacion mensual', 500);
+  }
+}
+
+export async function handleCancelCulqiSubscription(req: Request) {
+  try {
+    const user = await getUserFromToken(req);
+    if (!user) return unauthorizedResponse();
+    const supabase = getSupabaseClient();
+    const { data: recurring, error } = await supabase
+      .from('suscripciones_culqi')
+      .select('*')
+      .eq('id_usuario', user.userId)
+      .eq('renovacion_automatica', true)
+      .in('estado', ['preparando', 'creada', 'activa', 'en_cola'])
+      .order('creado_en', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    if (!recurring) return errorResponse('No tienes una renovacion automatica activa', 404);
+
+    if (providerId(recurring.culqi_subscription_id, 'sxn')) {
+      const cancelled = await culqiRequest(`/recurrent/subscriptions/${encodeURIComponent(recurring.culqi_subscription_id)}`, { method: 'DELETE' });
+      if (!cancelled.response.ok) {
+        throw new ProviderError(
+          safeProviderMessage(cancelled.data, 'Culqi no pudo cancelar la suscripcion'),
+          'subscription_cancel_failed',
+          502,
+          false,
+          providerErrorCode(cancelled.data),
+          cancelled.requestId,
+        );
+      }
+    }
+
+    if (providerId(recurring.culqi_card_id, 'crd')) {
+      await culqiRequest(`/cards/${encodeURIComponent(recurring.culqi_card_id)}`, { method: 'DELETE' }).catch(() => undefined);
+    }
+
+    const cancelledAt = new Date().toISOString();
+    const { data: updated, error: updateError } = await supabase
+      .from('suscripciones_culqi')
+      .update({
+        estado: 'cancelada',
+        renovacion_automatica: false,
+        proximo_cobro_en: null,
+        cancelada_en: cancelledAt,
+        actualizado_en: cancelledAt,
+      })
+      .eq('id', recurring.id)
+      .select('*')
+      .single();
+    if (updateError || !updated) throw new Error(`No se pudo guardar la cancelacion: ${updateError?.message || 'sin datos'}`);
+
+    const { data: membership } = await supabase
+      .from('membresias_usuario')
+      .select('fecha_fin')
+      .eq('id_usuario', user.userId)
+      .eq('esta_activa', true)
+      .order('fecha_fin', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return jsonResponse({ success: true, subscription: publicSubscription(updated), accessUntil: membership?.fecha_fin || null });
+  } catch (error) {
+    const providerError = error instanceof ProviderError
+      ? error
+      : new ProviderError('No pudimos cancelar la renovacion. Intenta nuevamente.', 'subscription_cancel_failed', 500);
+    console.error('[PAYMENT] Subscription cancellation error', { code: providerError.publicCode });
+    return jsonResponse({ success: false, error: providerError.message, code: providerError.publicCode }, providerError.status);
+  }
+}
+
 export async function handleGetHistorialPagos(req: Request) {
   try {
     const user = await getUserFromToken(req);
@@ -750,13 +1467,38 @@ export async function handleGetReceipt(req: Request, receiptId: string) {
   }
 }
 
-function extractWebhookChargeId(payload: any) {
-  return cleanText(
-    payload?.data?.object?.id
-      || payload?.data?.id
+function webhookData(payload: any) {
+  if (typeof payload?.data !== 'string') return payload?.data || payload;
+  try {
+    return JSON.parse(payload.data);
+  } catch {
+    return {};
+  }
+}
+
+function extractWebhookChargeIds(payload: any) {
+  const data = webhookData(payload);
+  const ids = [...new Set([...subscriptionChargeIds(data), ...subscriptionChargeIds(data?.object)])];
+  const direct = providerId(
+    data?.object?.id
+      || data?.id
       || payload?.object?.id
       || (payload?.object === 'charge' ? payload?.id : ''),
-    100,
+    'chr',
+  );
+  if (direct && !ids.includes(direct)) ids.push(direct);
+  return ids;
+}
+
+function extractWebhookSubscriptionId(payload: any) {
+  const data = webhookData(payload);
+  return providerId(
+    data?.culqi_subscription_id
+      || data?.subscription_id
+      || data?.subscription?.id
+      || data?.id
+      || data?.object?.id,
+    'sxn',
   );
 }
 
@@ -782,13 +1524,15 @@ export async function handleCulqiWebhook(req: Request, suppliedToken: string) {
   const payloadHash = await sha256Hex(raw);
   const eventId = cleanText(payload?.event_id || payload?.id, 160) || payloadHash;
   const eventType = cleanText(payload?.type || payload?.event, 100);
-  const chargeId = extractWebhookChargeId(payload);
+  const chargeIds = extractWebhookChargeIds(payload);
+  const subscriptionId = extractWebhookSubscriptionId(payload);
+  const objectId = subscriptionId || chargeIds[0] || '';
   const { data: event, error: eventError } = await supabase
     .from('eventos_webhook_culqi')
     .upsert({
       event_id: eventId,
       event_type: eventType,
-      culqi_object_id: chargeId || null,
+      culqi_object_id: objectId || null,
       payload_hash: payloadHash,
     }, { onConflict: 'event_id', ignoreDuplicates: true })
     .select('id, procesado')
@@ -799,31 +1543,75 @@ export async function handleCulqiWebhook(req: Request, suppliedToken: string) {
     return errorResponse('No pudimos registrar el evento', 500);
   }
   if (!event) return jsonResponse({ received: true, duplicate: true });
-  if (!chargeId) {
+  if (!subscriptionId && chargeIds.length === 0) {
     await supabase.from('eventos_webhook_culqi').update({ procesado: true, procesado_en: new Date().toISOString() }).eq('id', event.id);
     return jsonResponse({ received: true, ignored: true });
   }
 
   try {
-    const verified = await retrieveCulqiCharge(chargeId);
-    const transactionId = Number(verified.charge?.metadata?.transaction_id);
-    if (!Number.isInteger(transactionId) || transactionId <= 0) throw new Error('Cargo sin transaction_id valido');
-    const { data: transaction, error: txError } = await supabase
-      .from('transacciones_pago')
-      .select('*')
-      .eq('id', transactionId)
-      .single();
-    if (txError || !transaction) throw new Error('Transaccion no encontrada');
-    const { dbUser, plan } = await getCanonicalData(supabase, transaction.id_usuario, transaction.id_plan_membresia);
-    const billing = normalizeBilling(transaction.datos_facturacion, `${dbUser.primer_nombre || ''} ${dbUser.apellido || ''}`.trim());
+    if (subscriptionId) {
+      const { data: recurring, error: recurringError } = await supabase
+        .from('suscripciones_culqi')
+        .select('*')
+        .eq('culqi_subscription_id', subscriptionId)
+        .single();
+      if (recurringError || !recurring) throw new Error('Suscripcion local no encontrada');
+      const provider = await retrieveCulqiSubscription(subscriptionId);
+      const current = await syncRecurringSubscription(supabase, recurring.id, provider.subscription, {
+        cancelada_en: [4, 6].includes(Number(provider.subscription?.status))
+          ? recurring.cancelada_en || new Date().toISOString()
+          : recurring.cancelada_en,
+      });
+      if (!['cancelada', 'finalizada'].includes(current.estado)) {
+        const pendingChargeIds = [...new Set([...chargeIds, ...subscriptionChargeIds(provider.subscription)])];
+        for (const chargeId of pendingChargeIds) {
+          const { data: paid } = await supabase
+            .from('transacciones_pago')
+            .select('estado')
+            .eq('culqi_charge_id', chargeId)
+            .maybeSingle();
+          if (paid?.estado === 'exitoso') continue;
+          const verifiedCharge = await retrieveCulqiCharge(chargeId);
+          await completeRecurringCharge(supabase, current, provider.subscription, verifiedCharge.charge, verifiedCharge.requestId);
+        }
+      }
+    } else {
+      const chargeId = chargeIds[0];
+      const verified = await retrieveCulqiCharge(chargeId);
+      const transactionId = Number(verified.charge?.metadata?.transaction_id);
+      if (Number.isInteger(transactionId) && transactionId > 0) {
+        const { data: transaction, error: txError } = await supabase
+          .from('transacciones_pago')
+          .select('*')
+          .eq('id', transactionId)
+          .single();
+        if (txError || !transaction) throw new Error('Transaccion no encontrada');
+        const { dbUser, plan } = await getCanonicalData(supabase, transaction.id_usuario, transaction.id_plan_membresia);
+        const billing = normalizeBilling(transaction.datos_facturacion, `${dbUser.primer_nombre || ''} ${dbUser.apellido || ''}`.trim());
 
-    if (!transaction.culqi_charge_id) {
-      await supabase.from('transacciones_pago').update({ culqi_charge_id: chargeId }).eq('id', transaction.id);
-      transaction.culqi_charge_id = chargeId;
+        if (!transaction.culqi_charge_id) {
+          await supabase.from('transacciones_pago').update({ culqi_charge_id: chargeId }).eq('id', transaction.id);
+          transaction.culqi_charge_id = chargeId;
+        }
+        if (transaction.culqi_charge_id !== chargeId) throw new Error('El cargo no coincide con la transaccion');
+        await completeVerifiedPayment(supabase, transaction, dbUser, plan, billing, verified.charge, verified.requestId);
+      } else {
+        const cardId = chargeSourceId(verified.charge);
+        if (!providerId(cardId, 'crd')) throw new Error('Cargo sin referencia de tarjeta o transaccion');
+        const { data: recurring, error: recurringError } = await supabase
+          .from('suscripciones_culqi')
+          .select('*')
+          .eq('culqi_card_id', cardId)
+          .in('estado', ['creada', 'activa', 'en_cola'])
+          .eq('renovacion_automatica', true)
+          .order('creado_en', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (recurringError || !recurring) throw new Error('Cobro recurrente sin suscripcion local');
+        const provider = await retrieveCulqiSubscription(recurring.culqi_subscription_id);
+        await completeRecurringCharge(supabase, recurring, provider.subscription, verified.charge, verified.requestId);
+      }
     }
-    if (transaction.culqi_charge_id !== chargeId) throw new Error('El cargo no coincide con la transaccion');
-
-    await completeVerifiedPayment(supabase, transaction, dbUser, plan, billing, verified.charge, verified.requestId);
     await supabase
       .from('eventos_webhook_culqi')
       .update({ procesado: true, procesado_en: new Date().toISOString(), mensaje_error: null })
