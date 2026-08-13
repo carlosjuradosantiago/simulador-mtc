@@ -1,1017 +1,794 @@
-/**
- * Payment Handler - Procesar pagos con Culqi
- * Soporta: Tarjeta de crédito/débito y Yape
- */
-
-import { getSupabaseClient } from '../_shared/supabase.ts';
 import { getUserFromToken } from '../_shared/auth.ts';
-import { jsonResponse, errorResponse, unauthorizedResponse } from '../_shared/response.ts';
-import { addCalendarMonths, SIMULATED_PAYMENT_METHOD } from '../_shared/membership-access.ts';
-import { Resend } from 'npm:resend@2.0.0';
+import { sendEmail } from '../_shared/email.ts';
+import { errorResponse, jsonResponse, unauthorizedResponse } from '../_shared/response.ts';
+import { getSupabaseClient } from '../_shared/supabase.ts';
+import { generateAndSendTaxDocument, isSunatConfigurationReady } from '../_shared/sunat.ts';
 
-// Configuración de Culqi
-const CULQI_SECRET_KEY = Deno.env.get('CULQI_SECRET_KEY') || '';
 const CULQI_API_URL = 'https://api.culqi.com/v2';
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const TOKEN_PATTERN = /^[a-z]{3,12}_(?:test|live)_[a-z0-9]+$/i;
+const RUC_WEIGHTS = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
 
-// Configuración de Resend
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || '';
-const PAYMENT_SIMULATION_ENABLED = Deno.env.get('PAYMENT_SIMULATION_ENABLED') !== 'false';
+type BillingInput = {
+  receiptType: 'boleta' | 'factura';
+  documentType: 'DNI' | 'RUC';
+  documentNumber: string;
+  customerName: string;
+  businessName: string;
+  fiscalAddress: string;
+  phone: string;
+};
 
-interface PaymentRequest {
-  token_id: string;
-  amount: number; // En centavos
-  currency: string;
-  email: string;
-  description: string;
-  plan_id: number | string; // Acepta tanto number como string
-  metodo_pago: 'tarjeta' | 'yape';
-  // Datos del cliente del PreCheckout
-  nombres?: string;
-  apellidos?: string;
-  telefono?: string;
-  tipo_documento?: string;
-  numero_documento?: string;
-  tipo_comprobante?: string;
-  razon_social?: string;
-  direccion_fiscal?: string;
-  // 3DS Authentication (retry con parámetros 3DS)
-  authentication_3DS?: {
-    eci: string;
-    xid: string;
-    cavv: string;
-    protocolVersion: string;
-    directoryServerTransactionId?: string;
-  };
-  device_finger_print_id?: string;
+type PaymentRequest = {
+  token_id?: unknown;
+  plan_id?: unknown;
+  idempotency_key?: unknown;
+  payment_method?: unknown;
+  device_fingerprint_id?: unknown;
+  billing?: Record<string, unknown>;
+  authentication_3DS?: Record<string, unknown>;
+};
+
+class ProviderError extends Error {
+  publicCode: string;
+  status: number;
+  requires3ds: boolean;
+
+  constructor(message: string, publicCode = 'payment_failed', status = 422, requires3ds = false) {
+    super(message);
+    this.publicCode = publicCode;
+    this.status = status;
+    this.requires3ds = requires3ds;
+  }
 }
 
-interface CulqiChargeRequest {
-  amount: number;
-  currency_code: string;
-  email: string;
-  source_id: string;
-  description?: string;
-  antifraud_details?: {
-    first_name: string;
-    last_name: string;
-    address: string;
-    address_city: string;
-    country_code: string;
-    phone_number: string;
-    device_finger_print_id?: string;
-  };
-  metadata?: Record<string, any>;
-  authentication_3DS?: {
-    eci: string;
-    xid: string;
-    cavv: string;
-    protocolVersion: string;
-    directoryServerTransactionId?: string;
-  };
+function requiredEnv(name: string) {
+  const value = Deno.env.get(name)?.trim();
+  if (!value) throw new Error(`${name} no esta configurado`);
+  return value;
 }
 
-interface CulqiChargeResponse {
-  id: string;
-  object: string;
-  amount: number;
-  currency_code: string;
-  email: string;
-  outcome: {
-    type: string;
-    code: string;
-    merchant_message: string;
-    user_message: string;
-  };
-  creation_date: number;
-  [key: string]: any;
+function cleanText(value: unknown, maxLength: number) {
+  return String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, maxLength);
 }
 
-/**
- * Enviar email de confirmación de pago usando Resend
- */
-async function sendPaymentConfirmationEmail(data: {
-  email: string;
-  userName: string;
-  planName: string;
-  amount: number;
-  transactionId: string;
-  membershipEndDate: Date;
-}) {
-  // Solo intentar enviar si hay API key configurada
-  if (!RESEND_API_KEY) {
-    console.log('⚠️ RESEND_API_KEY no configurada, email no enviado');
-    return false;
+function escapeHtml(value: unknown) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function bytesToBase64(bytes: Uint8Array) {
+  let binary = '';
+  for (let index = 0; index < bytes.length; index += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+  }
+  return btoa(binary);
+}
+
+function isValidRuc(value: string) {
+  if (!/^\d{11}$/.test(value)) return false;
+  const sum = RUC_WEIGHTS.reduce((total, weight, index) => total + Number(value[index]) * weight, 0);
+  const remainder = 11 - (sum % 11);
+  const checkDigit = remainder === 10 ? 0 : remainder === 11 ? 1 : remainder;
+  return checkDigit === Number(value[10]);
+}
+
+function normalizeBilling(raw: Record<string, unknown> | undefined, fallbackName: string): BillingInput {
+  const receiptType = cleanText(raw?.receiptType ?? raw?.tipoComprobante, 10).toLowerCase();
+  const documentType = cleanText(raw?.documentType ?? raw?.tipoDocumento, 3).toUpperCase();
+  const documentNumber = cleanText(raw?.documentNumber ?? raw?.numeroDocumento, 15).replace(/\D/g, '');
+  const customerName = cleanText(raw?.customerName ?? raw?.nombreCompleto ?? fallbackName, 120);
+  const businessName = cleanText(raw?.businessName ?? raw?.razonSocial, 160);
+  const fiscalAddress = cleanText(raw?.fiscalAddress ?? raw?.direccionFiscal, 220);
+  const phone = cleanText(raw?.phone ?? raw?.telefono, 20).replace(/[^\d+]/g, '');
+
+  if (receiptType !== 'boleta' && receiptType !== 'factura') {
+    throw new ProviderError('Elige boleta o factura', 'invalid_billing', 400);
+  }
+  if (!customerName || customerName.length < 3) {
+    throw new ProviderError('Ingresa el nombre del titular', 'invalid_billing', 400);
+  }
+  if (phone && !/^\+?\d{9,15}$/.test(phone)) {
+    throw new ProviderError('Ingresa un telefono valido', 'invalid_billing', 400);
   }
 
-  try {
-    const resend = new Resend(RESEND_API_KEY);
-    
-    const emailHtml = `
-      <!DOCTYPE html>
-      <html lang="es">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6; 
-            color: #1f2937;
-            background-color: #f3f4f6;
-            padding: 20px;
-          }
-          .email-wrapper { 
-            max-width: 600px; 
-            margin: 0 auto; 
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          }
-          .header { 
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
-            color: white; 
-            padding: 40px 30px; 
-            text-align: center; 
-          }
-          .header h1 { 
-            font-size: 28px; 
-            margin-bottom: 8px;
-            font-weight: 700;
-          }
-          .header p { 
-            font-size: 16px; 
-            opacity: 0.95;
-          }
-          .content { 
-            padding: 40px 30px;
-          }
-          .greeting { 
-            font-size: 18px; 
-            margin-bottom: 20px;
-            color: #374151;
-          }
-          .detail-box { 
-            background: #f9fafb; 
-            padding: 24px; 
-            border-radius: 8px; 
-            margin: 24px 0; 
-            border-left: 4px solid #10b981;
-          }
-          .detail-box h3 { 
-            color: #059669; 
-            margin-bottom: 16px;
-            font-size: 18px;
-          }
-          .detail-row { 
-            display: flex; 
-            justify-content: space-between; 
-            padding: 8px 0;
-            border-bottom: 1px solid #e5e7eb;
-          }
-          .detail-row:last-child { 
-            border-bottom: none; 
-          }
-          .detail-label { 
-            color: #6b7280; 
-            font-weight: 500;
-          }
-          .detail-value { 
-            color: #111827; 
-            font-weight: 600;
-          }
-          .benefits { 
-            background: #ecfdf5; 
-            padding: 20px; 
-            border-radius: 8px; 
-            margin: 24px 0;
-          }
-          .benefits h3 { 
-            color: #059669; 
-            margin-bottom: 12px;
-            font-size: 16px;
-          }
-          .benefits ul { 
-            list-style: none; 
-            padding: 0;
-          }
-          .benefits li { 
-            padding: 8px 0; 
-            color: #374151;
-            display: flex;
-            align-items: center;
-          }
-          .benefits li:before { 
-            content: "✓"; 
-            color: #10b981; 
-            font-weight: bold; 
-            margin-right: 8px;
-            font-size: 18px;
-          }
-          .button-container { 
-            text-align: center; 
-            margin: 30px 0;
-          }
-          .button { 
-            display: inline-block; 
-            padding: 14px 36px; 
-            background: #10b981; 
-            color: white !important; 
-            text-decoration: none; 
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 16px;
-            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
-          }
-          .footer { 
-            background: #f9fafb;
-            text-align: center; 
-            padding: 24px 30px; 
-            color: #6b7280; 
-            font-size: 14px;
-            border-top: 1px solid #e5e7eb;
-          }
-          .footer p { 
-            margin: 8px 0;
-          }
-          .divider { 
-            height: 1px; 
-            background: #e5e7eb; 
-            margin: 24px 0;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="email-wrapper">
-          <div class="header">
-            <h1>🎉 ¡Pago Exitoso!</h1>
-            <p>Tu membresía Premium ha sido activada</p>
-          </div>
-          
-          <div class="content">
-            <p class="greeting">Hola <strong>${data.userName}</strong>,</p>
-            <p>¡Gracias por tu confianza! Tu pago ha sido procesado exitosamente y tu membresía Premium está ahora activa.</p>
-            
-            <div class="detail-box">
-              <h3>📋 Resumen de tu Compra</h3>
-              <div class="detail-row">
-                <span class="detail-label">Plan</span>
-                <span class="detail-value">${data.planName}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Monto Pagado</span>
-                <span class="detail-value">S/ ${data.amount.toFixed(2)}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">ID de Transacción</span>
-                <span class="detail-value">#${data.transactionId}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Fecha de Activación</span>
-                <span class="detail-value">${new Date().toLocaleDateString('es-PE', { 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Válido Hasta</span>
-                <span class="detail-value">${new Date(data.membershipEndDate).toLocaleDateString('es-PE', { 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}</span>
-              </div>
-            </div>
-            
-            <div class="benefits">
-              <h3>✨ Beneficios de tu Membresía Premium</h3>
-              <ul>
-                <li>Exámenes ilimitados sin restricciones</li>
-                <li>Acceso a todas las preguntas actualizadas</li>
-                <li>Modo práctica por categorías</li>
-                <li>Estadísticas detalladas de tu progreso</li>
-                <li>Simulacros cronometrados realistas</li>
-                <li>Historial completo de tus exámenes</li>
-              </ul>
-            </div>
-            
-            <div class="button-container">
-              <a href="${Deno.env.get('APP_URL') || 'http://localhost:4200'}" class="button">
-                🚗 Ir al Simulador MTC
-              </a>
-            </div>
-            
-            <div class="divider"></div>
-            
-            <p style="color: #6b7280; font-size: 14px; text-align: center;">
-              Si tienes alguna pregunta o necesitas ayuda, no dudes en contactarnos.<br>
-              Estamos aquí para ayudarte a aprobar tu examen de licencia de conducir.
-            </p>
-          </div>
-          
-          <div class="footer">
-            <p><strong>Simulador MTC - Perú</strong></p>
-            <p>© ${new Date().getFullYear()} Todos los derechos reservados.</p>
-            <p style="margin-top: 12px; font-size: 12px;">
-              Este es un correo automático, por favor no responder.<br>
-              Conserva este email como comprobante de tu compra.
-            </p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-
-    // Enviar email usando Resend (igual que artrotheca)
-    console.log('📧 Enviando email de confirmación a:', data.email);
-    const { data: emailData, error: emailError } = await resend.emails.send({
-      from: 'Simulador MTC <onboarding@resend.dev>',
-      to: [data.email],
-      subject: `🎉 ¡Pago Exitoso! - ${data.planName} - Simulador MTC`,
-      html: emailHtml,
-    });
-
-    if (emailError) {
-      console.error('❌ Error enviando email:', emailError);
-      return false;
+  if (receiptType === 'factura') {
+    if (documentType !== 'RUC' || !isValidRuc(documentNumber)) {
+      throw new ProviderError('Ingresa un RUC valido de 11 digitos', 'invalid_billing', 400);
     }
-
-    console.log('✅ Email enviado exitosamente:', emailData);
-    return true;
-  } catch (error) {
-    console.error('❌ Error en sendPaymentConfirmationEmail:', error);
-    return false;
-  }
-}
-
-/**
- * Obtener configuración de Culqi (Public Key)
- */
-export async function handleGetCulqiConfig(req: Request) {
-  try {
-    const publicKey = Deno.env.get('CULQI_PUBLIC_KEY') || '';
-    
-    if (!publicKey) {
-      return errorResponse('Configuración de Culqi no disponible', 500);
+    if (businessName.length < 3 || fiscalAddress.length < 5) {
+      throw new ProviderError('Completa la razon social y direccion fiscal', 'invalid_billing', 400);
     }
-
-    return jsonResponse({
-      publicKey
-    });
-  } catch (error) {
-    console.error('Error getting Culqi config:', error);
-    return errorResponse('Error al obtener configuración', 500);
+  } else if (documentType !== 'DNI' || !/^\d{8}$/.test(documentNumber)) {
+    throw new ProviderError('Ingresa un DNI valido de 8 digitos', 'invalid_billing', 400);
   }
+
+  return {
+    receiptType,
+    documentType,
+    documentNumber,
+    customerName,
+    businessName,
+    fiscalAddress,
+    phone,
+  };
 }
 
-/**
- * Crear cargo en Culqi
- * Lee respuesta como texto primero (puede no ser JSON en errores)
- * Verifica outcome del cargo (approved/declined)
- * Detecta cuando se requiere 3DS y retorna señal requires_3ds
- */
-async function createCulqiCharge(chargeData: CulqiChargeRequest): Promise<CulqiChargeResponse> {
-  const url = `${CULQI_API_URL}/charges`;
-  
-  console.log('💳 [CULQI] Enviando cargo:', JSON.stringify(chargeData, null, 2));
+function normalize3ds(raw: Record<string, unknown> | undefined) {
+  if (!raw) return null;
+  const values = {
+    eci: cleanText(raw.eci, 10),
+    xid: cleanText(raw.xid, 256),
+    cavv: cleanText(raw.cavv, 256),
+    protocolVersion: cleanText(raw.protocolVersion, 16),
+    directoryServerTransactionId: cleanText(raw.directoryServerTransactionId, 80),
+  };
+  if (!values.eci || !values.xid || !values.cavv || !values.protocolVersion) {
+    throw new ProviderError('La autenticacion 3DS esta incompleta', 'invalid_3ds', 400);
+  }
+  return values;
+}
 
-  const response = await fetch(url, {
-    method: 'POST',
+async function sha256Hex(value: string) {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function secureEquals(left: string, right: string) {
+  const [leftHash, rightHash] = await Promise.all([sha256Hex(left), sha256Hex(right)]);
+  let difference = 0;
+  for (let index = 0; index < leftHash.length; index += 1) {
+    difference |= leftHash.charCodeAt(index) ^ rightHash.charCodeAt(index);
+  }
+  return difference === 0;
+}
+
+function safeProviderMessage(data: any, fallback: string) {
+  return cleanText(
+    data?.user_message || data?.outcome?.user_message || data?.merchant_message || fallback,
+    220,
+  );
+}
+
+async function culqiRequest(path: string, init: RequestInit = {}) {
+  const secretKey = requiredEnv('CULQI_SECRET_KEY');
+  if ((Deno.env.get('APP_ENV') || 'development') !== 'production' && !secretKey.startsWith('sk_test_')) {
+    throw new Error('DEV solo admite llaves Culqi de prueba');
+  }
+
+  const response = await fetch(`${CULQI_API_URL}${path}`, {
+    ...init,
     headers: {
-      'Authorization': `Bearer ${CULQI_SECRET_KEY}`,
-      'Content-Type': 'application/json'
+      Authorization: `Bearer ${secretKey}`,
+      'Content-Type': 'application/json',
+      ...(init.headers || {}),
     },
-    body: JSON.stringify(chargeData)
+  });
+  const requestId = response.headers.get('x-request-id') || response.headers.get('x-culqi-request-id') || '';
+  const text = await response.text();
+  let data: any = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    throw new ProviderError('Culqi devolvio una respuesta invalida', 'provider_invalid_response', 502);
+  }
+  return { response, data, requestId };
+}
+
+function requires3ds(status: number, data: any) {
+  const action = cleanText(data?.action_code || data?.outcome?.action_code, 30).toUpperCase();
+  const type = cleanText(data?.outcome?.type, 60).toLowerCase();
+  const message = safeProviderMessage(data, '').toLowerCase();
+  return action === 'REVIEW'
+    || type.includes('revision')
+    || message.includes('autenticacion')
+    || message.includes('autenticarse')
+    || (status === 201 && !data?.id);
+}
+
+function isApprovedCharge(data: any) {
+  const type = cleanText(data?.outcome?.type, 80).toLowerCase();
+  const code = cleanText(data?.outcome?.code || data?.action_code, 40).toUpperCase();
+  if (['venta_denegada', 'declined', 'rejected', 'denied', 'venta_rechazada'].includes(type)) return false;
+  return ['venta_autorizada', 'venta_exitosa', 'authorized', 'approved'].includes(type)
+    || code.startsWith('AUT')
+    || (data?.object === 'charge' && Boolean(data?.id) && !type && !code && !requires3ds(200, data));
+}
+
+function cardSummary(charge: any) {
+  const source = charge?.source || charge?.card || {};
+  const rawNumber = cleanText(source?.card_number || source?.number, 32).replace(/\D/g, '');
+  const last4 = cleanText(source?.last_four || source?.last4 || rawNumber.slice(-4), 4).replace(/\D/g, '');
+  const brand = cleanText(source?.iin?.card_brand || source?.brand || source?.card_brand, 40);
+  return { brand, last4: /^\d{4}$/.test(last4) ? last4 : '' };
+}
+
+async function createCulqiCharge(payload: Record<string, unknown>) {
+  const { response, data, requestId } = await culqiRequest('/charges', {
+    method: 'POST',
+    body: JSON.stringify(payload),
   });
 
-  // ✅ Leer como texto primero (como el proyecto referencia)
-  const responseText = await response.text();
-  let data: any;
-  try {
-    data = JSON.parse(responseText);
-  } catch (e) {
-    console.error('❌ Culqi response not JSON:', responseText);
-    throw new Error(`Error parseando respuesta de Culqi: ${responseText.substring(0, 200)}`);
+  if (requires3ds(response.status, data)) {
+    throw new ProviderError(
+      safeProviderMessage(data, 'Tu banco necesita confirmar que eres el titular'),
+      'requires_3ds',
+      200,
+      true,
+    );
   }
-
-  console.log('📡 [CULQI] Respuesta (status:', response.status, '):', JSON.stringify(data, null, 2));
-
-  // ✅ Detectar 3DS requerido (action_code REVIEW o mensaje de autenticación)
-  const actionCode = data.action_code || '';
-  const userMessage = data.user_message || data.outcome?.user_message || '';
-  const has3DSParams = !!chargeData.authentication_3DS;
-
-  if (actionCode === 'REVIEW' || userMessage.toLowerCase().includes('autenticarse')) {
-    if (has3DSParams) {
-      // Ya se envió 3DS y aún pide REVIEW → autenticación 3DS falló
-      console.error('❌ [CULQI] 3DS auth falló después de autenticación:', data);
-      throw new Error('La autenticación 3DS no fue exitosa. Intenta con otra tarjeta.');
-    }
-    // Requiere 3DS → devolver señal al frontend
-    console.log('🔐 [CULQI] Cargo requiere 3DS, action_code:', actionCode);
-    // Marcar en la respuesta que requiere 3DS (se manejará en handleProcesarPago)
-    data._requires_3ds = true;
-    return data;
+  if (!response.ok || !isApprovedCharge(data)) {
+    throw new ProviderError(safeProviderMessage(data, 'No se pudo aprobar el pago'));
   }
+  return { charge: data, requestId };
+}
 
-  if (!response.ok) {
-    console.error('❌ Culqi charge error:', data);
-    const errorMsg = data.user_message || data.merchant_message || 'Error al procesar el pago';
-    throw new Error(errorMsg);
+async function retrieveCulqiCharge(chargeId: string) {
+  const { response, data, requestId } = await culqiRequest(`/charges/${encodeURIComponent(chargeId)}`);
+  if (!response.ok || !data?.id) {
+    throw new ProviderError('No se pudo verificar el cargo con Culqi', 'provider_verification_failed', 502);
   }
+  return { charge: data, requestId };
+}
 
-  // ✅ Verificar outcome del cargo (mismo patrón que wild-frontier-dash)
-  const outcomeType = data.outcome?.type || '';
-  const outcomeCode = data.outcome?.code || '';
-  const approvedTypes = ['venta_autorizada', 'venta_exitosa', 'authorized'];
-  const isApproved = approvedTypes.includes(outcomeType) || outcomeCode.startsWith('AUT');
-  const declinedTypes = ['venta_denegada', 'declined', 'rejected', 'denied', 'venta_rechazada'];
-  const isDeclined = declinedTypes.includes(outcomeType);
+function verifyCharge(charge: any, transaction: any, dbUser: any, plan: any) {
+  const metadata = charge?.metadata || {};
+  const amount = Math.round(Number(plan.precio) * 100);
+  const matches = charge?.id
+    && Number(charge.amount) === amount
+    && String(charge.currency_code || '').toUpperCase() === 'PEN'
+    && String(charge.email || '').toLowerCase() === String(dbUser.correo_electronico || '').toLowerCase()
+    && String(metadata.transaction_id || '') === String(transaction.id)
+    && String(metadata.user_id || '') === String(dbUser.id)
+    && String(metadata.plan_id || '') === String(plan.id)
+    && isApprovedCharge(charge);
 
-  if (isDeclined) {
-    console.error('❌ [CULQI] Cargo rechazado:', data.outcome);
-    throw new Error(data.outcome?.user_message || 'El cargo fue rechazado por el banco emisor');
+  if (!matches) {
+    throw new ProviderError('La verificacion del cargo no coincide con la compra', 'provider_verification_failed', 502);
   }
+}
 
-  if (!isApproved) {
-    console.warn('⚠️ [CULQI] Estado desconocido:', outcomeType, outcomeCode);
-    throw new Error('No se pudo confirmar el pago. Intenta de nuevo.');
-  }
-
-  console.log('✅ [CULQI] Cargo aprobado, outcome:', outcomeType);
+async function finalizePayment(supabase: any, transaction: any, charge: any, requestId: string) {
+  const card = cardSummary(charge);
+  const { data, error } = await supabase.rpc('finalizar_pago_culqi', {
+    p_transaccion_id: transaction.id,
+    p_culqi_charge_id: charge.id,
+    p_monto: Number(transaction.monto),
+    p_moneda: transaction.moneda,
+    p_card_brand: card.brand,
+    p_card_last4: card.last4,
+    p_outcome_code: cleanText(charge?.outcome?.code || charge?.action_code, 80),
+    p_request_id: requestId,
+  });
+  if (error) throw new Error(`No se pudo activar la membresia: ${error.message}`);
   return data;
 }
 
-/**
- * Activar o renovar membresía del usuario
- */
-async function activateMembership(
-  supabase: any,
-  userId: number,
-  planId: number,
-  transactionId: number,
-  source = 'culqi',
-) {
-  console.log('📝 [activateMembership] INICIO con parámetros:', {
-    userId,
-    userId_type: typeof userId,
-    planId,
-    planId_type: typeof planId,
-    transactionId
+async function createReceiptRecord(supabase: any, transactionId: number, billing: BillingInput) {
+  const receiptType = billing.receiptType === 'factura' ? 'FACTURA' : 'BOLETA';
+  const series = receiptType === 'FACTURA'
+    ? (Deno.env.get('SUNAT_FACTURA_SERIES') || 'F001')
+    : (Deno.env.get('SUNAT_BOLETA_SERIES') || 'B001');
+  const customerName = receiptType === 'FACTURA' ? billing.businessName : billing.customerName;
+  const documentType = receiptType === 'FACTURA' ? '6' : '1';
+  const { data, error } = await supabase.rpc('crear_comprobante_pago', {
+    p_transaccion_id: transactionId,
+    p_tipo_comprobante: receiptType,
+    p_serie: series,
+    p_ambiente_sunat: 'beta',
+    p_ruc_emisor: requiredEnv('SUNAT_RUC'),
+    p_razon_social_emisor: requiredEnv('SUNAT_ISSUER_NAME'),
+    p_tipo_documento_cliente: documentType,
+    p_numero_documento_cliente: billing.documentNumber,
+    p_nombre_cliente: customerName,
+    p_direccion_cliente: billing.fiscalAddress,
   });
+  if (error || !data) throw new Error(`No se pudo crear el comprobante: ${error?.message || 'sin datos'}`);
+  return data;
+}
 
-  // Convertir planId a number si viene como string
-  const planIdNumber = typeof planId === 'string' ? parseInt(planId) : planId;
-  console.log('🔢 [activateMembership] planId convertido:', {
-    original: planId,
-    converted: planIdNumber,
-    type: typeof planIdNumber
-  });
-
-  // Obtener datos del plan
-  const { data: plan, error: planError } = await supabase
-    .from('planes_membresia')
-    .select('duracion_meses, nombre')
-    .eq('id', planIdNumber)
-    .single();
-
-  console.log('📋 [activateMembership] Query plan resultado:', {
-    plan,
-    planError,
-    planId_usado: planIdNumber
-  });
-
-  if (planError || !plan) {
-    console.error('❌ [activateMembership] Plan no encontrado:', { planError, planId: planIdNumber });
-    throw new Error('Plan de membresía no encontrado');
+async function ensureReceipt(supabase: any, transaction: any, billing: BillingInput) {
+  const receipt = await createReceiptRecord(supabase, transaction.id, billing);
+  if (receipt.estado_sunat === 'aceptado') {
+    return {
+      id: receipt.id,
+      type: receipt.tipo_comprobante,
+      number: `${receipt.serie}-${receipt.numero}`,
+      status: receipt.estado_sunat,
+      responseCode: receipt.codigo_respuesta_sunat,
+      responseDescription: receipt.descripcion_respuesta_sunat,
+    };
   }
 
-  const now = new Date();
-  const fechaInicio = now;
-  const fechaFin = addCalendarMonths(now, plan.duracion_meses);
-  let fechaFinFinal = fechaFin;
-
-  await supabase
-    .from('membresias_usuario')
-    .update({ esta_activa: false, actualizado_en: now.toISOString() })
-    .eq('id_usuario', userId)
-    .eq('esta_activa', true)
-    .lt('fecha_fin', now.toISOString());
-
-  // Verificar si ya tiene una membresía activa
-  const { data: existingMembership } = await supabase
-    .from('membresias_usuario')
-    .select('id, fecha_fin')
-    .eq('id_usuario', userId)
-    .eq('id_plan_membresia', planIdNumber)
-    .eq('esta_activa', true)
-    .gte('fecha_fin', now.toISOString())
-    .order('fecha_fin', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  let membershipId: number;
-  let action: string;
-
-  if (existingMembership) {
-    // Renovar membresía existente
-    const nuevaFechaFin = addCalendarMonths(existingMembership.fecha_fin, plan.duracion_meses);
-    fechaFinFinal = nuevaFechaFin;
-
-    const { data: updated, error: updateError } = await supabase
-      .from('membresias_usuario')
+  try {
+    return await generateAndSendTaxDocument(supabase, receipt);
+  } catch (error) {
+    const message = cleanText(error instanceof Error ? error.message : error, 500);
+    await supabase
+      .from('comprobantes_electronicos')
       .update({
-        fecha_fin: nuevaFechaFin.toISOString(),
-        actualizado_en: now.toISOString()
+        estado_sunat: 'error',
+        descripcion_respuesta_sunat: message,
+        actualizado_en: new Date().toISOString(),
       })
-      .eq('id', existingMembership.id)
-      .select()
-      .single();
-
-    if (updateError) {
-      throw new Error('Error al renovar membresía');
-    }
-
-    membershipId = updated.id;
-    action = 'renovacion';
-  } else {
-    // Crear nueva membresía
-    console.log('🆕 [activateMembership] Creando nueva membresía con datos:', {
-      id_usuario: userId,
-      id_plan_membresia: planIdNumber,
-      fecha_inicio: fechaInicio.toISOString(),
-      fecha_fin: fechaFin.toISOString(),
-      esta_activa: true
-    });
-
-    const { data: newMembership, error: insertError } = await supabase
-      .from('membresias_usuario')
-      .insert({
-        id_usuario: userId,
-        id_plan_membresia: planIdNumber,
-        fecha_inicio: fechaInicio.toISOString(),
-        fecha_fin: fechaFin.toISOString(),
-        esta_activa: true
-      })
-      .select()
-      .single();
-
-    console.log('📊 [activateMembership] Resultado INSERT:', {
-      newMembership,
-      insertError: insertError ? {
-        message: insertError.message,
-        details: insertError.details,
-        hint: insertError.hint,
-        code: insertError.code
-      } : null
-    });
-
-    if (insertError) {
-      console.error('❌ [activateMembership] Error completo al crear membresía:', insertError);
-      throw new Error(`Error al crear membresía: ${insertError.message || insertError.details || 'Unknown error'}`);
-    }
-
-    membershipId = newMembership.id;
-    action = 'activacion';
-  }
-
-  // Registrar en historial
-  await supabase.from('historial_membresias').insert({
-    id_usuario: userId,
-    id_membresia: membershipId,
-    id_transaccion: transactionId,
-    accion: action,
-    fecha_inicio_nueva: fechaInicio.toISOString(),
-    fecha_fin_nueva: fechaFinFinal.toISOString(),
-    notas: source === 'simulacion'
-      ? `Activacion simulada sin cobro real. Transaction ID: ${transactionId}`
-      : `Pago procesado exitosamente. Transaction ID: ${transactionId}`
-  });
-
-  return { membershipId, fechaInicio, fechaFin: fechaFinFinal, planNombre: plan.nombre };
-}
-
-/**
- * Simula el checkout completo sin recibir ni almacenar datos de tarjeta.
- * Esta ruta se reemplazara por la tokenizacion de Culqi cuando el comercio este listo.
- */
-export async function handleSimularPago(req: Request) {
-  try {
-    if (!PAYMENT_SIMULATION_ENABLED) {
-      return errorResponse('La simulacion de pagos esta deshabilitada', 503);
-    }
-
-    const user = await getUserFromToken(req);
-    if (!user) {
-      return unauthorizedResponse();
-    }
-
-    const body = await req.json();
-    const planId = Number(body?.plan_id);
-    if (!Number.isInteger(planId) || planId <= 0) {
-      return errorResponse('Se requiere un plan valido', 400);
-    }
-
-    const supabase = getSupabaseClient();
-    const now = new Date();
-    const [{ data: dbUser, error: userError }, { data: plan, error: planError }] = await Promise.all([
-      supabase
-        .from('usuarios')
-        .select('id, correo_electronico, primer_nombre, apellido')
-        .eq('id', user.userId)
-        .single(),
-      supabase
-        .from('planes_membresia')
-        .select('id, nombre, precio, duracion_meses')
-        .eq('id', planId)
-        .eq('esta_activo', true)
-        .single(),
-    ]);
-
-    if (userError || !dbUser) {
-      return errorResponse('Usuario no encontrado', 404);
-    }
-    if (planError || !plan) {
-      return errorResponse('Plan de membresia no encontrado', 404);
-    }
-
-    const { data: activeMembership } = await supabase
-      .from('membresias_usuario')
-      .select('id, fecha_inicio, fecha_fin')
-      .eq('id_usuario', dbUser.id)
-      .eq('esta_activa', true)
-      .gte('fecha_fin', now.toISOString())
-      .order('fecha_fin', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (activeMembership) {
-      return jsonResponse({
-        success: true,
-        already_active: true,
-        payment_mode: 'simulation',
-        membership: {
-          id: activeMembership.id,
-          fecha_inicio: activeMembership.fecha_inicio,
-          fecha_fin: activeMembership.fecha_fin,
-          plan_nombre: plan.nombre,
-        },
-      });
-    }
-
-    const simulationId = `sim_${crypto.randomUUID()}`;
-    const { data: transaction, error: transactionError } = await supabase
-      .from('transacciones_pago')
-      .insert({
-        id_usuario: dbUser.id,
-        id_plan_membresia: plan.id,
-        monto: Number(plan.precio),
-        moneda: 'PEN',
-        metodo_pago: SIMULATED_PAYMENT_METHOD,
-        estado: 'pendiente',
-        descripcion: `${plan.nombre} - simulacion sin cobro real`,
-        correo_cliente: dbUser.correo_electronico,
-        respuesta_culqi: {
-          simulated: true,
-          provider: 'pending_culqi',
-          simulation_id: simulationId,
-        },
-      })
-      .select()
-      .single();
-
-    if (transactionError || !transaction) {
-      console.error('[PAYMENT SIMULATION] Error creating transaction:', transactionError);
-      return errorResponse('No pudimos iniciar la simulacion del pago', 500);
-    }
-
-    try {
-      const membership = await activateMembership(
-        supabase,
-        dbUser.id,
-        plan.id,
-        transaction.id,
-        'simulacion',
-      );
-
-      const { error: updateError } = await supabase
-        .from('transacciones_pago')
-        .update({
-          estado: 'exitoso',
-          culqi_charge_id: simulationId,
-          respuesta_culqi: {
-            simulated: true,
-            provider: 'pending_culqi',
-            simulation_id: simulationId,
-            charged: false,
-          },
-          fecha_pago: new Date().toISOString(),
-          actualizado_en: new Date().toISOString(),
-        })
-        .eq('id', transaction.id);
-
-      if (updateError) throw updateError;
-
-      return jsonResponse({
-        success: true,
-        already_active: false,
-        charged: false,
-        payment_mode: 'simulation',
-        transaction_id: transaction.id,
-        membership: {
-          id: membership.membershipId,
-          fecha_inicio: membership.fechaInicio.toISOString(),
-          fecha_fin: membership.fechaFin.toISOString(),
-          plan_nombre: membership.planNombre,
-        },
-      });
-    } catch (activationError: any) {
-      await supabase
-        .from('transacciones_pago')
-        .update({
-          estado: 'fallido',
-          mensaje_error: activationError.message || 'Error activando membresia simulada',
-          actualizado_en: new Date().toISOString(),
-        })
-        .eq('id', transaction.id);
-      throw activationError;
-    }
-  } catch (error: any) {
-    console.error('[PAYMENT SIMULATION] Error:', error);
-    return errorResponse(error.message || 'Error interno del servidor', 500);
+      .eq('id', receipt.id);
+    console.error('[PAYMENT] SUNAT beta error', { receiptId: receipt.id, message });
+    return {
+      id: receipt.id,
+      type: receipt.tipo_comprobante,
+      number: `${receipt.serie}-${receipt.numero}`,
+      status: 'error',
+      responseDescription: message,
+    };
   }
 }
 
-/**
- * Procesar pago
- */
-export async function handleProcesarPago(req: Request) {
-  try {
-    // Verificar autenticación usando el sistema unificado (soporta custom JWT y Supabase Auth)
-    const user = await getUserFromToken(req);
-    if (!user) {
-      return unauthorizedResponse();
+async function sendConfirmationEmail(supabase: any, dbUser: any, plan: any, transaction: any, membership: any, receipt: any) {
+  const appUrl = Deno.env.get('APP_URL') || 'https://simuladormtc-vertexlabs-dev.vercel.app';
+  const fullName = `${dbUser.primer_nombre || ''} ${dbUser.apellido || ''}`.trim() || dbUser.correo_electronico;
+  const receiptLabel = receipt ? `${receipt.type} ${receipt.number}` : 'Comprobante en preparacion';
+  const html = `<!doctype html>
+<html lang="es"><body style="margin:0;background:#f4f7fb;font-family:Arial,sans-serif;color:#10213d">
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:24px"><tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border:1px solid #d8e2ef">
+<tr><td style="padding:26px;background:#0f55e8;color:#fff"><h1 style="margin:0;font-size:24px">Pago de prueba confirmado</h1><p style="margin:8px 0 0">Tu acceso al Simulador MTC ya esta activo.</p></td></tr>
+<tr><td style="padding:28px">
+<p>Hola <strong>${escapeHtml(fullName)}</strong>,</p>
+<p>Procesamos correctamente tu compra en el ambiente DEV de Culqi.</p>
+<table width="100%" cellpadding="7" style="background:#f7f9fc;border-left:4px solid #0f55e8">
+<tr><td>Plan</td><td align="right"><strong>${escapeHtml(plan.nombre)}</strong></td></tr>
+<tr><td>Monto</td><td align="right"><strong>S/ ${Number(transaction.monto).toFixed(2)}</strong></td></tr>
+<tr><td>Comprobante</td><td align="right"><strong>${escapeHtml(receiptLabel)}</strong></td></tr>
+<tr><td>Acceso hasta</td><td align="right"><strong>${new Date(membership.membership_end).toLocaleDateString('es-PE')}</strong></td></tr>
+</table>
+<p style="margin-top:18px;padding:12px;background:#fff4ce"><strong>Prueba:</strong> este pago y el comprobante SUNAT BETA no tienen valor comercial ni fiscal.</p>
+<p style="text-align:center;margin-top:24px"><a href="${appUrl}/perfil" style="display:inline-block;padding:13px 24px;background:#0f55e8;color:#fff;text-decoration:none;font-weight:bold">Ver mi acceso</a></p>
+</td></tr></table></td></tr></table></body></html>`;
+
+  const attachments = [];
+  for (const [path, fallbackName] of [
+    [receipt?.pdfPath, `${receiptLabel}.pdf`],
+    [receipt?.xmlPath, `${receiptLabel}.xml`],
+  ]) {
+    if (!path) continue;
+    const { data, error } = await supabase.storage.from('tax-documents').download(path);
+    if (!error && data) {
+      attachments.push({ filename: fallbackName.replaceAll(' ', '-'), content: bytesToBase64(new Uint8Array(await data.arrayBuffer())) });
     }
+  }
 
-    const supabase = getSupabaseClient();
+  const result = await sendEmail(
+    dbUser.correo_electronico,
+    `Pago confirmado - ${plan.nombre} - Simulador MTC`,
+    html,
+    { idempotencyKey: `payment-confirmation/${transaction.id}`, attachments },
+  );
 
-    // Obtener usuario canónico usando userId del token. Las tablas de pagos/membresías
-    // referencian `usuarios`, no la tabla legacy `users`.
-    const { data: dbUser, error: userError } = await supabase
+  if (result.success && receipt?.id) {
+    await supabase
+      .from('comprobantes_electronicos')
+      .update({ correo_enviado_en: new Date().toISOString(), actualizado_en: new Date().toISOString() })
+      .eq('id', receipt.id)
+      .is('correo_enviado_en', null);
+  }
+}
+
+async function getCanonicalData(supabase: any, userId: number, planId: number) {
+  const [{ data: dbUser, error: userError }, { data: plan, error: planError }] = await Promise.all([
+    supabase
       .from('usuarios')
       .select('id, correo_electronico, primer_nombre, apellido')
-      .eq('id', user.userId)
-      .single();
+      .eq('id', userId)
+      .eq('esta_activo', true)
+      .single(),
+    supabase
+      .from('planes_membresia')
+      .select('id, nombre, precio, duracion_meses')
+      .eq('id', planId)
+      .eq('esta_activo', true)
+      .single(),
+  ]);
+  if (userError || !dbUser) throw new ProviderError('Usuario no encontrado', 'user_not_found', 404);
+  if (planError || !plan) throw new ProviderError('Plan no disponible', 'plan_not_found', 404);
+  return { dbUser, plan };
+}
 
-    if (userError || !dbUser) {
-      console.error('❌ [PAYMENT] Usuario no encontrado en BD:', { userId: user.userId, error: userError });
-      return errorResponse('Usuario no encontrado', 404);
-    }
+async function completeVerifiedPayment(supabase: any, transaction: any, dbUser: any, plan: any, billing: BillingInput, charge: any, requestId: string) {
+  verifyCharge(charge, transaction, dbUser, plan);
+  const membership = await finalizePayment(supabase, transaction, charge, requestId);
+  const receipt = await ensureReceipt(supabase, transaction, billing);
+  await sendConfirmationEmail(supabase, dbUser, plan, transaction, membership, receipt).catch((error) => {
+    console.error('[PAYMENT] Resend error', { transactionId: transaction.id, message: cleanText(error, 200) });
+  });
+  return { membership, receipt };
+}
 
-    // Parsear request
-    const paymentData: PaymentRequest = await req.json();
-
-    console.log('� [PAYMENT] Datos recibidos:', {
-      userId: dbUser.id,
-      plan_id: paymentData.plan_id,
-      plan_id_type: typeof paymentData.plan_id,
-      amount: paymentData.amount,
-      method: paymentData.metodo_pago,
-      email: paymentData.email
+export async function handleGetCulqiConfig(_req: Request) {
+  try {
+    const publicKey = requiredEnv('CULQI_PUBLIC_KEY');
+    const rsaId = requiredEnv('CULQI_RSA_ID');
+    const rsaPublicKey = requiredEnv('CULQI_RSA_PUBLIC_KEY').replace(/\\n/g, '\n');
+    return jsonResponse({
+      provider: 'culqi',
+      publicKey,
+      rsaId,
+      rsaPublicKey,
+      currency: 'PEN',
+      testMode: publicKey.startsWith('pk_test_'),
+      sunatBetaReady: isSunatConfigurationReady(),
+      paymentMethods: ['tarjeta', 'yape'],
     });
-
-    // Validar datos requeridos
-    if (!paymentData.token_id || !paymentData.amount || !paymentData.plan_id) {
-      console.error('❌ [PAYMENT] Datos incompletos:', paymentData);
-      return errorResponse('Datos de pago incompletos', 400);
-    }
-
-    console.log('💳 [PAYMENT] Iniciando procesamiento de pago...');
-
-    // Crear transacción en estado pendiente
-    const planId = parseInt(paymentData.plan_id.toString());
-    console.log('🔍 [PAYMENT] Preparando transacción:', {
-      id_usuario: dbUser.id,
-      id_plan_membresia: planId,
-      plan_id_original: paymentData.plan_id,
-      monto: paymentData.amount / 100
-    });
-
-    const { data: transaction, error: transactionError} = await supabase
-      .from('transacciones_pago')
-      .insert({
-        id_usuario: dbUser.id,
-        id_plan_membresia: planId,
-        culqi_token_id: paymentData.token_id,
-        monto: paymentData.amount / 100, // Convertir de centavos a soles
-        moneda: paymentData.currency,
-        metodo_pago: paymentData.metodo_pago,
-        estado: 'pendiente',
-        descripcion: paymentData.description,
-        correo_cliente: paymentData.email
-      })
-      .select()
-      .single();
-
-    if (transactionError) {
-      console.error('❌ [PAYMENT] Error creating transaction:', transactionError);
-      return errorResponse(`Error al crear transacción: ${transactionError.message}`, 500);
-    }
-
-    console.log('✅ [PAYMENT] Transacción creada:', transaction.id);
-
-    try {
-      // Extraer datos del cliente para antifraud (del PreCheckout)
-      const clienteNombres = paymentData.nombres || dbUser.primer_nombre || 'Cliente';
-      const clienteApellidos = paymentData.apellidos || dbUser.apellido || '';
-      const clienteTelefono = paymentData.telefono || '999999999';
-
-      console.log('🔍 [PAYMENT] Datos antifraud:', { clienteNombres, clienteApellidos, clienteTelefono });
-
-      // Procesar cargo en Culqi
-      const chargeData: CulqiChargeRequest = {
-        amount: paymentData.amount,
-        currency_code: paymentData.currency,
-        email: paymentData.email,
-        source_id: paymentData.token_id,
-        description: paymentData.description,
-        // ✅ ANTIFRAUD_DETAILS: Requerido por Culqi, especialmente para Yape
-        antifraud_details: {
-          first_name: clienteNombres,
-          last_name: clienteApellidos || 'Cliente',
-          address: "Lima, Perú",
-          address_city: "Lima",
-          country_code: "PE",
-          phone_number: clienteTelefono,
-          ...(paymentData.device_finger_print_id && {
-            device_finger_print_id: paymentData.device_finger_print_id
-          })
-        },
-        metadata: {
-          user_id: dbUser.id.toString(),
-          transaction_id: transaction.id.toString(),
-          plan_id: paymentData.plan_id.toString(),
-          has_3ds: paymentData.authentication_3DS ? 'true' : 'false'
-        }
-      };
-
-      // ✅ Agregar parámetros 3DS si vienen del frontend (retry después de autenticación)
-      if (paymentData.authentication_3DS) {
-        chargeData.authentication_3DS = {
-          eci: paymentData.authentication_3DS.eci,
-          xid: paymentData.authentication_3DS.xid,
-          cavv: paymentData.authentication_3DS.cavv,
-          protocolVersion: paymentData.authentication_3DS.protocolVersion,
-          ...(paymentData.authentication_3DS.directoryServerTransactionId && {
-            directoryServerTransactionId: paymentData.authentication_3DS.directoryServerTransactionId
-          })
-        };
-        console.log('🔐 [PAYMENT] Cargo con autenticación 3DS');
-      }
-
-      const culqiResponse = await createCulqiCharge(chargeData);
-
-      // ✅ Si Culqi requiere 3DS, devolver señal al frontend
-      if (culqiResponse._requires_3ds) {
-        console.log('🔐 [PAYMENT] Cargo requiere 3DS, devolviendo señal al frontend');
-        // Actualizar transacción como pendiente 3DS
-        await supabase
-          .from('transacciones_pago')
-          .update({
-            estado: 'pendiente_3ds',
-            respuesta_culqi: { requires_3ds: true, charge_id: culqiResponse.id }
-          })
-          .eq('id', transaction.id);
-
-        return jsonResponse({
-          success: false,
-          requires_3ds: true,
-          charge_id: culqiResponse.id,
-          action_code: culqiResponse.action_code,
-          user_message: culqiResponse.user_message || culqiResponse.outcome?.user_message || 'Se requiere autenticación adicional',
-          amount: paymentData.amount,
-          currency: 'PEN',
-          token_id: paymentData.token_id,
-          email: paymentData.email,
-          transaction_id: transaction.id
-        });
-      }
-
-      console.log('✅ Cargo exitoso en Culqi:', culqiResponse.id);
-
-      // Actualizar transacción como exitosa
-      await supabase
-        .from('transacciones_pago')
-        .update({
-          estado: 'exitoso',
-          culqi_charge_id: culqiResponse.id,
-          respuesta_culqi: culqiResponse,
-          fecha_pago: new Date().toISOString()
-        })
-        .eq('id', transaction.id);
-
-      // Activar membresía
-      console.log('🎯 [PAYMENT] Activando membresía con:', {
-        userId: dbUser.id,
-        planId: paymentData.plan_id,
-        transactionId: transaction.id
-      });
-      const membership = await activateMembership(
-        supabase, 
-        dbUser.id, 
-        paymentData.plan_id, 
-        transaction.id
-      );
-      console.log('✅ [PAYMENT] Membresía activada:', membership);
-
-      // 📧 Enviar email de confirmación
-      try {
-        await sendPaymentConfirmationEmail({
-          email: paymentData.email,
-          userName: `${dbUser.primer_nombre || ''} ${dbUser.apellido || ''}`.trim() || paymentData.email,
-          planName: membership.planNombre,
-          amount: paymentData.amount / 100,
-          transactionId: culqiResponse.id,
-          membershipEndDate: membership.fechaFin
-        });
-        console.log('✅ Email de confirmación enviado a:', paymentData.email);
-      } catch (emailError) {
-        console.error('⚠️ Error enviando email (no crítico):', emailError);
-        // No fallar la transacción si el email falla
-      }
-
-      return jsonResponse({
-        success: true,
-        charge_id: culqiResponse.id,
-        transaction_id: transaction.id,
-        message: 'Pago procesado exitosamente',
-        membership: {
-          id: membership.membershipId,
-          fecha_inicio: membership.fechaInicio.toISOString(),
-          fecha_fin: membership.fechaFin.toISOString(),
-          plan_nombre: membership.planNombre
-        }
-      });
-
-    } catch (culqiError: any) {
-      // Error en el cargo - actualizar transacción como fallida
-      await supabase
-        .from('transacciones_pago')
-        .update({
-          estado: 'fallido',
-          mensaje_error: culqiError.message,
-          respuesta_culqi: { error: culqiError.toString() }
-        })
-        .eq('id', transaction.id);
-
-      console.error('❌ Error en cargo Culqi:', culqiError);
-
-      // ✅ IMPORTANTE: Devolver HTTP 200 con success:false para que Supabase
-      // pase el body completo al frontend. Con 400/500 el body puede perderse.
-      return jsonResponse({
-        success: false,
-        error: culqiError.message || 'Error al procesar el pago',
-        error_type: 'charge_failed',
-        transaction_id: transaction.id
-      });
-    }
-
-  } catch (error: any) {
-    console.error('❌ Error general en procesamiento de pago:', error);
-    return errorResponse(error.message || 'Error interno del servidor', 500);
+  } catch (error) {
+    console.error('[PAYMENT] Public configuration error', { message: cleanText(error, 160) });
+    return errorResponse('La pasarela de pago DEV aun no esta disponible', 503);
   }
 }
 
-/**
- * Obtener historial de pagos del usuario
- */
-export async function handleGetHistorialPagos(req: Request) {
+export async function handleProcesarPago(req: Request) {
+  let transaction: any = null;
+  const supabase = getSupabaseClient();
   try {
     const user = await getUserFromToken(req);
-    if (!user) {
-      return unauthorizedResponse();
+    if (!user) return unauthorizedResponse();
+
+    const body: PaymentRequest = await req.json();
+    const planId = Number(body.plan_id);
+    const tokenId = cleanText(body.token_id, 160);
+    const idempotencyKey = cleanText(body.idempotency_key, 40);
+    const paymentMethod = cleanText(body.payment_method, 20).toLowerCase() === 'yape' ? 'yape' : 'tarjeta';
+    const deviceId = cleanText(body.device_fingerprint_id, 80);
+    const authentication3ds = normalize3ds(body.authentication_3DS);
+
+    if (!Number.isInteger(planId) || planId <= 0) {
+      throw new ProviderError('Selecciona un plan valido', 'invalid_plan', 400);
+    }
+    if (!UUID_PATTERN.test(idempotencyKey)) {
+      throw new ProviderError('No pudimos identificar el intento de pago', 'invalid_idempotency_key', 400);
+    }
+    if (!TOKEN_PATTERN.test(tokenId)) {
+      throw new ProviderError('El token de pago no es valido', 'invalid_token', 400);
+    }
+    if ((Deno.env.get('APP_ENV') || 'development') !== 'production' && !tokenId.includes('_test_')) {
+      throw new ProviderError('DEV solo admite tokens Culqi de prueba', 'live_token_blocked', 400);
     }
 
-    const supabase = getSupabaseClient();
+    const { dbUser, plan } = await getCanonicalData(supabase, Number(user.userId), planId);
+    const fallbackName = `${dbUser.primer_nombre || ''} ${dbUser.apellido || ''}`.trim();
+    const billing = normalizeBilling(body.billing, fallbackName);
+    const tokenHash = await sha256Hex(tokenId);
+    const amountInCents = Math.round(Number(plan.precio) * 100);
+    if (amountInCents < 300 || amountInCents > 999900) {
+      throw new ProviderError('El monto del plan esta fuera del rango permitido', 'invalid_plan_amount', 500);
+    }
 
-    const { data: transactions, error } = await supabase
+    const { data: existing } = await supabase
       .from('transacciones_pago')
-      .select(`
-        *,
-        planes_membresia:id_plan_membresia(nombre, precio, duracion_meses)
-      `)
-      .eq('id_usuario', user.userId)
-      .order('creado_en', { ascending: false });
+      .select('*')
+      .eq('idempotency_key', idempotencyKey)
+      .eq('id_usuario', dbUser.id)
+      .maybeSingle();
 
-    if (error) {
+    if (existing) {
+      transaction = existing;
+      if (existing.estado === 'exitoso') {
+        const [{ data: membership }, { data: receipt }] = await Promise.all([
+          supabase
+            .from('membresias_usuario')
+            .select('id, fecha_inicio, fecha_fin')
+            .eq('id_usuario', dbUser.id)
+            .eq('esta_activa', true)
+            .order('fecha_fin', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          supabase
+            .from('comprobantes_electronicos')
+            .select('id, tipo_comprobante, serie, numero, estado_sunat')
+            .eq('id_transaccion', existing.id)
+            .maybeSingle(),
+        ]);
+        return jsonResponse({
+          success: true,
+          alreadyProcessed: true,
+          transactionId: existing.id,
+          membership,
+          receipt,
+        });
+      }
+      if (existing.culqi_token_hash !== tokenHash) {
+        throw new ProviderError('El intento de pago ya pertenece a otro token', 'idempotency_conflict', 409);
+      }
+      if (existing.estado === 'pendiente_3ds' && !authentication3ds) {
+        return jsonResponse({ success: false, requires3ds: true, transactionId: existing.id });
+      }
+      if (existing.estado !== 'pendiente_3ds') {
+        throw new ProviderError('Este intento ya fue procesado. Vuelve a abrir Culqi.', 'idempotency_conflict', 409);
+      }
+    } else {
+      const { data: inserted, error: insertError } = await supabase
+        .from('transacciones_pago')
+        .insert({
+          id_usuario: dbUser.id,
+          id_plan_membresia: plan.id,
+          idempotency_key: idempotencyKey,
+          culqi_token_hash: tokenHash,
+          monto: Number(plan.precio),
+          moneda: 'PEN',
+          metodo_pago: paymentMethod,
+          estado: 'procesando',
+          descripcion: `${plan.nombre} - Simulador MTC`,
+          correo_cliente: dbUser.correo_electronico,
+          telefono_cliente: billing.phone || null,
+          datos_facturacion: billing,
+          culqi_token_id: null,
+          respuesta_culqi: null,
+        })
+        .select()
+        .single();
+      if (insertError || !inserted) {
+        if (insertError?.code === '23505') {
+          throw new ProviderError('El intento de pago ya esta en proceso', 'idempotency_conflict', 409);
+        }
+        throw new Error(`No se pudo crear la transaccion: ${insertError?.message || 'sin datos'}`);
+      }
+      transaction = inserted;
+    }
+
+    const chargePayload: Record<string, unknown> = {
+      amount: amountInCents,
+      currency_code: 'PEN',
+      email: dbUser.correo_electronico,
+      source_id: tokenId,
+      description: `${plan.nombre} - Simulador MTC`,
+      installments: 0,
+      antifraud_details: {
+        first_name: cleanText(dbUser.primer_nombre || billing.customerName.split(' ')[0] || 'Cliente', 50),
+        last_name: cleanText(dbUser.apellido || billing.customerName.split(' ').slice(1).join(' ') || 'Simulador', 50),
+        address: billing.fiscalAddress || 'Lima',
+        address_city: 'Lima',
+        country_code: 'PE',
+        phone_number: billing.phone || '999999999',
+        ...(UUID_PATTERN.test(deviceId) ? { device_finger_print_id: deviceId } : {}),
+      },
+      metadata: {
+        transaction_id: String(transaction.id),
+        user_id: String(dbUser.id),
+        plan_id: String(plan.id),
+        environment: Deno.env.get('APP_ENV') || 'development',
+      },
+      ...(authentication3ds ? { authentication_3DS: authentication3ds } : {}),
+    };
+
+    let created: { charge: any; requestId: string };
+    try {
+      created = await createCulqiCharge(chargePayload);
+    } catch (error) {
+      if (error instanceof ProviderError && error.requires3ds) {
+        await supabase
+          .from('transacciones_pago')
+          .update({ estado: 'pendiente_3ds', actualizado_en: new Date().toISOString() })
+          .eq('id', transaction.id);
+        return jsonResponse({
+          success: false,
+          requires3ds: true,
+          transactionId: transaction.id,
+          message: error.message,
+        });
+      }
       throw error;
     }
 
-    return jsonResponse(transactions || []);
+    await supabase
+      .from('transacciones_pago')
+      .update({
+        culqi_charge_id: created.charge.id,
+        estado: 'procesando',
+        actualizado_en: new Date().toISOString(),
+      })
+      .eq('id', transaction.id);
+
+    transaction.culqi_charge_id = created.charge.id;
+    const verified = await retrieveCulqiCharge(created.charge.id);
+    const completed = await completeVerifiedPayment(
+      supabase,
+      transaction,
+      dbUser,
+      plan,
+      billing,
+      verified.charge,
+      verified.requestId || created.requestId,
+    );
+
+    return jsonResponse({
+      success: true,
+      transactionId: transaction.id,
+      chargeId: created.charge.id,
+      membership: completed.membership,
+      receipt: completed.receipt,
+    });
   } catch (error) {
-    console.error('Error getting payment history:', error);
-    return errorResponse('Error al obtener historial', 500);
+    const providerError = error instanceof ProviderError
+      ? error
+      : new ProviderError('No pudimos completar el pago. Intenta nuevamente.', 'internal_payment_error', 500);
+    if (transaction?.id && !providerError.requires3ds) {
+      await supabase
+        .from('transacciones_pago')
+        .update({
+          estado: 'fallido',
+          mensaje_error: `${providerError.publicCode}: ${cleanText(providerError.message, 180)}`,
+          culqi_token_id: null,
+          respuesta_culqi: null,
+          actualizado_en: new Date().toISOString(),
+        })
+        .eq('id', transaction.id)
+        .neq('estado', 'exitoso');
+    }
+    console.error('[PAYMENT] Processing failed', {
+      transactionId: transaction?.id || null,
+      code: providerError.publicCode,
+      status: providerError.status,
+    });
+    return jsonResponse({ success: false, error: providerError.message, code: providerError.publicCode }, providerError.status);
+  }
+}
+
+export async function handleSimularPago(_req: Request) {
+  return errorResponse('La simulacion fue deshabilitada. Usa Culqi DEV.', 503);
+}
+
+export async function handleGetHistorialPagos(req: Request) {
+  try {
+    const user = await getUserFromToken(req);
+    if (!user) return unauthorizedResponse();
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('transacciones_pago')
+      .select(`
+        id,
+        monto,
+        moneda,
+        metodo_pago,
+        estado,
+        culqi_card_brand,
+        culqi_card_last4,
+        fecha_pago,
+        creado_en,
+        planes_membresia:id_plan_membresia(nombre, duracion_meses),
+        comprobantes_electronicos(id, tipo_comprobante, serie, numero, estado_sunat)
+      `)
+      .eq('id_usuario', user.userId)
+      .order('creado_en', { ascending: false })
+      .limit(50);
+    if (error) throw error;
+    return jsonResponse(data || []);
+  } catch (error) {
+    console.error('[PAYMENT] History error', { message: cleanText(error, 160) });
+    return errorResponse('No pudimos cargar tus pagos', 500);
+  }
+}
+
+export async function handleGetReceipt(req: Request, receiptId: string) {
+  try {
+    const user = await getUserFromToken(req);
+    if (!user) return unauthorizedResponse();
+    if (!/^\d+$/.test(receiptId)) return errorResponse('Comprobante no valido', 400);
+    const supabase = getSupabaseClient();
+    const { data: receipt, error } = await supabase
+      .from('comprobantes_electronicos')
+      .select('id, tipo_comprobante, serie, numero, estado_sunat, total, moneda, codigo_respuesta_sunat, descripcion_respuesta_sunat, ruta_xml, ruta_pdf, ruta_cdr, creado_en')
+      .eq('id', Number(receiptId))
+      .eq('id_usuario', user.userId)
+      .single();
+    if (error || !receipt) return errorResponse('Comprobante no encontrado', 404);
+
+    const paths = [receipt.ruta_pdf, receipt.ruta_xml, receipt.ruta_cdr].filter(Boolean);
+    const signedUrls: Record<string, string> = {};
+    for (const path of paths) {
+      const { data, error: signError } = await supabase.storage.from('tax-documents').createSignedUrl(path, 600);
+      if (!signError && data?.signedUrl) signedUrls[path] = data.signedUrl;
+    }
+
+    return jsonResponse({
+      ...receipt,
+      urls: {
+        pdf: receipt.ruta_pdf ? signedUrls[receipt.ruta_pdf] || null : null,
+        xml: receipt.ruta_xml ? signedUrls[receipt.ruta_xml] || null : null,
+        cdr: receipt.ruta_cdr ? signedUrls[receipt.ruta_cdr] || null : null,
+      },
+    });
+  } catch (error) {
+    console.error('[PAYMENT] Receipt error', { message: cleanText(error, 160) });
+    return errorResponse('No pudimos abrir el comprobante', 500);
+  }
+}
+
+function extractWebhookChargeId(payload: any) {
+  return cleanText(
+    payload?.data?.object?.id
+      || payload?.data?.id
+      || payload?.object?.id
+      || (payload?.object === 'charge' ? payload?.id : ''),
+    100,
+  );
+}
+
+export async function handleCulqiWebhook(req: Request, suppliedToken: string) {
+  const expectedToken = Deno.env.get('CULQI_WEBHOOK_TOKEN') || '';
+  if (!expectedToken || !(await secureEquals(suppliedToken, expectedToken))) {
+    return errorResponse('No encontrado', 404);
+  }
+
+  const contentLength = Number(req.headers.get('content-length') || 0);
+  if (contentLength > 65536) return errorResponse('Payload demasiado grande', 413);
+  const raw = await req.text();
+  if (raw.length > 65536) return errorResponse('Payload demasiado grande', 413);
+
+  let payload: any;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    return errorResponse('JSON invalido', 400);
+  }
+
+  const supabase = getSupabaseClient();
+  const payloadHash = await sha256Hex(raw);
+  const eventId = cleanText(payload?.event_id || payload?.id, 160) || payloadHash;
+  const eventType = cleanText(payload?.type || payload?.event, 100);
+  const chargeId = extractWebhookChargeId(payload);
+  const { data: event, error: eventError } = await supabase
+    .from('eventos_webhook_culqi')
+    .upsert({
+      event_id: eventId,
+      event_type: eventType,
+      culqi_object_id: chargeId || null,
+      payload_hash: payloadHash,
+    }, { onConflict: 'event_id', ignoreDuplicates: true })
+    .select('id, procesado')
+    .maybeSingle();
+
+  if (eventError) {
+    console.error('[PAYMENT] Webhook registry error', { code: eventError.code });
+    return errorResponse('No pudimos registrar el evento', 500);
+  }
+  if (!event) return jsonResponse({ received: true, duplicate: true });
+  if (!chargeId) {
+    await supabase.from('eventos_webhook_culqi').update({ procesado: true, procesado_en: new Date().toISOString() }).eq('id', event.id);
+    return jsonResponse({ received: true, ignored: true });
+  }
+
+  try {
+    const verified = await retrieveCulqiCharge(chargeId);
+    const transactionId = Number(verified.charge?.metadata?.transaction_id);
+    if (!Number.isInteger(transactionId) || transactionId <= 0) throw new Error('Cargo sin transaction_id valido');
+    const { data: transaction, error: txError } = await supabase
+      .from('transacciones_pago')
+      .select('*')
+      .eq('id', transactionId)
+      .single();
+    if (txError || !transaction) throw new Error('Transaccion no encontrada');
+    const { dbUser, plan } = await getCanonicalData(supabase, transaction.id_usuario, transaction.id_plan_membresia);
+    const billing = normalizeBilling(transaction.datos_facturacion, `${dbUser.primer_nombre || ''} ${dbUser.apellido || ''}`.trim());
+
+    if (!transaction.culqi_charge_id) {
+      await supabase.from('transacciones_pago').update({ culqi_charge_id: chargeId }).eq('id', transaction.id);
+      transaction.culqi_charge_id = chargeId;
+    }
+    if (transaction.culqi_charge_id !== chargeId) throw new Error('El cargo no coincide con la transaccion');
+
+    await completeVerifiedPayment(supabase, transaction, dbUser, plan, billing, verified.charge, verified.requestId);
+    await supabase
+      .from('eventos_webhook_culqi')
+      .update({ procesado: true, procesado_en: new Date().toISOString(), mensaje_error: null })
+      .eq('id', event.id);
+    return jsonResponse({ received: true, processed: true });
+  } catch (error) {
+    const message = cleanText(error instanceof Error ? error.message : error, 240);
+    await supabase.from('eventos_webhook_culqi').update({ mensaje_error: message }).eq('id', event.id);
+    console.error('[PAYMENT] Webhook processing error', { eventId, message });
+    return errorResponse('El evento quedo pendiente de verificacion', 503);
   }
 }
