@@ -20,6 +20,8 @@ assert.match(frontend, /client:\s*\{ email: config\.checkoutEmail \|\| user\.ema
 assert.match(frontend, /culqi\.token\.id\.startsWith\('ype_'\)/, 'Yape tokens must be recorded as Yape payments.');
 assert.match(frontend, /amount:\s*paymentChoice === 'tarjeta' \? 0 : plan\.price/, 'Card subscription checkout must only tokenize the card.');
 assert.match(frontend, /accept_recurring:\s*attempt\.paymentMethod === 'tarjeta'/, 'Recurring card charges require explicit consent.');
+assert.doesNotMatch(frontend, /window\.confirm/, 'Subscription cancellation must use the accessible in-app confirmation.');
+assert.match(frontend, /Si, detener cobros/, 'Cancellation must require an explicit user action.');
 assert.match(apiClient, /PAYMENTS_BASE_URL = API_BASE_URL\.replace/, 'Payments must use the isolated DEV Edge Function.');
 assert.match(backend, /retrieveCulqiCharge\(created\.charge\.id\)/);
 assert.match(backend, /status === 201 && !data\?\.id/, 'HTTP 201 without a charge must enter the Culqi 3DS flow.');
@@ -27,6 +29,7 @@ assert.match(frontend, /totalAmount:\s*plan\.price/, 'Culqi 3DS expects the alre
 assert.match(backend, /culqiRequest\('\/cards'/);
 assert.match(backend, /culqiRequest\('\/recurrent\/subscriptions\/create'/);
 assert.match(backend, /interval_unit_time:\s*3/, 'The Culqi plan must be monthly.');
+assert.match(backend, /environment === 'test' \? 3 : 0/, 'DEV must respect Culqi sandbox cycles while live subscriptions renew indefinitely.');
 assert.match(backend, /body\.accept_recurring === true/);
 assert.match(backend, /typeof payload\?\.data !== 'string'/, 'Webhook payloads serialized by Culqi must be parsed.');
 assert.match(backend, /culqi_outcome_code:\s*providerError\.providerCode \|\| null/);

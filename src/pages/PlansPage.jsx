@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Button from '../components/ui/Button.jsx';
 import Input from '../components/ui/Input.jsx';
+import Modal from '../components/ui/Modal.jsx';
 import { OFFICIAL_EXAM_RULES } from '../data/examRules.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { api, normalizeCategoryName, resolveCategoryId } from '../services/api.js';
@@ -83,6 +84,7 @@ export default function PlansPage() {
   const [paymentChoice, setPaymentChoice] = useState('tarjeta');
   const [acceptRecurring, setAcceptRecurring] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [form, setForm] = useState({
     receiptType: 'boleta',
     documentNumber: '',
@@ -288,13 +290,13 @@ export default function PlansPage() {
   };
 
   const cancelRecurring = async () => {
-    if (!window.confirm('Se detendran los proximos cobros. Mantendras el acceso hasta que termine el mes ya pagado.')) return;
     setCancelling(true);
     setError('');
     try {
       const result = await api.cancelSubscription();
       setSubscription(result.subscription);
       setSuccess({ cancellation: true, accessUntil: result.accessUntil });
+      setShowCancelDialog(false);
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -395,10 +397,25 @@ export default function PlansPage() {
             {processing ? 'Confirmando pago...' : paymentPending ? 'Esperando a Culqi...' : hasAccess ? 'Rendir simulacro' : paymentChoice === 'tarjeta' ? `Suscribirme por ${priceLabel(plan.price)}/mes` : `Pagar ${priceLabel(plan.price)} con Yape`}
             <ArrowRight className="h-5 w-5" />
           </Button>
-          {hasAccess && autoRenew ? <Button variant="secondary" className="mt-3 w-full" onClick={cancelRecurring} disabled={cancelling}>{cancelling ? 'Cancelando...' : 'Cancelar renovacion automatica'}</Button> : null}
+          {hasAccess && autoRenew ? <Button variant="secondary" className="mt-3 w-full" onClick={() => setShowCancelDialog(true)} disabled={cancelling}>Cancelar renovacion automatica</Button> : null}
           <p className="mt-4 flex items-start gap-2 text-xs leading-5 text-slate-500"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" />Culqi procesa la tarjeta dentro de su formulario protegido y aplica autenticacion 3DS cuando el banco la solicita.</p>
         </aside>
       </div>
+
+      <Modal
+        open={showCancelDialog}
+        title="¿Detener los cobros mensuales?"
+        onClose={() => { if (!cancelling) setShowCancelDialog(false); }}
+        showAction={false}
+        className="border-t-4 border-t-danger"
+        childrenClassName="text-base"
+      >
+        <p>Tu acceso seguira activo hasta {membership?.endDate ? new Date(membership.endDate).toLocaleDateString('es-PE') : 'que termine el mes pagado'}. Despues no habra nuevos cobros.</p>
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <Button variant="secondary" className="w-full" onClick={() => setShowCancelDialog(false)} disabled={cancelling}>Conservar renovacion</Button>
+          <Button variant="danger" className="w-full" onClick={cancelRecurring} disabled={cancelling}>{cancelling ? 'Deteniendo cobros...' : 'Si, detener cobros'}</Button>
+        </div>
+      </Modal>
     </div>
   );
 }
