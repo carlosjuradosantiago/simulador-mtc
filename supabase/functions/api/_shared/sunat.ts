@@ -432,7 +432,6 @@ async function buildReceiptPdf(receipt: ReceiptRow, digest: string) {
   const page = pdf.addPage([595, 842]);
   const regular = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const isBeta = receipt.ambiente_sunat === 'beta';
   const documentId = `${receipt.serie}-${receipt.numero}`;
   const lines = [
     ['Emisor', receipt.razon_social_emisor],
@@ -450,11 +449,6 @@ async function buildReceiptPdf(receipt: ReceiptRow, digest: string) {
   page.drawText('SIMULADOR MTC', { x: 48, y: 785, size: 18, font: bold, color: rgb(0.04, 0.16, 0.35) });
   page.drawText(`${receipt.tipo_comprobante} ELECTRONICA`, { x: 330, y: 785, size: 14, font: bold });
   page.drawText(documentId, { x: 410, y: 760, size: 12, font: bold });
-  if (isBeta) {
-    page.drawRectangle({ x: 48, y: 710, width: 499, height: 28, color: rgb(1, 0.94, 0.76) });
-    page.drawText('DOCUMENTO DE PRUEBA SUNAT BETA - SIN VALOR FISCAL', { x: 85, y: 720, size: 11, font: bold });
-  }
-
   let y = 675;
   for (const [label, value] of lines) {
     page.drawText(`${label}:`, { x: 58, y, size: 11, font: bold, color: rgb(0.25, 0.31, 0.4) });

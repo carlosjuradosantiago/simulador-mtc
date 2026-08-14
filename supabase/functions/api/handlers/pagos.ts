@@ -176,7 +176,7 @@ function culqiProviderEmail(userEmail = '') {
 async function culqiRequest(path: string, init: RequestInit = {}) {
   const secretKey = requiredEnv('CULQI_SECRET_KEY');
   if ((Deno.env.get('APP_ENV') || 'development') !== 'production' && !secretKey.startsWith('sk_test_')) {
-    throw new Error('DEV solo admite llaves Culqi de prueba');
+    throw new Error('La configuracion de la pasarela de pago no es valida');
   }
 
   const response = await fetch(`${CULQI_API_URL}${path}`, {
@@ -660,17 +660,16 @@ async function sendConfirmationEmail(supabase: any, dbUser: any, plan: any, tran
 <html lang="es"><body style="margin:0;background:#f4f7fb;font-family:Arial,sans-serif;color:#10213d">
 <table width="100%" cellpadding="0" cellspacing="0" style="padding:24px"><tr><td align="center">
 <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border:1px solid #d8e2ef">
-<tr><td style="padding:26px;background:#0f55e8;color:#fff"><h1 style="margin:0;font-size:24px">Pago de prueba confirmado</h1><p style="margin:8px 0 0">Tu acceso al Simulador MTC ya esta activo.</p></td></tr>
+<tr><td style="padding:26px;background:#0f55e8;color:#fff"><h1 style="margin:0;font-size:24px">Pago confirmado</h1><p style="margin:8px 0 0">Tu acceso al Simulador MTC ya esta activo.</p></td></tr>
 <tr><td style="padding:28px">
 <p>Hola <strong>${escapeHtml(fullName)}</strong>,</p>
-<p>Procesamos correctamente tu compra en el ambiente DEV de Culqi.</p>
+<p>Procesamos correctamente tu compra. Tu acceso ya se encuentra activo.</p>
 <table width="100%" cellpadding="7" style="background:#f7f9fc;border-left:4px solid #0f55e8">
 <tr><td>Plan</td><td align="right"><strong>${escapeHtml(plan.nombre)}</strong></td></tr>
 <tr><td>Monto</td><td align="right"><strong>S/ ${Number(transaction.monto).toFixed(2)}</strong></td></tr>
 <tr><td>Comprobante</td><td align="right"><strong>${escapeHtml(receiptLabel)}</strong></td></tr>
 <tr><td>Acceso hasta</td><td align="right"><strong>${new Date(membership.membership_end).toLocaleDateString('es-PE')}</strong></td></tr>
 </table>
-<p style="margin-top:18px;padding:12px;background:#fff4ce"><strong>Prueba:</strong> este pago y el comprobante SUNAT BETA no tienen valor comercial ni fiscal.</p>
 <p style="text-align:center;margin-top:24px"><a href="${appUrl}/perfil" style="display:inline-block;padding:13px 24px;background:#0f55e8;color:#fff;text-decoration:none;font-weight:bold">Ver mi acceso</a></p>
 </td></tr></table></td></tr></table></body></html>`;
 
@@ -971,7 +970,7 @@ export async function handleGetCulqiConfig(_req: Request) {
     });
   } catch (error) {
     console.error('[PAYMENT] Public configuration error', { message: cleanText(error, 160) });
-    return errorResponse('La pasarela de pago DEV aun no esta disponible', 503);
+    return errorResponse('La pasarela de pago aun no esta disponible', 503);
   }
 }
 
@@ -1007,7 +1006,7 @@ export async function handleProcesarPago(req: Request) {
       throw new ProviderError('Debes autorizar el cobro mensual para suscribirte', 'recurring_terms_required', 400);
     }
     if ((Deno.env.get('APP_ENV') || 'development') !== 'production' && !tokenId.includes('_test_')) {
-      throw new ProviderError('DEV solo admite tokens Culqi de prueba', 'live_token_blocked', 400);
+      throw new ProviderError('No pudimos validar el medio de pago', 'invalid_payment_token', 400);
     }
 
     const { dbUser, plan } = await getCanonicalData(supabase, Number(user.userId), planId);
@@ -1259,7 +1258,7 @@ export async function handleProcesarPago(req: Request) {
 }
 
 export async function handleSimularPago(_req: Request) {
-  return errorResponse('La simulacion fue deshabilitada. Usa Culqi DEV.', 503);
+  return errorResponse('Esta operacion no esta disponible', 503);
 }
 
 function publicSubscription(recurring: any) {
