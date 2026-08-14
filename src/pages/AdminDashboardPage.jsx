@@ -1,6 +1,7 @@
 import {
   Activity,
   Banknote,
+  BookOpen,
   CalendarClock,
   CreditCard,
   Download,
@@ -15,6 +16,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Bar,
   BarChart,
@@ -335,7 +337,7 @@ export default function AdminDashboardPage() {
             </p>
           </div>
 
-          <div className="grid w-full gap-2 sm:grid-cols-[minmax(180px,1fr)_auto_auto] lg:w-auto">
+          <div className="grid w-full gap-2 sm:grid-cols-[minmax(180px,1fr)_auto_auto_auto] lg:w-auto">
             <label className="sr-only" htmlFor="admin-export-type">Tipo de reporte</label>
             <select
               id="admin-export-type"
@@ -348,6 +350,10 @@ export default function AdminDashboardPage() {
             <Button variant="secondary" size="sm" onClick={exportReport} disabled={exporting}>
               <Download className="h-4 w-4" aria-hidden="true" />
               {exporting ? 'Exportando...' : 'Exportar'}
+            </Button>
+            <Button as={Link} to="/admin/reclamaciones" variant="secondary" size="sm">
+              <BookOpen className="h-4 w-4" aria-hidden="true" />
+              Reclamaciones
             </Button>
             <Button variant="secondary" size="sm" onClick={loadOverview} disabled={loading}>
               <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} aria-hidden="true" />

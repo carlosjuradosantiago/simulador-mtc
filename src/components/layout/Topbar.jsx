@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, ChevronDown, CircleUserRound, Clock3, HelpCircle, Home, LogOut, ShieldCheck, UserRound } from 'lucide-react';
+import { BarChart3, BookOpen, ChevronDown, CircleUserRound, Clock3, FileText, HelpCircle, Home, LogOut, ShieldCheck, UserRound } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -117,10 +117,16 @@ export default function Topbar() {
                     Mi perfil
                   </Link>
                   {adminUser ? (
-                    <Link to="/admin" role="menuitem" className="flex min-h-12 items-center gap-3 px-4 font-bold text-slate-700 hover:bg-blue-50 hover:text-brand">
-                      <ShieldCheck className="h-5 w-5" />
-                      Administración
-                    </Link>
+                    <>
+                      <Link to="/admin" role="menuitem" className="flex min-h-12 items-center gap-3 px-4 font-bold text-slate-700 hover:bg-blue-50 hover:text-brand">
+                        <ShieldCheck className="h-5 w-5" />
+                        Administración
+                      </Link>
+                      <Link to="/admin/reclamaciones" role="menuitem" className="flex min-h-12 items-center gap-3 px-4 font-bold text-slate-700 hover:bg-blue-50 hover:text-brand">
+                        <FileText className="h-5 w-5" />
+                        Reclamaciones
+                      </Link>
+                    </>
                   ) : null}
                   <button type="button" role="menuitem" className="flex min-h-12 w-full items-center gap-3 px-4 text-left font-bold text-danger hover:bg-red-50" onClick={handleLogout}>
                     <LogOut className="h-5 w-5" />

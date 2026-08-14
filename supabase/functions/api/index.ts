@@ -80,6 +80,29 @@ Deno.serve(async (req)=>{
       const { handleExportAdminReport } = await import('./handlers/admin.ts');
       return await withLogging(req, path, 'handleExportAdminReport', () => handleExportAdminReport(req));
     }
+    if (path === '/admin/reclamaciones' && method === 'GET') {
+      const { handleGetAdminComplaints } = await import('./handlers/admin_reclamaciones.ts');
+      return await withLogging(req, path, 'handleGetAdminComplaints', () => handleGetAdminComplaints(req));
+    }
+    if (path === '/admin/reclamaciones/exportar' && method === 'GET') {
+      const { handleExportAdminComplaints } = await import('./handlers/admin_reclamaciones.ts');
+      return await withLogging(req, path, 'handleExportAdminComplaints', () => handleExportAdminComplaints(req));
+    }
+    const adminComplaintStatus = path.match(/^\/admin\/reclamaciones\/(\d+)\/estado$/);
+    if (adminComplaintStatus && method === 'PATCH') {
+      const { handleUpdateAdminComplaintStatus } = await import('./handlers/admin_reclamaciones.ts');
+      return await withLogging(req, path, 'handleUpdateAdminComplaintStatus', () => handleUpdateAdminComplaintStatus(req, adminComplaintStatus[1]));
+    }
+    const adminComplaintResponse = path.match(/^\/admin\/reclamaciones\/(\d+)\/responder$/);
+    if (adminComplaintResponse && method === 'POST') {
+      const { handleRespondAdminComplaint } = await import('./handlers/admin_reclamaciones.ts');
+      return await withLogging(req, path, 'handleRespondAdminComplaint', () => handleRespondAdminComplaint(req, adminComplaintResponse[1]));
+    }
+    const adminComplaint = path.match(/^\/admin\/reclamaciones\/(\d+)$/);
+    if (adminComplaint && method === 'GET') {
+      const { handleGetAdminComplaint } = await import('./handlers/admin_reclamaciones.ts');
+      return await withLogging(req, path, 'handleGetAdminComplaint', () => handleGetAdminComplaint(req, adminComplaint[1]));
+    }
     if (path === '/analytics/event' && method === 'POST') {
       const { handleTrackEvent } = await import('./handlers/analytics.ts');
       return await withLogging(req, path, 'handleTrackEvent', () => handleTrackEvent(req));
@@ -353,6 +376,10 @@ Deno.serve(async (req)=>{
         'GET /health',
         'GET /admin/overview',
         'GET /admin/export',
+        'GET /admin/reclamaciones',
+        'GET /admin/reclamaciones/:id',
+        'PATCH /admin/reclamaciones/:id/estado',
+        'POST /admin/reclamaciones/:id/responder',
         'POST /analytics/event',
         'POST /auth/login',
         'POST /auth/register',
