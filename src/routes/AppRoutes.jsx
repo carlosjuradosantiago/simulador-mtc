@@ -17,10 +17,10 @@ const ComplaintBookPage = lazy(() => import('../pages/ComplaintBookPage.jsx'));
 const DashboardPage = lazy(() => import('../pages/DashboardPage.jsx'));
 const LandingPage = lazy(() => import('../pages/LandingPage.jsx'));
 const LegalPage = lazy(() => import('../pages/LegalPage.jsx'));
+const OfficialMaterialsPage = lazy(() => import('../pages/OfficialMaterialsPage.jsx'));
 const PlansPage = lazy(() => import('../pages/PlansPage.jsx'));
 const ProfilePage = lazy(() => import('../pages/ProfilePage.jsx'));
 const ProgressPage = lazy(() => import('../pages/ProgressPage.jsx'));
-const QuestionBankPage = lazy(() => import('../pages/QuestionBankPage.jsx'));
 const ResultsPage = lazy(() => import('../pages/ResultsPage.jsx'));
 const SimulatorPage = lazy(() => import('../pages/SimulatorPage.jsx'));
 const SubscriptionPage = lazy(() => import('../pages/SubscriptionPage.jsx'));
@@ -70,6 +70,7 @@ export default function AppRoutes() {
           <Route path="/politica-devoluciones" element={<Navigate to="/politica-de-cambios-y-devoluciones" replace />} />
           <Route path="/politica-de-privacidad" element={<LegalPage page="privacy" />} />
           <Route path="/libro-reclamaciones" element={<ComplaintBookPage />} />
+          <Route path="/materiales" element={<OfficialMaterialsPage />} />
         </Route>
         <Route path="/login" element={<Navigate to="/?auth=login" replace />} />
         <Route path="/registro" element={<Navigate to="/?auth=register" replace />} />
@@ -83,7 +84,7 @@ export default function AppRoutes() {
             <Route path="/admin/finanzas" element={<AdminRoute><AdminFinancePage /></AdminRoute>} />
             <Route path="/admin/preguntas" element={<AdminRoute><AdminQuestionBankPage /></AdminRoute>} />
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/banco-preguntas" element={<QuestionBankPage />} />
+            <Route path="/banco-preguntas" element={<AdminRoute><Navigate to="/admin/preguntas" replace /></AdminRoute>} />
             <Route path="/clases" element={<ClassesPage />} />
             <Route path="/resultados" element={<ProgressPage />} />
             <Route path="/resultados/:id" element={<ResultsPage />} />

@@ -282,7 +282,7 @@ export default function SimulatorPage() {
           </span>
           <nav className="ml-auto flex items-center gap-1 sm:gap-2" aria-label="Acciones de la práctica">
             <Link
-              to="/banco-preguntas"
+              to="/clases"
               aria-label="Ayuda"
               className="inline-flex min-h-11 items-center gap-2 rounded-lg px-3 font-bold text-brand hover:bg-blue-50"
             >

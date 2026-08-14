@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, ChevronDown, CircleUserRound, Clock3, FileText, HelpCircle, Home, LogOut, ShieldCheck, UserRound } from 'lucide-react';
+import { BarChart3, ChevronDown, CircleUserRound, Clock3, FileDown, FileText, HelpCircle, Home, LogOut, ShieldCheck, UserRound } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -8,7 +8,7 @@ import BrandLogo from './BrandLogo.jsx';
 function isActivePath(pathname, search, item) {
   if (item.id === 'home') return pathname === '/dashboard';
   if (item.id === 'simulator') return pathname.startsWith('/simulacro') && new URLSearchParams(search).get('mode') === 'exam';
-  if (item.id === 'learn') return pathname.startsWith('/banco-preguntas') || pathname.startsWith('/clases');
+  if (item.id === 'learn') return pathname.startsWith('/materiales');
   if (item.id === 'progress') return pathname.startsWith('/resultados');
   return false;
 }
@@ -24,7 +24,7 @@ export default function Topbar() {
   const navItems = [
     { id: 'home', label: 'Inicio', icon: Home, to: '/dashboard' },
     { id: 'simulator', label: 'Simulacro', icon: Clock3, to: category ? `/simulacro/${category}?mode=exam` : '/dashboard?chooseCategory=1' },
-    { id: 'learn', label: 'Aprender', icon: BookOpen, to: '/banco-preguntas' },
+    { id: 'learn', label: 'PDF MTC', icon: FileDown, to: '/materiales' },
     { id: 'progress', label: 'Mi avance', icon: BarChart3, to: '/resultados' },
   ];
 
@@ -115,6 +115,10 @@ export default function Topbar() {
                   <Link to="/perfil" role="menuitem" className="flex min-h-12 items-center gap-3 px-4 font-bold text-slate-700 hover:bg-blue-50 hover:text-brand">
                     <UserRound className="h-5 w-5" />
                     Mi perfil
+                  </Link>
+                  <Link to="/materiales" role="menuitem" className="flex min-h-12 items-center gap-3 px-4 font-bold text-slate-700 hover:bg-blue-50 hover:text-brand">
+                    <FileDown className="h-5 w-5" />
+                    PDF oficiales
                   </Link>
                   {adminUser ? (
                     <>

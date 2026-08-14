@@ -30,6 +30,7 @@ const businessPhone = '+51 987 617 635';
 const businessEmail = 'admin@simuladormtc.com';
 
 const publicSpaPages = [
+  '/materiales',
   '/contacto',
   '/terminos-y-condiciones',
   '/politica-de-cambios-y-devoluciones',
@@ -201,8 +202,8 @@ const corePages = [
     description: 'Guia para practicar preguntas del examen MTC por tema: senales, normas, seguridad vial, mecanica basica y primeros auxilios.',
     h1: 'Preguntas del examen MTC por tema',
     intro: 'El examen de conocimientos evalua si entiendes las normas de transito y puedes tomar decisiones seguras. Practicar por tema ayuda a detectar errores repetidos antes del examen real.',
-    primaryCta: '/banco-preguntas',
-    ctaText: 'Ir al banco de preguntas',
+    primaryCta: '/',
+    ctaText: 'Empezar simulacro',
     keywords: ['preguntas examen mtc', 'examen de conocimientos mtc', 'preguntas licencia de conducir peru'],
     sections: [
       ['Senales de transito', 'Reconoce senales reglamentarias, preventivas e informativas; identifica prioridades, restricciones y advertencias antes de elegir una respuesta.'],
@@ -221,8 +222,8 @@ const corePages = [
     description: 'Aprende a reconocer senales de transito para el examen MTC y practica preguntas con explicacion inmediata.',
     h1: 'Senales de transito para el examen MTC',
     intro: 'Las senales suelen decidir muchas preguntas del examen. La clave es reconocer el tipo de senal y la conducta que exige al conductor.',
-    primaryCta: '/banco-preguntas?tema=senales',
-    ctaText: 'Practicar senales',
+    primaryCta: '/',
+    ctaText: 'Practicar en el simulador',
     keywords: ['senales de transito mtc', 'senales reglamentarias', 'examen de manejo senales'],
     sections: [
       ['Reglamentarias', 'Indican obligaciones, prohibiciones o restricciones. Si una pregunta muestra borde rojo o simbolos de prohibicion, debes identificar la conducta exigida.'],
@@ -1645,6 +1646,7 @@ ${disclaimer}
 - ${siteUrl}/fuentes-mtc: fuentes oficiales y balotarios de referencia.
 - ${siteUrl}/metodologia-simulador-mtc: metodología editorial, alcance y actualización del contenido.
 - ${siteUrl}/contacto: datos de ${legalName}, RUC ${taxId}, dirección, teléfono y correo.
+- ${siteUrl}/materiales: descarga pública de balotarios y normas oficiales del MTC.
 - ${siteUrl}/terminos-y-condiciones: condiciones de uso del servicio.
 - ${siteUrl}/politica-de-cambios-y-devoluciones: atención de incidencias, cobros, cambios y devoluciones.
 - ${siteUrl}/libro-reclamaciones: formulario público del Libro de Reclamaciones.

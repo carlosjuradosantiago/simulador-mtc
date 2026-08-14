@@ -45,7 +45,7 @@ async function main() {
   ]);
   const categoryBank = JSON.parse(categoryBankText);
   const topicBank = JSON.parse(topicBankText);
-  assert.equal(categoryBank.meta.sourceQuestionCount, 655, 'El banco por categoría debe provenir de las 655 preguntas deduplicadas');
+  assert.equal(categoryBank.meta.sourceQuestionCount, 640, 'El banco por categoría debe provenir de las 640 preguntas deduplicadas');
   assert.equal(categoryBank.meta.questionsPerCategory, 40, 'Cada categoría debe publicar 40 preguntas');
   assert.equal(categoryBank.categories.length, 9, 'Deben existir bancos para las 9 categorías');
   assert.deepEqual(
@@ -71,7 +71,7 @@ async function main() {
       assert(question.options.every((option) => !option.includes('...')), `${category.code} #${question.number}: una alternativa parece truncada`);
     }
   }
-  assert.equal(topicBank.meta.sourceQuestionCount, 655, 'El banco temático debe provenir de las 655 preguntas deduplicadas');
+  assert.equal(topicBank.meta.sourceQuestionCount, 640, 'El banco temático debe provenir de las 640 preguntas deduplicadas');
   assert.equal(topicBank.meta.maxQuestionsPerTopic, 40, 'El límite editorial por tema debe ser 40');
   assert.equal(topicBank.topics.length, 12, 'Deben existir 12 páginas temáticas');
   const topicByFile = new Map(topicBank.topics.map((topic) => [`${topic.slug}.html`, topic]));
