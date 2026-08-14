@@ -20,6 +20,7 @@ assert.match(handler, /\.is\('respuesta_enviada_en', null\)/);
 assert.match(handler, /safeText = \/\^\[=\+\\-@\]\//);
 assert.match(email, /idempotencyKey: `complaint-response\/\$\{data\.numeroReclamo\}`/);
 assert.match(routes, /GET[\s\S]*\/admin\/reclamaciones/);
+assert.match(routes, /Access-Control-Allow-Methods': '[^']*PATCH/);
 assert.match(routes, /handleRespondAdminComplaint/);
 assert.match(apiClient, /getAdminComplaints:[\s\S]*auth: true/);
 assert.match(apiClient, /respondAdminComplaint:[\s\S]*auth: true/);
