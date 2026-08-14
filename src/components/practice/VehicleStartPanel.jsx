@@ -64,7 +64,7 @@ export default function VehicleStartPanel({
   const canStartFullExam = fullExamIsFree || fullExamHasAccess;
   const isCheckingFullExamAccess = !fullExamIsFree && fullExamAccessLoading;
   const fullExamAccessLabel = fullExamIsFree
-    ? 'Gratis por ahora'
+    ? 'Puedes practicar sin límites por ahora'
     : fullExamHasAccess
       ? `Acceso activo${membershipEndDate ? ` hasta ${new Date(membershipEndDate).toLocaleDateString('es-PE')}` : ''}`
       : `Suscripcion mensual ${priceLabel}`;

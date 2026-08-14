@@ -30,7 +30,6 @@ const businessPhone = '+51 987 617 635';
 const businessEmail = 'admin@simuladormtc.com';
 
 const publicSpaPages = [
-  '/suscripcion',
   '/contacto',
   '/terminos-y-condiciones',
   '/politica-de-cambios-y-devoluciones',
@@ -1630,6 +1629,7 @@ ${disclaimer}
 - El MTC informa que el examen de reglas tiene 40 preguntas y una duración máxima de 40 minutos.
 - La publicación del MTC indica que se requieren al menos 35 respuestas correctas para aprobar.
 - Las preguntas y balotarios se organizan según la categoría de licencia elegida.
+- Por ahora, las personas registradas pueden practicar y rendir simulacros completos sin límites.
 - Cada página de categoría publica cuarenta preguntas completas, con cuatro alternativas, respuesta y referencia al balotario correspondiente.
 - Fuente del formato oficial: ${officialSources.find((source) => source.id === 'exam-format').url}
 - Balotarios oficiales: ${officialMtcSource}
@@ -1642,10 +1642,9 @@ ${disclaimer}
 - ${siteUrl}/reglas-de-transito-peru: reglas de tránsito en Perú.
 - ${siteUrl}/fuentes-mtc: fuentes oficiales y balotarios de referencia.
 - ${siteUrl}/metodologia-simulador-mtc: metodología editorial, alcance y actualización del contenido.
-- ${siteUrl}/suscripcion: suscripción mensual por S/ 12 para simulacros completos, resultados y análisis.
 - ${siteUrl}/contacto: datos de ${legalName}, RUC ${taxId}, dirección, teléfono y correo.
-- ${siteUrl}/terminos-y-condiciones: condiciones del servicio y la suscripción.
-- ${siteUrl}/politica-de-cambios-y-devoluciones: reglas de cancelación y revisión de cobros.
+- ${siteUrl}/terminos-y-condiciones: condiciones de uso del servicio.
+- ${siteUrl}/politica-de-cambios-y-devoluciones: condiciones aplicables durante el acceso gratuito.
 - ${siteUrl}/libro-reclamaciones: formulario público del Libro de Reclamaciones.
 - ${repositoryUrl}: código y documentación pública del proyecto.
 

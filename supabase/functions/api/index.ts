@@ -2,6 +2,7 @@
 // Migrated from Spring Boot backend to Supabase Edge Functions
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { withLogging } from './_shared/logger.ts';
+import { isFullExamFree } from './_shared/membership-access.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -39,6 +40,12 @@ Deno.serve(async (req)=>{
   const method = req.method;
   console.log(`[API] ${method} ${path}`);
   try {
+    if (path.startsWith('/pagos/') && isFullExamFree(Deno.env.get('FULL_EXAM_FREE_ACCESS'))) {
+      return new Response(JSON.stringify({ error: 'Not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     // ============ HEALTH CHECK ============
     if (path === '/health' || path === '' || path === '/') {
       return new Response(JSON.stringify({

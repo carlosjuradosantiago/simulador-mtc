@@ -1,6 +1,7 @@
 import { BookOpen, Mail, MapPin, Phone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { BRAND_DISCLAIMER, BRAND_NAME } from '../../data/brand.js';
+import { FULL_EXAM_IS_FREE } from '../../data/examRules.js';
 import { BUSINESS } from '../../data/legal.js';
 
 const licenseGuides = [
@@ -16,7 +17,7 @@ const licenseGuides = [
 ];
 
 const publicLinks = [
-  ['Suscripción', '/suscripcion'],
+  ...(!FULL_EXAM_IS_FREE ? [['Suscripción', '/suscripcion']] : []),
   ['Contacto', '/contacto'],
   ['Términos y condiciones', '/terminos-y-condiciones'],
   ['Cambios y devoluciones', '/politica-de-cambios-y-devoluciones'],

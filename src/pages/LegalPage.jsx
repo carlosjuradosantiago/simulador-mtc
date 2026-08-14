@@ -2,6 +2,7 @@ import { Building2, Mail, MapPin, Phone } from 'lucide-react';
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { BRAND_DISCLAIMER, BRAND_NAME } from '../data/brand.js';
+import { FULL_EXAM_IS_FREE } from '../data/examRules.js';
 import { BUSINESS, MONTHLY_PLAN } from '../data/legal.js';
 
 const pages = {
@@ -49,12 +50,38 @@ const pages = {
   },
 };
 
+const freeAccessPages = {
+  terms: {
+    title: 'Términos y condiciones',
+    intro: 'Estas condiciones explican de forma sencilla cómo funciona Simulador MTC y qué aceptas al crear una cuenta y utilizar el servicio.',
+    sections: [
+      ['1. Proveedor del servicio', <p key="provider">El servicio es ofrecido por <strong>{BUSINESS.legalName}</strong>, RUC {BUSINESS.ruc}, con domicilio en {BUSINESS.address}. Puedes contactarnos en <a className="font-bold text-brand hover:underline" href={BUSINESS.emailHref}>{BUSINESS.email}</a> o al <a className="font-bold text-brand hover:underline" href={BUSINESS.phoneHref}>{BUSINESS.phone}</a>.</p>],
+      ['2. Servicio educativo', <><p>{BRAND_NAME} permite practicar preguntas de conocimientos para licencias de conducir por categoría, rendir simulacros cronometrados y revisar resultados y temas por reforzar.</p><p className="mt-3">{BRAND_DISCLAIMER} La plataforma no reemplaza la información oficial ni garantiza la aprobación del examen.</p></>],
+      ['3. Acceso actual', <p>Por ahora puedes practicar sin límites, incluidos los simulacros completos, la revisión de resultados y el seguimiento de tu progreso. No se solicita ningún pago para utilizar estas funciones.</p>],
+      ['4. Cuenta y uso permitido', <p>Debes proporcionar información verdadera, mantener tus credenciales seguras y usar la cuenta de forma personal. No está permitido copiar masivamente el banco de preguntas, vulnerar la plataforma, compartir accesos con fines comerciales ni usar el servicio de forma ilícita.</p>],
+      ['5. Consultas y reclamos', <p>Puedes comunicarte mediante nuestros <Link className="font-bold text-brand hover:underline" to="/contacto">canales de atención</Link> o presentar una queja o reclamo en el <Link className="font-bold text-brand hover:underline" to="/libro-reclamaciones">Libro de Reclamaciones</Link>.</p>],
+      ['6. Propiedad intelectual y disponibilidad', <p>El diseño, software, organización y contenido propio de la plataforma están protegidos por la legislación aplicable. Podemos realizar mantenimiento o correcciones razonables para mantener el servicio seguro y actualizado.</p>],
+      ['7. Ley aplicable', <p>Estas condiciones se interpretan conforme a las leyes de la República del Perú, incluido el Código de Protección y Defensa del Consumidor. Ninguna disposición limita derechos irrenunciables reconocidos por ley.</p>],
+    ],
+  },
+  returns: {
+    title: 'Política de cambios y devoluciones',
+    intro: 'Por ahora, el acceso a las prácticas y simulacros completos no tiene costo.',
+    sections: [
+      ['Acceso sin costo', <p key="free-access">Puedes practicar sin límites por ahora. La plataforma no solicita pagos para acceder a los simulacros completos, resultados o análisis de progreso.</p>],
+      ['Sin cobros que devolver', <p>Mientras este acceso gratuito se encuentre vigente, no se generan cargos por el uso del simulador y, por tanto, no existen importes que cancelar o devolver.</p>],
+      ['Consultas y correcciones', <p>Si encuentras un problema con tu cuenta o con el acceso al servicio, escríbenos a <a className="font-bold text-brand hover:underline" href={BUSINESS.emailHref}>{BUSINESS.email}</a>. También puedes usar el <Link className="font-bold text-brand hover:underline" to="/libro-reclamaciones">Libro de Reclamaciones</Link>.</p>],
+      ['Derechos del consumidor', <p>Esta política no excluye ni reduce los derechos irrenunciables que correspondan según la legislación peruana.</p>],
+    ],
+  },
+};
+
 function ContactPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
       <p className="font-bold text-brand">Atención al usuario</p>
       <h1 className="mt-2 font-display text-4xl font-black text-ink sm:text-5xl">Contacto</h1>
-      <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-600">Escríbenos para resolver dudas sobre tu cuenta, suscripción, pagos, comprobantes o el uso del simulador.</p>
+      <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-600">Escríbenos para resolver dudas sobre tu cuenta{FULL_EXAM_IS_FREE ? ' o el uso del simulador' : ', suscripción, pagos, comprobantes o el uso del simulador'}.</p>
 
       <div className="mt-9 grid gap-0 border-y border-line md:grid-cols-2">
         <div className="py-7 md:pr-8">
@@ -78,7 +105,7 @@ function ContactPage() {
 }
 
 export default function LegalPage({ page }) {
-  const content = pages[page];
+  const content = FULL_EXAM_IS_FREE && freeAccessPages[page] ? freeAccessPages[page] : pages[page];
 
   useEffect(() => {
     const previousTitle = document.title;
