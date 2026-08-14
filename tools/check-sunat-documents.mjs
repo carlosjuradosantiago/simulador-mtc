@@ -26,5 +26,10 @@ assert.match(source, /<cbc:ID>\$\{escapeXml\(receipt\.serie\)\}-\$\{receipt\.num
 assert.match(source, /<cac:AccountingCustomerParty>[\s\S]*?<cbc:CustomerAssignedAccountID>/);
 assert.match(source, /<cac:Status><cbc:ConditionCode>1<\/cbc:ConditionCode><\/cac:Status>/);
 assert.doesNotMatch(source, /sac:(DocumentSerialID|StartDocumentNumberID|EndDocumentNumberID)/);
+assert.doesNotMatch(
+  source,
+  /DOCUMENTO DE PRUEBA SUNAT BETA|SIN VALOR FISCAL/,
+  'Customer PDFs must not expose environment-specific labels.',
+);
 
 console.log('SUNAT UBL 2.1 operation and document type fields are correctly separated.');

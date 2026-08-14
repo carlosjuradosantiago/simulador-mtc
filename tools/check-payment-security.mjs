@@ -23,6 +23,12 @@ assert.match(frontend, /accept_recurring:\s*attempt\.paymentMethod === 'tarjeta'
 assert.doesNotMatch(frontend, /window\.confirm/, 'Subscription cancellation must use the accessible in-app confirmation.');
 assert.match(frontend, /Si, detener cobros/, 'Cancellation must require an explicit user action.');
 assert.doesNotMatch(frontend, /Prueba segura en DEV|SUNAT BETA|no realizara un cobro real/, 'Environment details must never be shown in the customer interface.');
+assert.doesNotMatch(
+  backend,
+  /Pago de prueba confirmado|ambiente DEV de Culqi|SUNAT BETA no tienen valor|sin valor comercial ni fiscal/,
+  'Environment details must never be shown in customer payment emails.',
+);
+assert.match(backend, /<h1 style="margin:0;font-size:24px">Pago confirmado<\/h1>/);
 assert.match(apiClient, /PAYMENTS_BASE_URL = API_BASE_URL\.replace/, 'Payments must use the isolated DEV Edge Function.');
 assert.match(backend, /retrieveCulqiCharge\(created\.charge\.id\)/);
 assert.match(backend, /status === 201 && !data\?\.id/, 'HTTP 201 without a charge must enter the Culqi 3DS flow.');
@@ -38,7 +44,7 @@ assert.match(backend, /data\?\.param \|\| data\?\.parameter \|\| data\?\.field/)
 assert.match(backend, /console\.warn\('\[CULQI\] Charge rejected'/);
 assert.match(backend, /culqi_request_id:\s*providerError\.requestId \|\| null/);
 assert.match(backend, /handleCulqiWebhook/);
-assert.match(backend, /handleSimularPago[\s\S]*simulacion fue deshabilitada/);
+assert.match(backend, /handleSimularPago[\s\S]*Esta operacion no esta disponible/);
 assert.doesNotMatch(backend, /console\.(log|error)\([^\n]*(tokenId|chargePayload|CULQI_SECRET_KEY)/);
 assert.match(migration, /enable row level security/g);
 assert.match(migration, /revoke all on table public\.comprobantes_electronicos from anon, authenticated/);
