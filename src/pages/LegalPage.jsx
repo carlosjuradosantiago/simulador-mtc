@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { BRAND_DISCLAIMER, BRAND_NAME } from '../data/brand.js';
 import { FULL_EXAM_IS_FREE } from '../data/examRules.js';
-import { BUSINESS, MONTHLY_PLAN } from '../data/legal.js';
+import { BUSINESS, LEGAL_LAST_UPDATED, MONTHLY_PLAN } from '../data/legal.js';
 
 const pages = {
   terms: {
@@ -100,7 +100,7 @@ export default function LegalPage({ page }) {
       <p className="font-bold text-brand">Información legal</p>
       <h1 className="mt-2 font-display text-4xl font-black leading-tight text-ink sm:text-5xl">{content.title}</h1>
       <p className="mt-4 text-lg leading-8 text-slate-600">{content.intro}</p>
-      <p className="mt-3 text-sm font-semibold text-slate-500">Última actualización: 13 de agosto de 2026</p>
+      <p className="mt-3 text-sm font-semibold text-slate-500">Última actualización: {LEGAL_LAST_UPDATED}</p>
 
       <div className="mt-9 divide-y divide-line border-y border-line">
         {content.sections.map(([title, body]) => (

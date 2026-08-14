@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const [frontend, apiClient, backend, migration, recurringMigration, environments] = await Promise.all([
+const [frontend, apiClient, backend, migration, recurringMigration, legalAcceptanceMigration, legalData, environments] = await Promise.all([
   readFile(new URL('../src/pages/PlansPage.jsx', import.meta.url), 'utf8'),
   readFile(new URL('../src/services/api.js', import.meta.url), 'utf8'),
   readFile(new URL('../supabase/functions/api/handlers/pagos.ts', import.meta.url), 'utf8'),
   readFile(new URL('../supabase/migrations/20260812193000_secure_culqi_sunat_flow.sql', import.meta.url), 'utf8'),
   readFile(new URL('../supabase/migrations/20260813205555_culqi_recurring_subscriptions.sql', import.meta.url), 'utf8'),
+  readFile(new URL('../supabase/migrations/20260814041608_record_payment_legal_acceptance.sql', import.meta.url), 'utf8'),
+  readFile(new URL('../src/data/legal.js', import.meta.url), 'utf8'),
   readFile(new URL('../src/config/remoteEnvironments.js', import.meta.url), 'utf8'),
 ]);
 
@@ -20,6 +22,8 @@ assert.match(frontend, /client:\s*\{ email: config\.checkoutEmail \|\| user\.ema
 assert.match(frontend, /culqi\.token\.id\.startsWith\('ype_'\)/, 'Yape tokens must be recorded as Yape payments.');
 assert.match(frontend, /amount:\s*paymentChoice === 'tarjeta' \? 0 : plan\.price/, 'Card subscription checkout must only tokenize the card.');
 assert.match(frontend, /accept_recurring:\s*attempt\.paymentMethod === 'tarjeta'/, 'Recurring card charges require explicit consent.');
+assert.match(frontend, /accept_legal:\s*acceptLegal/, 'Every payment method must send explicit legal acceptance.');
+assert.match(frontend, /terms_version:\s*LEGAL_TERMS_VERSION/, 'The accepted legal version must be sent with the payment.');
 assert.doesNotMatch(frontend, /window\.confirm/, 'Subscription cancellation must use the accessible in-app confirmation.');
 assert.match(frontend, /Si, detener cobros/, 'Cancellation must require an explicit user action.');
 assert.doesNotMatch(frontend, /Prueba segura en DEV|SUNAT BETA|no realizara un cobro real/, 'Environment details must never be shown in the customer interface.');
@@ -38,6 +42,10 @@ assert.match(backend, /culqiRequest\('\/recurrent\/subscriptions\/create'/);
 assert.match(backend, /interval_unit_time:\s*3/, 'The Culqi plan must be monthly.');
 assert.match(backend, /environment === 'test' \? 3 : 0/, 'DEV must respect Culqi sandbox cycles while live subscriptions renew indefinitely.');
 assert.match(backend, /body\.accept_recurring === true/);
+assert.match(backend, /body\.accept_legal === true/);
+assert.match(backend, /termsVersion !== CURRENT_TERMS_VERSION/);
+assert.match(backend, /terminos_aceptados_en:\s*new Date\(\)\.toISOString\(\)/);
+assert.match(backend, /terminos_version:\s*CURRENT_TERMS_VERSION/);
 assert.match(backend, /typeof payload\?\.data !== 'string'/, 'Webhook payloads serialized by Culqi must be parsed.');
 assert.match(backend, /culqi_outcome_code:\s*providerError\.providerCode \|\| null/);
 assert.match(backend, /data\?\.param \|\| data\?\.parameter \|\| data\?\.field/);
@@ -52,6 +60,11 @@ assert.match(migration, /culqi_token_id = null/);
 assert.match(recurringMigration, /create table if not exists public\.suscripciones_culqi/);
 assert.match(recurringMigration, /enable row level security/g);
 assert.match(recurringMigration, /revoke all on table public\.suscripciones_culqi from public, anon, authenticated/);
+assert.match(legalAcceptanceMigration, /alter table public\.transacciones_pago[\s\S]*terminos_aceptados_en timestamptz/);
+assert.match(legalAcceptanceMigration, /terminos_version text/);
+assert.match(legalAcceptanceMigration, /transacciones_pago_aceptacion_legal_check/);
+assert.match(legalData, /LEGAL_TERMS_VERSION = '2026-08-13'/);
+assert.match(backend, /CURRENT_TERMS_VERSION = '2026-08-13'/);
 assert.match(environments, /development:[\s\S]*fullExamFree:\s*false/);
 assert.match(environments, /production:[\s\S]*fullExamFree:\s*true/);
 

@@ -15,3 +15,6 @@ export const MONTHLY_PLAN = {
   priceCents: 1200,
   currency: 'PEN',
 };
+
+export const LEGAL_TERMS_VERSION = '2026-08-13';
+export const LEGAL_LAST_UPDATED = '13 de agosto de 2026';
