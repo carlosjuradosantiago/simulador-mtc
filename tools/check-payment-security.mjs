@@ -22,6 +22,7 @@ assert.match(frontend, /amount:\s*paymentChoice === 'tarjeta' \? 0 : plan\.price
 assert.match(frontend, /accept_recurring:\s*attempt\.paymentMethod === 'tarjeta'/, 'Recurring card charges require explicit consent.');
 assert.doesNotMatch(frontend, /window\.confirm/, 'Subscription cancellation must use the accessible in-app confirmation.');
 assert.match(frontend, /Si, detener cobros/, 'Cancellation must require an explicit user action.');
+assert.doesNotMatch(frontend, /Prueba segura en DEV|SUNAT BETA|no realizara un cobro real/, 'Environment details must never be shown in the customer interface.');
 assert.match(apiClient, /PAYMENTS_BASE_URL = API_BASE_URL\.replace/, 'Payments must use the isolated DEV Edge Function.');
 assert.match(backend, /retrieveCulqiCharge\(created\.charge\.id\)/);
 assert.match(backend, /status === 201 && !data\?\.id/, 'HTTP 201 without a charge must enter the Culqi 3DS flow.');
