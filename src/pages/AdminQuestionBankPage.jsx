@@ -136,19 +136,19 @@ export default function AdminQuestionBankPage() {
           </div>
         </header>
 
-        <Card className="grid gap-4 p-4 shadow-sm lg:grid-cols-[minmax(180px,0.7fr)_minmax(180px,0.6fr)_minmax(240px,1fr)_minmax(180px,0.7fr)_auto] lg:items-end">
-          <label className="grid gap-1.5 text-sm font-bold text-ink">Categoría
-            <select value={category} onChange={(event) => resetPage(setCategory, event.target.value)} className="min-h-11 rounded-lg border border-line bg-white px-3 font-semibold"><option value="">Todas</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.title} · {item.vehicle}</option>)}</select>
+        <Card className="grid min-w-0 gap-4 overflow-hidden p-4 shadow-sm lg:grid-cols-[minmax(180px,0.7fr)_minmax(180px,0.6fr)_minmax(240px,1fr)_minmax(180px,0.7fr)_auto] lg:items-end">
+          <label className="grid min-w-0 gap-1.5 text-sm font-bold text-ink">Categoría
+            <select value={category} onChange={(event) => resetPage(setCategory, event.target.value)} className="min-h-11 w-full min-w-0 max-w-full rounded-lg border border-line bg-white px-3 font-semibold"><option value="">Todas</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.title} · {item.vehicle}</option>)}</select>
           </label>
-          <label className="grid gap-1.5 text-sm font-bold text-ink">Sección
-            <select value={section} onChange={(event) => resetPage(setSection, event.target.value)} className="min-h-11 rounded-lg border border-line bg-white px-3 font-semibold"><option value="Todas">Todas</option><option value="general">General</option><option value="especifica">Específica</option></select>
+          <label className="grid min-w-0 gap-1.5 text-sm font-bold text-ink">Sección
+            <select value={section} onChange={(event) => resetPage(setSection, event.target.value)} className="min-h-11 w-full min-w-0 max-w-full rounded-lg border border-line bg-white px-3 font-semibold"><option value="Todas">Todas</option><option value="general">General</option><option value="especifica">Específica</option></select>
           </label>
-          <form className="grid gap-1.5" onSubmit={(event) => { event.preventDefault(); resetPage(setSearch, searchInput.trim()); }}>
+          <form className="grid min-w-0 gap-1.5" onSubmit={(event) => { event.preventDefault(); resetPage(setSearch, searchInput.trim()); }}>
             <span className="text-sm font-bold text-ink">Buscar</span>
             <span className="relative"><Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-slate-400" /><input type="search" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Texto, tema o fundamento" className="min-h-11 w-full rounded-lg border border-line pl-10 pr-3" /></span>
           </form>
-          <label className="grid gap-1.5 text-sm font-bold text-ink">Ordenar por
-            <select value={sort} onChange={(event) => resetPage(setSort, event.target.value)} className="min-h-11 rounded-lg border border-line bg-white px-3 font-semibold">{sortOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+          <label className="grid min-w-0 gap-1.5 text-sm font-bold text-ink">Ordenar por
+            <select value={sort} onChange={(event) => resetPage(setSort, event.target.value)} className="min-h-11 w-full min-w-0 max-w-full rounded-lg border border-line bg-white px-3 font-semibold">{sortOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
           </label>
           <div className="flex gap-2">
             <Button variant="secondary" size="sm" onClick={() => resetPage(setDirection, direction === 'asc' ? 'desc' : 'asc')} title={direction === 'asc' ? 'Orden ascendente' : 'Orden descendente'}>{direction === 'asc' ? <ArrowDownAZ className="h-5 w-5" /> : <ArrowUpAZ className="h-5 w-5" />}</Button>
@@ -156,7 +156,7 @@ export default function AdminQuestionBankPage() {
           </div>
         </Card>
 
-        <div className="flex items-center justify-between gap-3"><div><h2 className="font-display text-xl font-black text-ink">{selectedCategoryLabel}</h2><p className="text-sm text-slate-500">{pagination.total} preguntas encontradas</p></div><Badge variant="blue">Página {pagination.page} de {pagination.totalPages}</Badge></div>
+        <div className="flex min-w-0 flex-col items-start justify-between gap-3 sm:flex-row sm:items-center"><div className="min-w-0"><h2 className="break-words font-display text-xl font-black text-ink">{selectedCategoryLabel}</h2><p className="text-sm text-slate-500">{pagination.total} preguntas encontradas</p></div><Badge variant="blue">Página {pagination.page} de {pagination.totalPages}</Badge></div>
         {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 font-bold text-danger" role="alert">{error}</div> : null}
 
         <Card className="overflow-hidden shadow-sm" aria-busy={loading}>
