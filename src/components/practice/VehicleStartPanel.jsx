@@ -67,7 +67,7 @@ export default function VehicleStartPanel({
     ? 'Gratis por ahora'
     : fullExamHasAccess
       ? `Acceso activo${membershipEndDate ? ` hasta ${new Date(membershipEndDate).toLocaleDateString('es-PE')}` : ''}`
-      : `${priceLabel} por 1 mes de acceso`;
+      : `Suscripcion mensual ${priceLabel}`;
 
   const chooseVehicle = (choice) => {
     setCategoryVehicleId(choice.id);
@@ -228,7 +228,7 @@ export default function VehicleStartPanel({
                     )}
                   >
                     {canStartFullExam ? <CircleGauge className="h-7 w-7" /> : <LockKeyhole className="h-6 w-6" />}
-                    {canStartFullExam ? 'Iniciar simulacro' : 'Activar simulacro'}
+                    {canStartFullExam ? 'Iniciar simulacro' : 'Suscribirme'}
                     <ArrowRight className="h-6 w-6" />
                   </Link>
                 )}

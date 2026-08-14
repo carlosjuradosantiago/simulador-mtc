@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   addCalendarMonths,
   filterOfficialExamAttempts,
@@ -55,5 +56,13 @@ assert.equal(OFFICIAL_EXAM_RULES.durationSeconds, OFFICIAL_EXAM_DURATION_SECONDS
 assert.equal(OFFICIAL_EXAM_RULES.minimumCorrectAnswers, OFFICIAL_EXAM_MIN_CORRECT);
 assert.equal(passesOfficialExam(34), false);
 assert.equal(passesOfficialExam(35), true);
+
+const plansPage = readFileSync(new URL('../src/pages/PlansPage.jsx', import.meta.url), 'utf8');
+const simulatorPage = readFileSync(new URL('../src/pages/SimulatorPage.jsx', import.meta.url), 'utf8');
+assert.match(plansPage, /Suscribete nuevamente para volver a rendir simulacros completos/);
+assert.match(plansPage, /Con Yape, tu suscripcion mensual queda activa durante un mes/);
+assert.doesNotMatch(plansPage, /Un mes, sin renovacion|no realiza cobros futuros|Pagar \$\{priceLabel\(plan\.price\)\} con Yape/);
+assert.match(simulatorPage, /Necesitas una suscripcion activa/);
+assert.match(simulatorPage, /Suscribete para volver a rendir simulacros completos/);
 
 console.log('membership access checks passed');

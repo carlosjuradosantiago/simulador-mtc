@@ -75,6 +75,7 @@ export default function PlansPage() {
   const examPath = `/simulacro/${categoryId}?mode=exam`;
   const [plan, setPlan] = useState(fallbackPlan);
   const [membership, setMembership] = useState(null);
+  const [hadMembership, setHadMembership] = useState(false);
   const [subscription, setSubscription] = useState(null);
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -102,16 +103,18 @@ export default function PlansPage() {
     Promise.all([
       api.getPlans(),
       api.getActiveMembership().catch(() => null),
+      api.getMemberships().catch(() => []),
       api.getSubscription().catch(() => null),
       api.getBillingData().catch(() => null),
       api.getPaymentConfig(),
       loadScript(CULQI_CHECKOUT_SRC, 'CulqiCheckout'),
       loadScript(CULQI_3DS_SRC, 'Culqi3DS'),
-    ]).then(async ([plans, activeMembership, activeSubscription, billing, paymentConfig]) => {
+    ]).then(async ([plans, activeMembership, memberships, activeSubscription, billing, paymentConfig]) => {
       if (cancelled) return;
       const selectedPlan = plans?.[0] || fallbackPlan;
       setPlan(selectedPlan);
       setMembership(activeMembership);
+      setHadMembership(memberships.length > 0);
       setSubscription(activeSubscription);
       setConfig(paymentConfig);
       setForm((current) => ({
@@ -319,8 +322,10 @@ export default function PlansPage() {
       <header className="mt-3 max-w-3xl">
         <p className="font-bold text-brand">Simulacro completo · {normalizeCategoryName(categoryId)}</p>
         <h1 className="mt-2 font-display text-3xl font-black leading-tight text-ink sm:text-4xl">Acceso Premium al simulador MTC</h1>
-        <p className="mt-3 text-base leading-7 text-slate-600 sm:text-lg">Suscripcion mensual con tarjeta o acceso por un mes con Yape.</p>
+        <p className="mt-3 text-base leading-7 text-slate-600 sm:text-lg">Suscripcion mensual para acceder a todos los simulacros cronometrados.</p>
       </header>
+
+      {!hasAccess && hadMembership ? <div className="mt-5 border-l-4 border-traffic-yellow bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950" role="alert"><p className="font-black">Tu suscripcion mensual no esta activa</p><p>Suscribete nuevamente para volver a rendir simulacros completos.</p></div> : null}
 
       <div className="mt-7 grid gap-8 lg:grid-cols-[minmax(0,1fr)_370px] lg:gap-10">
         <section aria-labelledby="billing-title">
@@ -362,31 +367,29 @@ export default function PlansPage() {
                 type="button"
                 role="radio"
                 aria-checked={paymentChoice === 'tarjeta'}
-                className={`min-h-16 rounded-md px-2 py-2 text-left text-sm font-bold ${paymentChoice === 'tarjeta' ? 'bg-white text-brand shadow-sm' : 'text-slate-600'}`}
+                className={`min-h-14 rounded-md px-3 py-2 text-left text-sm font-bold ${paymentChoice === 'tarjeta' ? 'bg-white text-brand shadow-sm' : 'text-slate-600'}`}
                 onClick={() => { setPaymentChoice('tarjeta'); setError(''); }}
               >
                 <span className="flex items-center gap-2"><CreditCard className="h-5 w-5" />Tarjeta</span>
-                <span className="mt-1 block text-xs font-medium">Cobro automatico mensual</span>
               </button>
               <button
                 type="button"
                 role="radio"
                 aria-checked={paymentChoice === 'yape'}
-                className={`min-h-16 rounded-md px-2 py-2 text-left text-sm font-bold ${paymentChoice === 'yape' ? 'bg-white text-brand shadow-sm' : 'text-slate-600'}`}
+                className={`min-h-14 rounded-md px-3 py-2 text-left text-sm font-bold ${paymentChoice === 'yape' ? 'bg-white text-brand shadow-sm' : 'text-slate-600'}`}
                 onClick={() => { setPaymentChoice('yape'); setError(''); }}
               >
                 <span className="flex items-center gap-2"><Smartphone className="h-5 w-5" />Yape</span>
-                <span className="mt-1 block text-xs font-medium">Un mes, sin renovacion</span>
               </button>
             </div>
             {paymentChoice === 'tarjeta' ? <label className="mt-4 flex cursor-pointer items-start gap-3 text-sm leading-5 text-slate-700">
               <input type="checkbox" className="mt-1 h-5 w-5 shrink-0 accent-blue-600" checked={acceptRecurring} onChange={(event) => setAcceptRecurring(event.target.checked)} />
               <span>Autorizo el cobro de {priceLabel(plan.price)} cada mes hasta que cancele la suscripcion.</span>
-            </label> : <p className="mt-4 text-sm leading-5 text-slate-600">Yape activa un mes de acceso y no realiza cobros futuros.</p>}
+            </label> : <p className="mt-4 text-sm leading-5 text-slate-600">Con Yape, tu suscripcion mensual queda activa durante un mes.</p>}
           </> : null}
 
           {config?.testMode ? <div className="mt-5 border-l-4 border-traffic-yellow bg-amber-50 px-4 py-3 text-sm leading-5 text-amber-950"><p className="font-black">Prueba segura en DEV</p><p className="mt-1">Culqi no realizara un cobro real y SUNAT BETA no genera un comprobante fiscal.</p></div> : null}
-          {hasAccess ? <div className="mt-5 border-l-4 border-success bg-emerald-50 px-4 py-3 text-sm text-emerald-950"><p className="font-black">Tu acceso ya esta activo</p>{membership.endDate ? <p className="mt-1">Vigente hasta {new Date(membership.endDate).toLocaleDateString('es-PE')}.</p> : null}{autoRenew ? <p className="mt-1 font-bold">Renovacion automatica activa{subscription.nextBillingAt ? ` · proximo cobro ${new Date(subscription.nextBillingAt).toLocaleDateString('es-PE')}` : ''}.</p> : <p className="mt-1">Este acceso no se renovara automaticamente.</p>}</div> : null}
+          {hasAccess ? <div className="mt-5 border-l-4 border-success bg-emerald-50 px-4 py-3 text-sm text-emerald-950"><p className="font-black">Tu suscripcion esta activa</p>{membership.endDate ? <p className="mt-1">Vigente hasta {new Date(membership.endDate).toLocaleDateString('es-PE')}.</p> : null}{autoRenew ? <p className="mt-1 font-bold">Renovacion automatica activa{subscription.nextBillingAt ? ` · proximo cobro ${new Date(subscription.nextBillingAt).toLocaleDateString('es-PE')}` : ''}.</p> : null}</div> : null}
           {paymentPending ? <div className="mt-5 border-l-4 border-traffic-yellow bg-amber-50 px-4 py-3 text-sm text-amber-950" role="status"><p className="font-black">Suscripcion creada</p><p className="mt-1">Culqi esta confirmando el primer cobro. Tu acceso se activara cuando llegue la confirmacion.</p></div> : null}
           {success?.cancellation ? <div className="mt-5 border-l-4 border-brand bg-blue-50 px-4 py-3 text-sm text-blue-950" role="status"><p className="font-black">Renovacion cancelada</p><p className="mt-1">No habra mas cobros. Tu acceso conserva la fecha ya pagada.</p></div> : null}
           {success && !success.pending && !success.cancellation ? <div className="mt-5 border-l-4 border-success bg-emerald-50 px-4 py-3 text-sm text-emerald-950" role="status"><p className="flex items-center gap-2 font-black"><FileCheck2 className="h-5 w-5" />Pago confirmado</p><p className="mt-1">{success.receipt?.status === 'aceptado' ? `${success.receipt.type} ${success.receipt.number} aceptada por SUNAT BETA.` : 'Tu acceso esta activo. El comprobante quedo registrado para revision.'}</p></div> : null}
@@ -394,7 +397,7 @@ export default function PlansPage() {
 
           <Button size="lg" className="mt-5 w-full" onClick={hasAccess ? () => navigate(examPath) : openCheckout} disabled={processing || cancelling || paymentPending}>
             {hasAccess ? <Target className="h-6 w-6" /> : <LockKeyhole className="h-5 w-5" />}
-            {processing ? 'Confirmando pago...' : paymentPending ? 'Esperando a Culqi...' : hasAccess ? 'Rendir simulacro' : paymentChoice === 'tarjeta' ? `Suscribirme por ${priceLabel(plan.price)}/mes` : `Pagar ${priceLabel(plan.price)} con Yape`}
+            {processing ? 'Confirmando pago...' : paymentPending ? 'Esperando a Culqi...' : hasAccess ? 'Rendir simulacro' : `Suscribirme por ${priceLabel(plan.price)}/mes`}
             <ArrowRight className="h-5 w-5" />
           </Button>
           {hasAccess && autoRenew ? <Button variant="secondary" className="mt-3 w-full" onClick={() => setShowCancelDialog(true)} disabled={cancelling}>Cancelar renovacion automatica</Button> : null}
