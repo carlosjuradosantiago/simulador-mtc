@@ -247,15 +247,17 @@ export default function SimulatorPage() {
             ? <LockKeyhole className="mx-auto h-12 w-12 text-brand" />
             : <X className="mx-auto h-12 w-12 text-danger" />}
           <h1 className="mt-4 font-display text-3xl font-black text-ink">
-            {membershipRequired ? 'Activa el simulacro completo' : 'No pudimos iniciar la práctica'}
+            {membershipRequired ? 'Necesitas una suscripcion activa' : 'No pudimos iniciar la práctica'}
           </h1>
           <p className="mt-3 text-lg leading-7 text-slate-600">
-            {error || 'No encontramos preguntas para esta licencia.'}
+            {membershipRequired
+              ? 'Tu suscripcion mensual no esta activa. Suscribete para volver a rendir simulacros completos.'
+              : error || 'No encontramos preguntas para esta licencia.'}
           </p>
           <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
             {membershipRequired ? (
               <Button as={Link} to={`/checkout?category=${categoria}`}>
-                Activar por S/12
+                Ver suscripcion
                 <ArrowRight className="h-5 w-5" />
               </Button>
             ) : null}
