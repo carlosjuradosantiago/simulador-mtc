@@ -10,8 +10,7 @@ import { api } from '../services/api.js';
 import { cn } from '../utils/cn.js';
 
 const sortOptions = [
-  ['numeroPdf', 'Número oficial'],
-  ['id', 'ID interno'],
+  ['numeroPdf', 'Número'],
   ['tema', 'Tema'],
   ['dificultad', 'Dificultad'],
 ];
@@ -29,8 +28,7 @@ function QuestionReview({ question }) {
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] lg:items-start">
         <div className="min-w-0">
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <Badge variant="blue">{question.numeroPdf ? `N.º oficial ${question.numeroPdf}` : 'Sin N.º oficial'}</Badge>
-            <Badge variant="slate">ID interno {question.id}</Badge>
+            {question.numeroPdf ? <Badge variant="blue">{question.numeroPdf}</Badge> : null}
             <Badge variant="violet">{question.tema || 'Sin tema'}</Badge>
             {question.tipoSeccion ? <Badge variant="orange">{question.tipoSeccion}</Badge> : null}
           </div>
