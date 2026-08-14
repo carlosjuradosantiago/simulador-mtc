@@ -60,6 +60,16 @@ export async function handleGetQuestionBank(req: Request) {
     const search = url.searchParams.get('q')?.trim();
     const learningTopic = url.searchParams.get('learningTopic')?.trim();
     const tipoSeccion = url.searchParams.get('tipoSeccion')?.trim();
+    const direction = url.searchParams.get('direction') === 'desc' ? 'desc' : 'asc';
+    const sortColumns: Record<string, string> = {
+      id: 'id',
+      numeroPdf: 'numero_pdf',
+      tema: 'tema',
+      dificultad: 'dificultad',
+    };
+    const sort = Object.hasOwn(sortColumns, url.searchParams.get('sort') || '')
+      ? String(url.searchParams.get('sort'))
+      : 'numeroPdf';
     const offset = page * size;
 
     const supabase = getSupabaseClient();
@@ -116,6 +126,7 @@ export async function handleGetQuestionBank(req: Request) {
       `, { count: 'exact' })
       .eq('id_tipo_examen', tipoExamenId)
       .in('id', questionIds)
+      .order(sortColumns[sort], { ascending: direction === 'asc', nullsFirst: false })
       .order('id', { ascending: true })
       .range(offset, offset + size - 1);
 
@@ -169,6 +180,7 @@ export async function handleGetQuestionBank(req: Request) {
       totalPages: Math.ceil((count || 0) / size),
       number: page,
       size,
+      sort: { field: sort, direction },
     });
   } catch (err) {
     console.error('Question bank error:', err);

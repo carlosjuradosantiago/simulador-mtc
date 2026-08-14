@@ -76,9 +76,34 @@ Deno.serve(async (req)=>{
       const { handleGetAdminOverview } = await import('./handlers/admin.ts');
       return await withLogging(req, path, 'handleGetAdminOverview', () => handleGetAdminOverview(req));
     }
+    if (path === '/admin/users' && method === 'GET') {
+      const { handleGetAdminUsers } = await import('./handlers/admin.ts');
+      return await withLogging(req, path, 'handleGetAdminUsers', () => handleGetAdminUsers(req));
+    }
     if (path === '/admin/export' && method === 'GET') {
       const { handleExportAdminReport } = await import('./handlers/admin.ts');
       return await withLogging(req, path, 'handleExportAdminReport', () => handleExportAdminReport(req));
+    }
+    if (path === '/admin/finanzas/pagos' && method === 'GET') {
+      const { handleGetAdminPayments } = await import('./handlers/admin_finance.ts');
+      return await withLogging(req, path, 'handleGetAdminPayments', () => handleGetAdminPayments(req));
+    }
+    if (path === '/admin/finanzas/comprobantes' && method === 'GET') {
+      const { handleGetAdminReceipts } = await import('./handlers/admin_finance.ts');
+      return await withLogging(req, path, 'handleGetAdminReceipts', () => handleGetAdminReceipts(req));
+    }
+    if (path === '/admin/finanzas/conciliacion' && method === 'GET') {
+      const { handleGetAdminReconciliation } = await import('./handlers/admin_finance.ts');
+      return await withLogging(req, path, 'handleGetAdminReconciliation', () => handleGetAdminReconciliation(req));
+    }
+    if (path === '/admin/finanzas/exportar' && method === 'GET') {
+      const { handleExportAdminFinance } = await import('./handlers/admin_finance.ts');
+      return await withLogging(req, path, 'handleExportAdminFinance', () => handleExportAdminFinance(req));
+    }
+    const adminReceipt = path.match(/^\/admin\/finanzas\/comprobantes\/(\d+)$/);
+    if (adminReceipt && method === 'GET') {
+      const { handleGetAdminReceipt } = await import('./handlers/admin_finance.ts');
+      return await withLogging(req, path, 'handleGetAdminReceipt', () => handleGetAdminReceipt(req, adminReceipt[1]));
     }
     if (path === '/admin/reclamaciones' && method === 'GET') {
       const { handleGetAdminComplaints } = await import('./handlers/admin_reclamaciones.ts');
@@ -375,7 +400,13 @@ Deno.serve(async (req)=>{
       availableRoutes: [
         'GET /health',
         'GET /admin/overview',
+        'GET /admin/users',
         'GET /admin/export',
+        'GET /admin/finanzas/pagos',
+        'GET /admin/finanzas/comprobantes',
+        'GET /admin/finanzas/comprobantes/:id',
+        'GET /admin/finanzas/conciliacion',
+        'GET /admin/finanzas/exportar',
         'GET /admin/reclamaciones',
         'GET /admin/reclamaciones/:id',
         'PATCH /admin/reclamaciones/:id/estado',

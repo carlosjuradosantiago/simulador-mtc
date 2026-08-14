@@ -470,12 +470,14 @@ export const api = {
   getCategories: () => apiRequest('/categories/tipo-examen/2').then((data) => data.map(toCategoryCard)),
   getPlans: () => apiRequest('/membership-plans').then((data) => data.map(toPlan)),
   getPlan: (planId) => apiRequest(`/membership-plans/${planId}`).then((plan) => toPlan(plan)),
-  getQuestionBank: ({ categoryId, categoryLabel, search = '', section = 'Todas', learningTopic = '', page = 0, size = 50 } = {}) => {
+  getQuestionBank: ({ categoryId, categoryLabel, search = '', section = 'Todas', learningTopic = '', page = 0, size = 50, sort = 'numeroPdf', direction = 'asc' } = {}) => {
     const params = new URLSearchParams({ tipoExamenId: '2', page: String(page), size: String(size) });
     if (categoryId && categoryId !== 'Todas') params.set('categoriaId', String(categoryId));
     if (search) params.set('q', normalizeQuestionSearch(search));
     if (learningTopic) params.set('learningTopic', learningTopic);
     if (section && section !== 'Todas') params.set('tipoSeccion', section);
+    params.set('sort', sort);
+    params.set('direction', direction);
     return apiRequest(`/question-bank?${params}`).then((data) => ({
       ...data,
       content: (data.content ?? []).map((question) => toQuestion(question, categoryLabel ?? categoryId)),
@@ -537,7 +539,43 @@ export const api = {
   getComplaint: (number) => apiRequest(`/libro-reclamaciones/${number}`, { token: null }),
   trackEvent: (payload) => apiRequest('/analytics/event', { method: 'POST', body: payload }).catch(() => null),
   getAdminOverview: () => apiRequest('/admin/overview', { auth: true }),
+  getAdminUsers: (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') params.set(key, String(value));
+    });
+    return apiRequest(`/admin/users?${params.toString()}`, { auth: true });
+  },
   exportAdminReport: (type = 'summary') => apiTextRequest(`/admin/export?type=${encodeURIComponent(type)}`, { auth: true }),
+  getAdminPayments: (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') params.set(key, String(value));
+    });
+    return apiRequest(`/admin/finanzas/pagos?${params.toString()}`, { auth: true });
+  },
+  getAdminReceipts: (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') params.set(key, String(value));
+    });
+    return apiRequest(`/admin/finanzas/comprobantes?${params.toString()}`, { auth: true });
+  },
+  getAdminReconciliation: (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') params.set(key, String(value));
+    });
+    return apiRequest(`/admin/finanzas/conciliacion?${params.toString()}`, { auth: true });
+  },
+  getAdminReceipt: (id) => apiRequest(`/admin/finanzas/comprobantes/${id}`, { auth: true }),
+  exportAdminFinance: (type, filters = {}) => {
+    const params = new URLSearchParams({ type });
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') params.set(key, String(value));
+    });
+    return apiTextRequest(`/admin/finanzas/exportar?${params.toString()}`, { auth: true });
+  },
   getAdminComplaints: (filters = {}) => {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {

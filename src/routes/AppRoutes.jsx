@@ -8,6 +8,8 @@ import { isAdminUser } from '../utils/admin.js';
 
 const AdminDashboardPage = lazy(() => import('../pages/AdminDashboardPage.jsx'));
 const AdminComplaintsPage = lazy(() => import('../pages/AdminComplaintsPage.jsx'));
+const AdminFinancePage = lazy(() => import('../pages/AdminFinancePage.jsx'));
+const AdminQuestionBankPage = lazy(() => import('../pages/AdminQuestionBankPage.jsx'));
 const AuthCallbackPage = lazy(() => import('../pages/AuthCallbackPage.jsx'));
 const CheckoutPage = lazy(() => import('../pages/CheckoutPage.jsx'));
 const ClassesPage = lazy(() => import('../pages/ClassesPage.jsx'));
@@ -78,6 +80,8 @@ export default function AppRoutes() {
           <Route element={<DashboardLayout />}>
             <Route path="/admin" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
             <Route path="/admin/reclamaciones" element={<AdminRoute><AdminComplaintsPage /></AdminRoute>} />
+            <Route path="/admin/finanzas" element={<AdminRoute><AdminFinancePage /></AdminRoute>} />
+            <Route path="/admin/preguntas" element={<AdminRoute><AdminQuestionBankPage /></AdminRoute>} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/banco-preguntas" element={<QuestionBankPage />} />
             <Route path="/clases" element={<ClassesPage />} />
