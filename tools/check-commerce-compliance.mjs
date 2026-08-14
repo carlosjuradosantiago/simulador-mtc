@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { addBusinessDays } from '../supabase/functions/api/_shared/complaint-deadline.js';
 
 const paths = {
+  index: '../index.html',
   routes: '../src/routes/AppRoutes.jsx',
   legal: '../src/data/legal.js',
   legalPage: '../src/pages/LegalPage.jsx',
@@ -49,7 +50,7 @@ assert.match(files.authModal, /Al crear tu cuenta, aceptas los/);
 assert.match(files.plans, /acceptLegal/);
 assert.match(files.plans, /Términos y condiciones/);
 
-const publicCommercialCopy = [files.legalPage, files.authModal, files.profile, files.vehicleStart, files.plansData, files.seoGenerator].join('\n');
+const publicCommercialCopy = [files.index, files.legalPage, files.authModal, files.profile, files.vehicleStart, files.plansData, files.seoGenerator].join('\n');
 assert.doesNotMatch(publicCommercialCopy, /sin límites|acceso ilimitado|simulacros ilimitados|acceso gratuito temporal/i);
 
 assert.doesNotMatch(files.complaint, /type="file"|<Upload|30 días hábiles/);
