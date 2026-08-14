@@ -78,6 +78,7 @@ export default function AdminQuestionBankPage() {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('numeroPdf');
   const [direction, setDirection] = useState('asc');
+  const [onlyWithImage, setOnlyWithImage] = useState(false);
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(10);
   const [questions, setQuestions] = useState([]);
@@ -104,6 +105,7 @@ export default function AdminQuestionBankPage() {
         size,
         sort,
         direction,
+        hasImage: onlyWithImage,
       });
       setQuestions(data.content || []);
       setPagination({ page, size, total: data.totalElements || 0, totalPages: Math.max(data.totalPages || 0, 1) });
@@ -114,7 +116,7 @@ export default function AdminQuestionBankPage() {
     } finally {
       setLoading(false);
     }
-  }, [category, direction, page, search, section, selectedCategoryLabel, size, sort]);
+  }, [category, direction, onlyWithImage, page, search, section, selectedCategoryLabel, size, sort]);
 
   useEffect(() => {
     loadQuestions();
@@ -136,7 +138,7 @@ export default function AdminQuestionBankPage() {
           </div>
         </header>
 
-        <Card className="grid min-w-0 gap-4 overflow-hidden p-4 shadow-sm lg:grid-cols-[minmax(180px,0.7fr)_minmax(180px,0.6fr)_minmax(240px,1fr)_minmax(180px,0.7fr)_auto] lg:items-end">
+        <Card className="grid min-w-0 gap-4 overflow-hidden p-4 shadow-sm lg:grid-cols-2 lg:items-end xl:grid-cols-[minmax(170px,0.75fr)_minmax(145px,0.55fr)_minmax(220px,1fr)_minmax(165px,0.7fr)_auto_auto]">
           <label className="grid min-w-0 gap-1.5 text-sm font-bold text-ink">Categoría
             <select value={category} onChange={(event) => resetPage(setCategory, event.target.value)} className="min-h-11 w-full min-w-0 max-w-full rounded-lg border border-line bg-white px-3 font-semibold"><option value="">Todas</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.title} · {item.vehicle}</option>)}</select>
           </label>
@@ -149,6 +151,11 @@ export default function AdminQuestionBankPage() {
           </form>
           <label className="grid min-w-0 gap-1.5 text-sm font-bold text-ink">Ordenar por
             <select value={sort} onChange={(event) => resetPage(setSort, event.target.value)} className="min-h-11 w-full min-w-0 max-w-full rounded-lg border border-line bg-white px-3 font-semibold">{sortOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+          </label>
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-line bg-white px-3 text-sm font-bold text-ink">
+            <input type="checkbox" checked={onlyWithImage} onChange={(event) => resetPage(setOnlyWithImage, event.target.checked)} className="h-4 w-4 accent-brand" />
+            <ImageIcon className="h-4 w-4 text-brand" aria-hidden="true" />
+            <span className="whitespace-nowrap">Solo con imagen</span>
           </label>
           <div className="flex gap-2">
             <Button variant="secondary" size="sm" onClick={() => resetPage(setDirection, direction === 'asc' ? 'desc' : 'asc')} title={direction === 'asc' ? 'Orden ascendente' : 'Orden descendente'}>{direction === 'asc' ? <ArrowDownAZ className="h-5 w-5" /> : <ArrowUpAZ className="h-5 w-5" />}</Button>

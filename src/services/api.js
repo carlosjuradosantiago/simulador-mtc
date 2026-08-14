@@ -470,12 +470,13 @@ export const api = {
   getCategories: () => apiRequest('/categories/tipo-examen/2').then((data) => data.map(toCategoryCard)),
   getPlans: () => apiRequest('/membership-plans').then((data) => data.map(toPlan)),
   getPlan: (planId) => apiRequest(`/membership-plans/${planId}`).then((plan) => toPlan(plan)),
-  getQuestionBank: ({ categoryId, categoryLabel, search = '', section = 'Todas', learningTopic = '', page = 0, size = 50, sort = 'numeroPdf', direction = 'asc' } = {}) => {
+  getQuestionBank: ({ categoryId, categoryLabel, search = '', section = 'Todas', learningTopic = '', hasImage = false, page = 0, size = 50, sort = 'numeroPdf', direction = 'asc' } = {}) => {
     const params = new URLSearchParams({ tipoExamenId: '2', page: String(page), size: String(size) });
     if (categoryId && categoryId !== 'Todas') params.set('categoriaId', String(categoryId));
     if (search) params.set('q', normalizeQuestionSearch(search));
     if (learningTopic) params.set('learningTopic', learningTopic);
     if (section && section !== 'Todas') params.set('tipoSeccion', section);
+    if (hasImage) params.set('hasImage', 'true');
     params.set('sort', sort);
     params.set('direction', direction);
     return apiRequest(`/question-bank?${params}`).then((data) => ({

@@ -64,6 +64,7 @@ export async function handleGetQuestionBank(req: Request) {
     const search = url.searchParams.get('q')?.trim();
     const learningTopic = url.searchParams.get('learningTopic')?.trim();
     const tipoSeccion = url.searchParams.get('tipoSeccion')?.trim();
+    const hasImage = url.searchParams.get('hasImage') === 'true';
     const direction = url.searchParams.get('direction') === 'desc' ? 'desc' : 'asc';
     const sortColumns: Record<string, string> = {
       id: 'id',
@@ -113,6 +114,7 @@ export async function handleGetQuestionBank(req: Request) {
       return jsonResponse({ content: [], totalElements: 0, totalPages: 0, number: page, size });
     }
 
+    const mediaRelation = hasImage ? 'multimedia_pregunta!inner' : 'multimedia_pregunta';
     let query = supabase
       .from('pregunta')
       .select(`
@@ -126,7 +128,7 @@ export async function handleGetQuestionBank(req: Request) {
         clase,
         fundamento,
         opcion_pregunta(id, texto, es_correcta, orden, tipo_multimedia, datos_multimedia),
-        multimedia_pregunta(id, tipo_multimedia, datos, orden, descripcion)
+        ${mediaRelation}(id, tipo_multimedia, datos, orden, descripcion)
       `, { count: 'exact' })
       .eq('id_tipo_examen', tipoExamenId)
       .in('id', questionIds)
@@ -144,6 +146,9 @@ export async function handleGetQuestionBank(req: Request) {
     }
     if (tipoSeccion && tipoSeccion !== 'Todas') {
       query = query.eq('tipo_seccion', tipoSeccion);
+    }
+    if (hasImage) {
+      query = query.not('multimedia_pregunta.datos', 'is', null);
     }
 
     const { data, error, count } = await query;
