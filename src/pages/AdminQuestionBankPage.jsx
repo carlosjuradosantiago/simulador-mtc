@@ -21,7 +21,7 @@ function categoryLabel(categories, id) {
   return categories.find((category) => String(category.id) === String(id))?.title || `Categoría ${id}`;
 }
 
-function QuestionReview({ question, index }) {
+function QuestionReview({ question }) {
   const explanation = String(question.explicacion || question.fundamento || '').trim();
 
   return (
@@ -29,8 +29,8 @@ function QuestionReview({ question, index }) {
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] lg:items-start">
         <div className="min-w-0">
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <Badge variant="blue">#{question.numeroPdf ?? index + 1}</Badge>
-            <Badge variant="slate">ID {question.id}</Badge>
+            <Badge variant="blue">{question.numeroPdf ? `N.º oficial ${question.numeroPdf}` : 'Sin N.º oficial'}</Badge>
+            <Badge variant="slate">ID interno {question.id}</Badge>
             <Badge variant="violet">{question.tema || 'Sin tema'}</Badge>
             {question.tipoSeccion ? <Badge variant="orange">{question.tipoSeccion}</Badge> : null}
           </div>
@@ -162,7 +162,7 @@ export default function AdminQuestionBankPage() {
         <Card className="overflow-hidden shadow-sm" aria-busy={loading}>
           {loading ? <p className="px-4 py-16 text-center font-bold text-slate-500">Cargando preguntas...</p> : null}
           {!loading && !questions.length ? <p className="px-4 py-16 text-center font-bold text-slate-500">No hay preguntas que coincidan con los filtros.</p> : null}
-          {!loading && questions.map((question, index) => <QuestionReview key={question.id} question={question} index={(page - 1) * size + index} />)}
+          {!loading && questions.map((question) => <QuestionReview key={question.id} question={question} />)}
           <PaginationControls pagination={pagination} disabled={loading} onPageChange={setPage} onSizeChange={(nextSize) => { setSize(nextSize); setPage(1); }} />
         </Card>
       </div>

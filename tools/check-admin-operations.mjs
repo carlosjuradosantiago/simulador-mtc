@@ -54,5 +54,7 @@ assert.match(financePage, /Comprobantes CSV/);
 assert.match(financePage, /Cuadre CSV/);
 assert.match(questionsPage, /QuestionImage/);
 assert.match(questionsPage, /Explicación registrada/);
+assert.match(questionsPage, /N\.º oficial/);
+assert.match(questionsPage, /ID interno/);
 
 console.log('Admin operations check passed');
