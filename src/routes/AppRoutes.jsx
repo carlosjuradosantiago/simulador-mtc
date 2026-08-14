@@ -13,12 +13,14 @@ const ClassesPage = lazy(() => import('../pages/ClassesPage.jsx'));
 const ComplaintBookPage = lazy(() => import('../pages/ComplaintBookPage.jsx'));
 const DashboardPage = lazy(() => import('../pages/DashboardPage.jsx'));
 const LandingPage = lazy(() => import('../pages/LandingPage.jsx'));
+const LegalPage = lazy(() => import('../pages/LegalPage.jsx'));
 const PlansPage = lazy(() => import('../pages/PlansPage.jsx'));
 const ProfilePage = lazy(() => import('../pages/ProfilePage.jsx'));
 const ProgressPage = lazy(() => import('../pages/ProgressPage.jsx'));
 const QuestionBankPage = lazy(() => import('../pages/QuestionBankPage.jsx'));
 const ResultsPage = lazy(() => import('../pages/ResultsPage.jsx'));
 const SimulatorPage = lazy(() => import('../pages/SimulatorPage.jsx'));
+const SubscriptionPage = lazy(() => import('../pages/SubscriptionPage.jsx'));
 
 function ProtectedRoute() {
   const { isAuthenticated, loading } = useAuth();
@@ -57,6 +59,14 @@ export default function AppRoutes() {
       <Routes>
         <Route element={<PublicLayout />}>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/suscripcion" element={<SubscriptionPage />} />
+          <Route path="/contacto" element={<LegalPage page="contact" />} />
+          <Route path="/terminos-y-condiciones" element={<LegalPage page="terms" />} />
+          <Route path="/terminos" element={<Navigate to="/terminos-y-condiciones" replace />} />
+          <Route path="/politica-de-cambios-y-devoluciones" element={<LegalPage page="returns" />} />
+          <Route path="/politica-devoluciones" element={<Navigate to="/politica-de-cambios-y-devoluciones" replace />} />
+          <Route path="/politica-de-privacidad" element={<LegalPage page="privacy" />} />
+          <Route path="/libro-reclamaciones" element={<ComplaintBookPage />} />
         </Route>
         <Route path="/login" element={<Navigate to="/?auth=login" replace />} />
         <Route path="/registro" element={<Navigate to="/?auth=register" replace />} />
@@ -76,7 +86,6 @@ export default function AppRoutes() {
             <Route path="/configuracion" element={<Navigate to="/perfil" replace />} />
             <Route path="/planes" element={FULL_EXAM_IS_FREE ? <Navigate to="/dashboard" replace /> : <PlansPage />} />
             <Route path="/checkout" element={FULL_EXAM_IS_FREE ? <Navigate to="/dashboard" replace /> : <CheckoutPage />} />
-            <Route path="/libro-reclamaciones" element={<ComplaintBookPage />} />
           </Route>
         </Route>
 

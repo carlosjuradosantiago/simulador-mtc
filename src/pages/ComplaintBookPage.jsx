@@ -1,15 +1,21 @@
-import { BookOpen, Box, CalendarDays, FileText, Info, Minus, RotateCcw, Send, Settings, Shield, Upload } from 'lucide-react';
+import { BookOpen, CalendarDays, FileText, Info, Mail, MapPin, Phone, RotateCcw, Send, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button.jsx';
 import Card from '../components/ui/Card.jsx';
 import Input from '../components/ui/Input.jsx';
 import Modal from '../components/ui/Modal.jsx';
 import Select from '../components/ui/Select.jsx';
 import { BRAND_NAME } from '../data/brand.js';
+import { BUSINESS, MONTHLY_PLAN } from '../data/legal.js';
 import { api } from '../services/api.js';
 
-const initialForm = {
-  name: '',
+const today = () => new Date().toISOString().slice(0, 10);
+
+const getInitialForm = () => ({
+  documentType: 'DNI',
+  firstNames: '',
+  lastNames: '',
   document: '',
   email: '',
   phone: '',
@@ -17,183 +23,205 @@ const initialForm = {
   department: '',
   province: '',
   district: '',
-  goodType: 'Producto',
   amount: '',
-  order: '',
+  reference: '',
+  incidentDate: today(),
   claimType: 'Reclamo',
   facts: '',
   request: '',
-  truthful: true,
-  dataUse: true,
-};
+  truthful: false,
+  privacy: false,
+});
 
-const requiredFields = ['name', 'document', 'email', 'phone', 'address', 'department', 'province', 'district', 'amount', 'facts', 'request'];
+const requiredFields = ['firstNames', 'lastNames', 'document', 'email', 'phone', 'address', 'department', 'province', 'district', 'incidentDate', 'facts', 'request'];
+
+function validate(form) {
+  const nextErrors = requiredFields.reduce((errors, field) => {
+    if (!String(form[field] || '').trim()) errors[field] = 'Campo obligatorio';
+    return errors;
+  }, {});
+
+  if (form.email && !/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(form.email.trim())) nextErrors.email = 'Ingresa un correo válido';
+  if (form.phone && !/^\d{9}$/.test(form.phone.replace(/\D/g, ''))) nextErrors.phone = 'Ingresa un celular de 9 dígitos';
+  if (form.documentType === 'DNI' && form.document && !/^\d{8}$/.test(form.document.replace(/\D/g, ''))) nextErrors.document = 'El DNI debe tener 8 dígitos';
+  if (form.facts.trim() && form.facts.trim().length < 10) nextErrors.facts = 'Describe lo ocurrido con un poco más de detalle';
+  if (form.request.trim() && form.request.trim().length < 5) nextErrors.request = 'Indica qué solución esperas';
+  if (form.amount && (!Number.isFinite(Number(form.amount)) || Number(form.amount) < 0)) nextErrors.amount = 'Ingresa un monto válido';
+  if (!form.truthful || !form.privacy) nextErrors.checks = 'Marca las dos declaraciones para enviar el formulario.';
+  return nextErrors;
+}
 
 export default function ComplaintBookPage() {
-  const [form, setForm] = useState(initialForm);
+  const [form, setForm] = useState(getInitialForm);
   const [errors, setErrors] = useState({});
-  const [attachments, setAttachments] = useState([]);
-  const [successOpen, setSuccessOpen] = useState(false);
-  const [claimNumber, setClaimNumber] = useState('');
+  const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const updateForm = (field, value) => setForm((currentForm) => ({ ...currentForm, [field]: value }));
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    const nextErrors = requiredFields.reduce((accumulator, field) => {
-      if (!form[field]) {
-        accumulator[field] = 'Campo obligatorio';
-      }
-      return accumulator;
-    }, {});
-
-    if (!form.truthful || !form.dataUse) {
-      nextErrors.checks = 'Debes aceptar las declaraciones obligatorias.';
-    }
-
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length === 0) {
-      const [firstName, ...lastNameParts] = form.name.trim().split(/\s+/);
-      const payload = {
-        tipoDocumento: 'DNI',
-        numeroDocumento: form.document,
-        nombres: firstName,
-        apellidos: lastNameParts.join(' ') || 'No indicado',
-        email: form.email,
-        telefono: form.phone,
-        direccion: form.address,
-        departamento: form.department,
-        provincia: form.province,
-        distrito: form.district,
-        tipoBien: form.goodType.toUpperCase(),
-        montoReclamado: Number(String(form.amount).replace(/[^0-9.]/g, '')) || null,
-        descripcionBien: form.order || `Servicio ${BRAND_NAME}`,
-        tipoReclamo: form.claimType.toUpperCase(),
-        fechaIncidente: new Date().toISOString().slice(0, 10),
-        detalleReclamo: form.facts,
-        pedidoConsumidor: form.request,
-        autorizaEnvioCorreo: form.dataUse,
-        aceptaTerminos: form.truthful && form.dataUse,
-      };
-
-      setSubmitting(true);
-      try {
-        const response = await api.submitComplaint(payload);
-        setClaimNumber(response.numeroReclamo);
-        setSuccessOpen(true);
-      } catch (requestError) {
-        setErrors({ submit: requestError.message });
-      } finally {
-        setSubmitting(false);
-      }
-    }
-  };
+  const updateForm = (field, value) => setForm((current) => ({ ...current, [field]: value }));
 
   const resetForm = () => {
-    setForm(initialForm);
-    setAttachments([]);
+    setForm(getInitialForm());
     setErrors({});
   };
 
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const nextErrors = validate(form);
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) return;
+
+    const payload = {
+      tipoDocumento: form.documentType,
+      numeroDocumento: form.document.replace(/\s/g, ''),
+      nombres: form.firstNames.trim(),
+      apellidos: form.lastNames.trim(),
+      email: form.email.trim().toLowerCase(),
+      telefono: form.phone.replace(/\D/g, ''),
+      direccion: form.address.trim(),
+      departamento: form.department.trim(),
+      provincia: form.province.trim(),
+      distrito: form.district.trim(),
+      tipoBien: 'SERVICIO',
+      montoReclamado: form.amount ? Number(form.amount) : null,
+      descripcionBien: form.reference.trim()
+        ? `${MONTHLY_PLAN.name}. Referencia: ${form.reference.trim()}`
+        : MONTHLY_PLAN.name,
+      tipoReclamo: form.claimType.toUpperCase(),
+      fechaIncidente: form.incidentDate,
+      detalleReclamo: form.facts.trim(),
+      pedidoConsumidor: form.request.trim(),
+      autorizaEnvioCorreo: true,
+      aceptaTerminos: form.truthful && form.privacy,
+    };
+
+    setSubmitting(true);
+    try {
+      const response = await api.submitComplaint(payload);
+      setSuccess({ number: response.numeroReclamo, deadline: response.fechaLimiteRespuesta });
+      resetForm();
+    } catch (requestError) {
+      setErrors({ submit: requestError.message || 'No pudimos registrar la solicitud. Inténtalo nuevamente.' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
-    <div className="grid gap-5 pt-3">
-      <div className="flex items-start gap-5">
-        <span className="grid h-16 w-16 place-items-center rounded-xl bg-blue-50 text-brand"><FileText className="h-8 w-8" /></span>
-        <div>
-          <h1 className="text-4xl font-black">Libro de Reclamaciones</h1>
-          <p className="mt-2 max-w-5xl text-slate-600">En {BRAND_NAME} valoramos tu experiencia. Registra aquí tu queja o reclamo y nuestro equipo te dará respuesta dentro de los plazos establecidos por la normativa vigente en el Perú (Ley N° 29571 y su Reglamento).</p>
-        </div>
-      </div>
+    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+      <header className="max-w-4xl">
+        <div className="flex items-center gap-3 text-brand"><BookOpen className="h-8 w-8" aria-hidden="true" /><p className="font-bold">Canal oficial de atención</p></div>
+        <h1 className="mt-3 font-display text-3xl font-black leading-tight text-ink sm:text-5xl">Libro de Reclamaciones</h1>
+        <p className="mt-4 text-lg leading-8 text-slate-600">Registra una queja o reclamo sin iniciar sesión. Te enviaremos una constancia al correo indicado y responderemos en un plazo máximo de 15 días hábiles.</p>
+      </header>
 
-      <form className="grid gap-4 xl:grid-cols-[1fr_392px]" onSubmit={handleSubmit}>
-        <div className="grid gap-3">
-          <Card className="p-5 shadow-sm">
-            <h2 className="mb-5 flex items-center gap-3 text-lg font-black"><span className="grid h-7 w-7 place-items-center rounded-full bg-brand text-sm text-white">1</span> Datos del consumidor</h2>
-            <div className="grid gap-4 md:grid-cols-4">
-              <Input label="Nombres y apellidos *" placeholder="Ingresa tus nombres y apellidos" value={form.name} error={errors.name} onChange={(event) => updateForm('name', event.target.value)} />
-              <Input label="DNI / CE *" placeholder="Ej. 12345678" value={form.document} error={errors.document} onChange={(event) => updateForm('document', event.target.value)} />
-              <Input label="Correo electrónico *" placeholder="correo@ejemplo.com" value={form.email} error={errors.email} onChange={(event) => updateForm('email', event.target.value)} />
-              <Input label="Teléfono *" placeholder="Ej. 912 345 678" value={form.phone} error={errors.phone} onChange={(event) => updateForm('phone', event.target.value)} />
-              <Input label="Dirección *" className="md:col-span-2" placeholder="Ingresa tu dirección completa" value={form.address} error={errors.address} onChange={(event) => updateForm('address', event.target.value)} />
-              <Select label="Departamento *" value={form.department} error={errors.department} onChange={(event) => updateForm('department', event.target.value)}><option value="">Selecciona</option><option>Lima</option><option>Arequipa</option><option>La Libertad</option></Select>
-              <Select label="Provincia *" value={form.province} error={errors.province} onChange={(event) => updateForm('province', event.target.value)}><option value="">Selecciona</option><option>Lima</option><option>Callao</option><option>Trujillo</option></Select>
-              <Select label="Distrito *" value={form.district} error={errors.district} onChange={(event) => updateForm('district', event.target.value)}><option value="">Selecciona</option><option>Miraflores</option><option>San Isidro</option><option>Surco</option></Select>
-            </div>
-          </Card>
+      <section className="mt-7 grid gap-3 border-y border-line py-5 text-sm text-slate-700 sm:grid-cols-2 lg:grid-cols-4" aria-label="Datos del proveedor">
+        <p><strong className="block text-ink">Proveedor</strong>{BUSINESS.legalName}<br />RUC {BUSINESS.ruc}</p>
+        <p className="flex gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden="true" /><span><strong className="block text-ink">Dirección</strong>{BUSINESS.address}</span></p>
+        <a className="flex gap-2 font-semibold text-brand hover:underline" href={BUSINESS.phoneHref}><Phone className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /><span><strong className="block text-ink">Teléfono</strong>{BUSINESS.phone}</span></a>
+        <a className="flex gap-2 font-semibold text-brand hover:underline" href={BUSINESS.emailHref}><Mail className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /><span><strong className="block text-ink">Correo</strong>{BUSINESS.email}</span></a>
+      </section>
 
-          <Card className="p-5 shadow-sm">
-            <h2 className="mb-5 flex items-center gap-3 text-lg font-black"><span className="grid h-7 w-7 place-items-center rounded-full bg-brand text-sm text-white">2</span> Información del bien contratado</h2>
-            <div className="grid gap-4 md:grid-cols-[1fr_1fr_1.4fr]">
-              <div>
-                <p className="mb-2 text-sm font-semibold">Bien contratado *</p>
-                <div className="grid grid-cols-2 gap-3">
-                  {['Producto', 'Servicio'].map((item) => (
-                    <button key={item} type="button" onClick={() => updateForm('goodType', item)} className={`flex h-14 items-center justify-between rounded-xl border px-4 text-sm font-bold ${form.goodType === item ? 'border-brand bg-blue-50 text-brand ring-2 ring-blue-100' : 'border-line text-slate-600'}`}>
-                      <span className="inline-flex items-center gap-3">{item === 'Producto' ? <Box className="h-6 w-6" /> : <Settings className="h-6 w-6" />} {item}</span>
-                      <span className={`h-4 w-4 rounded-full border ${form.goodType === item ? 'border-brand bg-brand' : 'border-line'}`} />
-                    </button>
-                  ))}
-                </div>
+      <form className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1fr)_330px]" onSubmit={handleSubmit} noValidate>
+        <div className="grid min-w-0 gap-5">
+          <Card className="p-4 shadow-sm sm:p-6">
+            <h2 className="font-display text-xl font-black text-ink">1. Tus datos</h2>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Input label="Nombres *" value={form.firstNames} error={errors.firstNames} maxLength={80} autoComplete="given-name" onChange={(event) => updateForm('firstNames', event.target.value)} />
+              <Input label="Apellidos *" value={form.lastNames} error={errors.lastNames} maxLength={80} autoComplete="family-name" onChange={(event) => updateForm('lastNames', event.target.value)} />
+              <div className="grid grid-cols-[110px_1fr] gap-2">
+                <Select label="Documento" value={form.documentType} onChange={(event) => updateForm('documentType', event.target.value)}>
+                  <option value="DNI">DNI</option><option value="CE">CE</option><option value="PASAPORTE">Pasaporte</option>
+                </Select>
+                <Input label="Número *" value={form.document} error={errors.document} maxLength={15} inputMode={form.documentType === 'DNI' ? 'numeric' : 'text'} onChange={(event) => updateForm('document', event.target.value)} />
               </div>
-              <Input label="Monto reclamado *" placeholder="S/ 0.00" value={form.amount} error={errors.amount} onChange={(event) => updateForm('amount', event.target.value)} />
-              <Input label="N° pedido o suscripción (opcional)" placeholder="Ej. #PED12345 o SUSC-001" value={form.order} onChange={(event) => updateForm('order', event.target.value)} />
+              <Input label="Correo electrónico *" type="email" value={form.email} error={errors.email} maxLength={160} autoComplete="email" onChange={(event) => updateForm('email', event.target.value)} />
+              <Input label="Celular *" value={form.phone} error={errors.phone} maxLength={12} inputMode="tel" autoComplete="tel" onChange={(event) => updateForm('phone', event.target.value)} />
+              <Input label="Dirección *" value={form.address} error={errors.address} maxLength={180} autoComplete="street-address" onChange={(event) => updateForm('address', event.target.value)} />
+              <Input label="Departamento *" value={form.department} error={errors.department} maxLength={80} autoComplete="address-level1" onChange={(event) => updateForm('department', event.target.value)} />
+              <Input label="Provincia *" value={form.province} error={errors.province} maxLength={80} autoComplete="address-level2" onChange={(event) => updateForm('province', event.target.value)} />
+              <Input label="Distrito *" value={form.district} error={errors.district} maxLength={80} onChange={(event) => updateForm('district', event.target.value)} />
             </div>
           </Card>
 
-          <Card className="p-5 shadow-sm">
-            <h2 className="mb-5 flex items-center gap-3 text-lg font-black"><span className="grid h-7 w-7 place-items-center rounded-full bg-brand text-sm text-white">3</span> Detalle de la reclamación</h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <p className="mb-3 text-sm font-semibold">Tipo *</p>
-                <div className="flex gap-5 text-sm font-semibold">
-                  {['Queja', 'Reclamo'].map((item) => <label key={item} className="flex items-center gap-2"><input type="radio" checked={form.claimType === item} onChange={() => updateForm('claimType', item)} className="accent-blue-600" /> {item}</label>)}
-                </div>
+          <Card className="p-4 shadow-sm sm:p-6">
+            <h2 className="font-display text-xl font-black text-ink">2. Servicio contratado</h2>
+            <div className="mt-5 border-l-4 border-brand bg-blue-50 px-4 py-3">
+              <p className="font-black text-ink">{MONTHLY_PLAN.name}</p>
+              <p className="mt-1 text-sm leading-6 text-slate-600">Prácticas, simulacros cronometrados, resultados y análisis de progreso.</p>
+            </div>
+            <div className="mt-5 grid gap-4 sm:grid-cols-3">
+              <Input label="Monto relacionado (opcional)" type="number" min="0" step="0.01" placeholder="12.00" value={form.amount} error={errors.amount} inputMode="decimal" onChange={(event) => updateForm('amount', event.target.value)} />
+              <Input label="Operación o suscripción (opcional)" value={form.reference} maxLength={80} onChange={(event) => updateForm('reference', event.target.value)} />
+              <Input label="Fecha del hecho *" type="date" max={today()} value={form.incidentDate} error={errors.incidentDate} onChange={(event) => updateForm('incidentDate', event.target.value)} />
+            </div>
+          </Card>
+
+          <Card className="p-4 shadow-sm sm:p-6">
+            <h2 className="font-display text-xl font-black text-ink">3. Cuéntanos lo ocurrido</h2>
+            <fieldset className="mt-5">
+              <legend className="text-sm font-bold text-ink">Tipo de solicitud *</legend>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {['Reclamo', 'Queja'].map((item) => (
+                  <label key={item} className={`flex min-h-14 cursor-pointer items-center gap-3 rounded-lg border px-4 font-bold ${form.claimType === item ? 'border-brand bg-blue-50 text-brand' : 'border-line text-slate-700'}`}>
+                    <input type="radio" name="claimType" checked={form.claimType === item} onChange={() => updateForm('claimType', item)} className="h-5 w-5 accent-blue-600" />{item}
+                  </label>
+                ))}
               </div>
-              <label className="grid gap-2 text-sm font-semibold md:col-span-2">
-                Relata los hechos *
-                <textarea className="min-h-20 rounded-lg border border-line p-4 outline-none focus:border-brand focus:ring-4 focus:ring-blue-100" placeholder="Describe de manera clara y detallada lo sucedido." value={form.facts} onChange={(event) => updateForm('facts', event.target.value)} />
-                {errors.facts ? <span className="text-xs text-danger">{errors.facts}</span> : null}
+            </fieldset>
+            <div className="mt-5 grid gap-5">
+              <label className="grid gap-2 text-sm font-semibold text-ink">
+                Describe lo ocurrido *
+                <textarea className={`min-h-32 rounded-lg border bg-white p-4 text-base outline-none focus:border-brand focus:ring-4 focus:ring-blue-100 ${errors.facts ? 'border-danger' : 'border-line'}`} maxLength={2000} value={form.facts} onChange={(event) => updateForm('facts', event.target.value)} />
+                {errors.facts ? <span className="text-xs font-medium text-danger">{errors.facts}</span> : null}
               </label>
-              <label className="grid gap-2 text-sm font-semibold">
-                Qué solicita el consumidor *
-                <textarea className="min-h-20 rounded-lg border border-line p-4 outline-none focus:border-brand focus:ring-4 focus:ring-blue-100" placeholder={`Explica qué solución o respuesta esperas de ${BRAND_NAME}.`} value={form.request} onChange={(event) => updateForm('request', event.target.value)} />
-                {errors.request ? <span className="text-xs text-danger">{errors.request}</span> : null}
-              </label>
-              <label className="grid min-h-20 cursor-pointer place-items-center rounded-xl border border-dashed border-blue-200 bg-blue-50 p-5 text-center text-sm text-brand hover:border-brand">
-                <Upload className="mb-2 h-8 w-8" />
-                {attachments.length ? `${attachments.length} archivo(s) seleccionado(s)` : 'Arrastra tus archivos aquí o haz clic para seleccionar'}<br /><span className="text-xs text-slate-500">Formatos permitidos: JPG, PNG, PDF (Máx. 5 MB por archivo)</span>
-                <input type="file" multiple accept=".jpg,.jpeg,.png,.pdf" className="sr-only" onChange={(event) => setAttachments(Array.from(event.target.files ?? []))} />
+              <label className="grid gap-2 text-sm font-semibold text-ink">
+                ¿Qué solución solicitas? *
+                <textarea className={`min-h-28 rounded-lg border bg-white p-4 text-base outline-none focus:border-brand focus:ring-4 focus:ring-blue-100 ${errors.request ? 'border-danger' : 'border-line'}`} maxLength={1000} value={form.request} onChange={(event) => updateForm('request', event.target.value)} />
+                {errors.request ? <span className="text-xs font-medium text-danger">{errors.request}</span> : null}
               </label>
             </div>
-            <div className="mt-5 grid gap-3 text-sm text-slate-700">
-              <label className="flex items-start gap-3"><input type="checkbox" checked={form.truthful} onChange={(event) => updateForm('truthful', event.target.checked)} className="mt-1 accent-blue-600" /> Declaro que la información proporcionada es verdadera y corresponde a mi experiencia como consumidor.</label>
-              <label className="flex items-start gap-3"><input type="checkbox" checked={form.dataUse} onChange={(event) => updateForm('dataUse', event.target.checked)} className="mt-1 accent-blue-600" /> Autorizo a {BRAND_NAME} a utilizar mis datos para la atención y respuesta de mi queja o reclamo.</label>
-              {errors.checks ? <p className="font-semibold text-danger">{errors.checks}</p> : null}
+
+            <div className="mt-6 grid gap-3 text-sm leading-6 text-slate-700">
+              <label className="flex cursor-pointer items-start gap-3"><input type="checkbox" checked={form.truthful} onChange={(event) => updateForm('truthful', event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-blue-600" /><span>Declaro que la información proporcionada es verdadera.</span></label>
+              <label className="flex cursor-pointer items-start gap-3"><input type="checkbox" checked={form.privacy} onChange={(event) => updateForm('privacy', event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-blue-600" /><span>He leído la <Link className="font-bold text-brand hover:underline" to="/politica-de-privacidad">Política de privacidad</Link> y autorizo el uso de mis datos para atender esta solicitud.</span></label>
+              {errors.checks ? <p className="font-bold text-danger" role="alert">{errors.checks}</p> : null}
             </div>
-            <div className="mt-6 flex flex-wrap justify-end gap-3">
-              <Button type="button" variant="secondary" onClick={resetForm}><RotateCcw className="h-4 w-4" /> Limpiar formulario</Button>
-              <Button type="submit" disabled={submitting}><Send className="h-4 w-4" /> {submitting ? 'Enviando...' : 'Enviar reclamo'}</Button>
+
+            {errors.submit ? <p className="mt-5 border-l-4 border-danger bg-red-50 px-4 py-3 font-bold text-danger" role="alert">{errors.submit}</p> : null}
+            <div className="mt-6 grid gap-3 sm:flex sm:justify-end">
+              <Button type="button" variant="secondary" onClick={resetForm}><RotateCcw className="h-4 w-4" aria-hidden="true" />Limpiar</Button>
+              <Button type="submit" disabled={submitting}><Send className="h-4 w-4" aria-hidden="true" />{submitting ? 'Enviando...' : 'Enviar solicitud'}</Button>
             </div>
-            {errors.submit ? <p className="mt-3 font-semibold text-danger">{errors.submit}</p> : null}
           </Card>
         </div>
 
-        <aside className="grid gap-3 self-start">
-          <Card className="p-5 shadow-sm"><h2 className="flex items-center gap-3 text-lg font-black"><BookOpen className="h-10 w-10 rounded-full bg-blue-50 p-2 text-brand" /> ¿Qué es el Libro de Reclamaciones?</h2><p className="mt-3 text-sm leading-6 text-slate-600">Es un canal oficial para que los consumidores puedan presentar quejas o reclamos cuando consideren que sus derechos han sido afectados.</p><p className="mt-3 text-sm leading-6 text-slate-600">Tu comunicación será atendida conforme a la normativa de protección al consumidor del Perú.</p></Card>
-          <Card className="bg-blue-50 p-5 ring-1 ring-blue-100 shadow-sm"><h2 className="flex items-center gap-3 text-lg font-black text-brand"><Minus className="h-10 w-10 rounded-full bg-brand p-2 text-white" /> Queja</h2><p className="mt-3 text-sm leading-6 text-slate-600">Expresión de disconformidad no relacionada a obligaciones de dar, hacer o no hacer.</p><p className="mt-2 text-sm leading-6 text-slate-600">Ejemplos: trato inadecuado, demoras injustificadas en la atención, instalaciones inadecuadas, entre otros.</p></Card>
-          <Card className="bg-emerald-50 p-5 ring-1 ring-emerald-100 shadow-sm"><h2 className="flex items-center gap-3 text-lg font-black text-success"><FileText className="h-10 w-10 rounded-full bg-emerald-100 p-2 text-success" /> Reclamo</h2><p className="mt-3 text-sm leading-6 text-slate-600">Disconformidad relacionada al incumplimiento de obligaciones en la prestación del producto o servicio.</p><p className="mt-2 text-sm leading-6 text-slate-600">Ejemplos: producto defectuoso, servicio no brindado, cobros indebidos, entre otros.</p></Card>
-          <Card className="p-5 shadow-sm"><h2 className="flex items-center gap-3 text-lg font-black"><Info className="h-6 w-6 text-brand" /> Información importante</h2><div className="mt-4 grid gap-3 text-sm text-slate-600"><p className="flex gap-2"><CalendarDays className="h-5 w-5 text-brand" /> Recibirás una respuesta en un plazo máximo de 15 días hábiles.</p><p className="flex gap-2"><CalendarDays className="h-5 w-5 text-brand" /> En caso de reclamo, la empresa puede ampliar el plazo hasta 30 días hábiles.</p><p className="flex gap-2"><FileText className="h-5 w-5 text-brand" /> Tu comunicación será considerada incluso sin contar con comprobante de pago.</p><p className="flex gap-2"><Shield className="h-5 w-5 text-brand" /> Tus datos personales están protegidos y serán usados solo para la atención de tu caso.</p></div></Card>
+        <aside className="grid content-start gap-4" aria-label="Información sobre reclamos">
+          <Card className="p-5 shadow-sm">
+            <h2 className="flex items-center gap-3 font-display text-xl font-black text-ink"><CalendarDays className="h-7 w-7 text-brand" aria-hidden="true" />Plazo de atención</h2>
+            <p className="mt-3 leading-7 text-slate-600">Responderemos tu queja o reclamo en un plazo máximo e improrrogable de <strong className="text-ink">15 días hábiles</strong>.</p>
+          </Card>
+          <Card className="p-5 shadow-sm">
+            <h2 className="flex items-center gap-3 font-display text-xl font-black text-ink"><Info className="h-7 w-7 text-brand" aria-hidden="true" />Diferencia rápida</h2>
+            <p className="mt-3 leading-7 text-slate-600"><strong className="text-ink">Reclamo:</strong> disconformidad con el servicio, acceso o cobro.</p>
+            <p className="mt-3 leading-7 text-slate-600"><strong className="text-ink">Queja:</strong> disconformidad con la atención recibida.</p>
+          </Card>
+          <Card className="p-5 shadow-sm">
+            <h2 className="flex items-center gap-3 font-display text-xl font-black text-ink"><ShieldCheck className="h-7 w-7 text-success" aria-hidden="true" />Ten en cuenta</h2>
+            <ul className="mt-3 grid gap-3 leading-6 text-slate-600">
+              <li>No necesitas una cuenta para registrar tu solicitud.</li>
+              <li>No es obligatorio contar con un comprobante de pago.</li>
+              <li>Recibirás la constancia en el correo que indiques.</li>
+            </ul>
+          </Card>
+          <p className="px-1 text-xs leading-5 text-slate-500"><FileText className="mr-1 inline h-4 w-4" aria-hidden="true" />La presentación de una queja o reclamo no impide acudir a otras vías de solución de controversias.</p>
         </aside>
       </form>
 
-      <footer className="flex flex-wrap justify-between gap-4 py-3 text-sm text-slate-500">
-        <p>© 2025 {BRAND_NAME}. Todos los derechos reservados.</p>
-        <p>Cumplimos con la Ley N° 29571 y el Código de Protección y Defensa del Consumidor.</p>
-      </footer>
-
-      <Modal open={successOpen} title="Tu reclamo fue registrado correctamente." onClose={() => setSuccessOpen(false)}>
-        Recibimos tu solicitud y generamos la constancia {claimNumber}. Puedes usar ese número para consultar el estado del reclamo.
+      <Modal open={Boolean(success)} title="Solicitud registrada" onClose={() => setSuccess(null)}>
+        <div className="grid gap-3 leading-7">
+          <p>Tu constancia es <strong className="text-brand">{success?.number}</strong>. También la enviamos al correo registrado.</p>
+          {success?.deadline ? <p>Fecha máxima de respuesta: <strong>{new Date(success.deadline).toLocaleDateString('es-PE')}</strong>.</p> : null}
+        </div>
       </Modal>
     </div>
   );

@@ -6,6 +6,8 @@ Plataforma educativa independiente. No afiliada al Ministerio de Transportes y C
 
 ## Datos verificables
 
+- El proveedor del servicio es CJ VERTEXLABS GROUP EIRL, RUC 20614965836, con dirección en Sector 3, Grupo 20, Manzana M, Lote 36, Villa El Salvador, Lima, Perú.
+- Contacto comercial: +51 987 617 635 y admin@simuladormtc.com.
 - El MTC informa que el examen de reglas tiene 40 preguntas y una duración máxima de 40 minutos.
 - La publicación del MTC indica que se requieren al menos 35 respuestas correctas para aprobar.
 - Las preguntas y balotarios se organizan según la categoría de licencia elegida.
@@ -21,6 +23,11 @@ Plataforma educativa independiente. No afiliada al Ministerio de Transportes y C
 - https://www.simuladormtc.com/reglas-de-transito-peru: reglas de tránsito en Perú.
 - https://www.simuladormtc.com/fuentes-mtc: fuentes oficiales y balotarios de referencia.
 - https://www.simuladormtc.com/metodologia-simulador-mtc: metodología editorial, alcance y actualización del contenido.
+- https://www.simuladormtc.com/suscripcion: suscripción mensual por S/ 12 para simulacros completos, resultados y análisis.
+- https://www.simuladormtc.com/contacto: datos de CJ VERTEXLABS GROUP EIRL, RUC 20614965836, dirección, teléfono y correo.
+- https://www.simuladormtc.com/terminos-y-condiciones: condiciones del servicio y la suscripción.
+- https://www.simuladormtc.com/politica-de-cambios-y-devoluciones: reglas de cancelación y revisión de cobros.
+- https://www.simuladormtc.com/libro-reclamaciones: formulario público del Libro de Reclamaciones.
 - https://github.com/carlosjuradosantiago/simulador-mtc: código y documentación pública del proyecto.
 
 ## Categorías

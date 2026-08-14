@@ -4,6 +4,7 @@ import {
   enviarEmailNotificacionProveedor,
   PROVEEDOR_CONFIG
 } from '../_shared/email.ts';
+import { addBusinessDays } from '../_shared/complaint-deadline.js';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -30,41 +31,71 @@ function generarNumeroReclamo() {
   return `LR-${year}${month}${day}-${random}`;
 }
 
-function calcularFechaLimiteRespuesta(fechaRegistro: Date) {
-  const fechaLimite = new Date(fechaRegistro);
-  fechaLimite.setDate(fechaLimite.getDate() + 30);
-  return fechaLimite;
-}
-
 function validarBodyReclamo(body: any) {
-  if (!body.tipoDocumento || !body.numeroDocumento || !body.nombres || !body.apellidos) {
-    return 'Datos del consumidor incompletos';
+  if (!body || typeof body !== 'object') return 'Solicitud inválida';
+  const requiredText = [
+    ['tipoDocumento', 2, 15], ['numeroDocumento', 5, 20], ['nombres', 2, 100], ['apellidos', 2, 100],
+    ['email', 5, 160], ['telefono', 7, 20], ['direccion', 5, 200], ['departamento', 2, 80],
+    ['provincia', 2, 80], ['distrito', 2, 80], ['tipoBien', 4, 20], ['descripcionBien', 5, 240],
+    ['fechaIncidente', 10, 10], ['detalleReclamo', 10, 2000], ['pedidoConsumidor', 5, 1000],
+  ];
+  for (const [field, min, max] of requiredText) {
+    const value = typeof body[field] === 'string' ? body[field].trim() : '';
+    if (value.length < min || value.length > max) return `El campo ${field} es inválido`;
   }
-  if (!body.email) {
-    return 'El correo electrónico es requerido';
-  }
+  if (!['DNI', 'CE', 'PASAPORTE'].includes(body.tipoDocumento.trim().toUpperCase())) return 'Tipo de documento inválido';
+  if (!/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(body.email.trim())) return 'Correo electrónico inválido';
+  if (!/^\d{7,15}$/.test(body.telefono.replace(/\D/g, ''))) return 'Teléfono inválido';
   if (!body.tipoReclamo || !['RECLAMO', 'QUEJA'].includes(body.tipoReclamo)) {
     return 'Tipo de reclamación inválido';
   }
+  if (!['SERVICIO', 'PRODUCTO'].includes(body.tipoBien.trim().toUpperCase())) return 'Tipo de bien inválido';
+  const incidentTime = Date.parse(`${body.fechaIncidente}T00:00:00Z`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(body.fechaIncidente) || Number.isNaN(incidentTime) || incidentTime > Date.now()) return 'Fecha del incidente inválida';
+  if (body.montoReclamado != null && (!Number.isFinite(Number(body.montoReclamado)) || Number(body.montoReclamado) < 0)) return 'Monto reclamado inválido';
   if (!body.aceptaTerminos) {
     return 'Debe aceptar los términos y condiciones';
   }
   return null;
 }
 
+function clean(value: unknown) {
+  return String(value ?? '').trim();
+}
+
+function escapeHtml(value: unknown) {
+  const entities: Record<string, string> = {
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+  };
+  return clean(value).replace(/[&<>"']/g, (character) => entities[character]);
+}
+
 export async function handleRegistrarReclamo(req: Request) {
   try {
-    const body = await req.json();
+    const rawBody = await req.text();
+    if (rawBody.length > 25_000) return response({ error: 'La solicitud excede el tamaño permitido' }, 413);
+    let body: any;
+    try {
+      body = JSON.parse(rawBody);
+    } catch {
+      return response({ error: 'Solicitud JSON inválida' }, 400);
+    }
     const validationError = validarBodyReclamo(body);
     if (validationError) {
       return response({ error: validationError }, 400);
     }
 
+    for (const field of ['tipoDocumento', 'numeroDocumento', 'nombres', 'apellidos', 'email', 'telefono', 'direccion', 'departamento', 'provincia', 'distrito', 'tipoBien', 'descripcionBien', 'tipoReclamo', 'fechaIncidente', 'detalleReclamo', 'pedidoConsumidor']) {
+      body[field] = clean(body[field]);
+    }
+    body.tipoDocumento = body.tipoDocumento.toUpperCase();
+    body.tipoBien = body.tipoBien.toUpperCase();
+    body.tipoReclamo = body.tipoReclamo.toUpperCase();
+    body.email = body.email.toLowerCase();
+
     const supabase = getSupabaseClient();
     const fechaRegistro = new Date();
-    const fechaLimiteRespuesta = body.tipoReclamo === 'RECLAMO'
-      ? calcularFechaLimiteRespuesta(fechaRegistro)
-      : null;
+    const fechaLimiteRespuesta = addBusinessDays(fechaRegistro, 15);
     const nombreCompleto = `${body.nombres} ${body.apellidos}`.trim();
 
     let data: any = null;
@@ -99,7 +130,7 @@ export async function handleRegistrarReclamo(req: Request) {
           fecha_incidente: body.fechaIncidente,
           detalle_reclamo: body.detalleReclamo,
           pedido_consumidor: body.pedidoConsumidor,
-          autoriza_envio_correo: body.autorizaEnvioCorreo ?? false,
+          autoriza_envio_correo: true,
           acepta_terminos: body.aceptaTerminos,
           estado_reclamo: 'PENDIENTE',
           fecha_respuesta: null,
@@ -117,7 +148,7 @@ export async function handleRegistrarReclamo(req: Request) {
 
     if (error || !data) {
       console.error('[LIBRO] Error al insertar reclamo:', error);
-      return response({ error: 'Error al registrar el reclamo', details: error?.message }, 500);
+      return response({ error: 'No pudimos registrar la solicitud' }, 500);
     }
 
     const emailData = {
@@ -126,48 +157,43 @@ export async function handleRegistrarReclamo(req: Request) {
       fechaLimiteRespuesta: fechaLimiteRespuesta?.toISOString() || null,
       tipoReclamo: body.tipoReclamo,
       estadoReclamo: 'PENDIENTE',
-      nombreCompleto,
+      nombreCompleto: escapeHtml(nombreCompleto),
       tipoDocumento: body.tipoDocumento,
-      numeroDocumento: body.numeroDocumento,
+      numeroDocumento: escapeHtml(body.numeroDocumento),
       email: body.email,
-      telefono: body.telefono,
-      direccion: body.direccion,
-      departamento: body.departamento,
-      provincia: body.provincia,
-      distrito: body.distrito,
+      telefono: escapeHtml(body.telefono),
+      direccion: escapeHtml(body.direccion),
+      departamento: escapeHtml(body.departamento),
+      provincia: escapeHtml(body.provincia),
+      distrito: escapeHtml(body.distrito),
       tipoBien: body.tipoBien,
-      descripcionBien: body.descripcionBien,
+      descripcionBien: escapeHtml(body.descripcionBien),
       montoReclamado: body.montoReclamado,
       fechaIncidente: body.fechaIncidente,
-      detalleReclamo: body.detalleReclamo,
-      pedidoConsumidor: body.pedidoConsumidor
+      detalleReclamo: escapeHtml(body.detalleReclamo),
+      pedidoConsumidor: escapeHtml(body.pedidoConsumidor)
     };
 
-    const emailPromises = [enviarEmailNotificacionProveedor(emailData)];
-    if (body.autorizaEnvioCorreo) {
-      emailPromises.push(enviarEmailConfirmacionConsumidor(emailData));
-    }
+    const emailPromises = [
+      enviarEmailNotificacionProveedor(emailData),
+      enviarEmailConfirmacionConsumidor(emailData),
+    ];
     const emailResults = await Promise.allSettled(emailPromises);
-    const emailsEnviados = emailResults.filter((result: any) => result.status === 'fulfilled' && result.value?.success).length;
+    const consumerEmailResult = emailResults[1];
+    const consumerEmailSent = consumerEmailResult?.status === 'fulfilled' && consumerEmailResult.value?.success === true;
 
     return response({
-      id: data.id,
       numeroReclamo,
       fechaRegistro: fechaRegistro.toISOString(),
       fechaLimiteRespuesta: fechaLimiteRespuesta?.toISOString() || null,
       tipoReclamo: body.tipoReclamo,
       estadoReclamo: 'PENDIENTE',
-      nombreCompleto,
-      tipoDocumento: body.tipoDocumento,
-      numeroDocumento: body.numeroDocumento,
-      email: body.email,
-      descripcionBien: body.descripcionBien,
-      emailsEnviados: emailsEnviados > 0,
-      mensaje: `Su ${body.tipoReclamo.toLowerCase()} ha sido registrado exitosamente.`
+      emailsEnviados: consumerEmailSent,
+      mensaje: 'Su solicitud ha sido registrada correctamente.'
     }, 201);
   } catch (err) {
     console.error('[LIBRO] Error:', err);
-    return response({ error: 'Error interno del servidor', details: String(err) }, 500);
+    return response({ error: 'Error interno del servidor' }, 500);
   }
 }
 
@@ -177,19 +203,12 @@ export async function handleConsultarReclamo(_req: Request, numeroReclamo: strin
     const { data, error } = await supabase
       .from('libro_reclamaciones')
       .select(`
-        id,
         numero_reclamo,
         fecha_registro,
         fecha_limite_respuesta,
         tipo_reclamo,
         estado_reclamo,
-        nombre_completo,
-        tipo_documento,
-        numero_documento,
-        email,
-        descripcion_bien,
-        fecha_respuesta,
-        respuesta_proveedor
+        fecha_respuesta
       `)
       .eq('numero_reclamo', numeroReclamo)
       .single();
@@ -199,24 +218,17 @@ export async function handleConsultarReclamo(_req: Request, numeroReclamo: strin
     }
 
     return response({
-      id: data.id,
       numeroReclamo: data.numero_reclamo,
       fechaRegistro: data.fecha_registro,
       fechaLimiteRespuesta: data.fecha_limite_respuesta,
       tipoReclamo: data.tipo_reclamo,
       estadoReclamo: data.estado_reclamo,
-      nombreCompleto: data.nombre_completo,
-      tipoDocumento: data.tipo_documento,
-      numeroDocumento: data.numero_documento,
-      email: data.email,
-      descripcionBien: data.descripcion_bien,
       fechaRespuesta: data.fecha_respuesta,
-      respuestaProveedor: data.respuesta_proveedor,
       mensaje: 'Consulta exitosa'
     });
   } catch (err) {
     console.error('[LIBRO] Error:', err);
-    return response({ error: 'Error interno del servidor', details: String(err) }, 500);
+    return response({ error: 'Error interno del servidor' }, 500);
   }
 }
 

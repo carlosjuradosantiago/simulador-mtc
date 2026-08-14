@@ -23,6 +23,20 @@ const contentLastReviewedLabel = '11 de agosto de 2026';
 const organizationId = `${siteUrl}/#organization`;
 const websiteId = `${siteUrl}/#website`;
 const repositoryUrl = 'https://github.com/carlosjuradosantiago/simulador-mtc';
+const legalName = 'CJ VERTEXLABS GROUP EIRL';
+const taxId = '20614965836';
+const businessAddress = 'Sector 3, Grupo 20, Manzana M, Lote 36, Villa El Salvador, Lima, Perú';
+const businessPhone = '+51 987 617 635';
+const businessEmail = 'admin@simuladormtc.com';
+
+const publicSpaPages = [
+  '/suscripcion',
+  '/contacto',
+  '/terminos-y-condiciones',
+  '/politica-de-cambios-y-devoluciones',
+  '/politica-de-privacidad',
+  '/libro-reclamaciones',
+];
 
 const officialSources = [
   {
@@ -1545,6 +1559,7 @@ async function main() {
 
   const sitemapUrls = [
     { loc: siteUrl, priority: '1.0', changefreq: 'daily' },
+    ...publicSpaPages.map((pathname) => ({ loc: `${siteUrl}${pathname}`, priority: pathname === '/suscripcion' ? '0.9' : '0.6', changefreq: 'monthly' })),
     ...pages.map((page) => ({ loc: pageUrl(page.slug), priority: page.slug === 'simulador-mtc' ? '0.95' : page.type === 'Article' ? '0.8' : '0.85', changefreq: 'weekly' })),
   ];
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
@@ -1610,6 +1625,8 @@ ${disclaimer}
 
 ## Datos verificables
 
+- El proveedor del servicio es ${legalName}, RUC ${taxId}, con dirección en ${businessAddress}.
+- Contacto comercial: ${businessPhone} y ${businessEmail}.
 - El MTC informa que el examen de reglas tiene 40 preguntas y una duración máxima de 40 minutos.
 - La publicación del MTC indica que se requieren al menos 35 respuestas correctas para aprobar.
 - Las preguntas y balotarios se organizan según la categoría de licencia elegida.
@@ -1625,6 +1642,11 @@ ${disclaimer}
 - ${siteUrl}/reglas-de-transito-peru: reglas de tránsito en Perú.
 - ${siteUrl}/fuentes-mtc: fuentes oficiales y balotarios de referencia.
 - ${siteUrl}/metodologia-simulador-mtc: metodología editorial, alcance y actualización del contenido.
+- ${siteUrl}/suscripcion: suscripción mensual por S/ 12 para simulacros completos, resultados y análisis.
+- ${siteUrl}/contacto: datos de ${legalName}, RUC ${taxId}, dirección, teléfono y correo.
+- ${siteUrl}/terminos-y-condiciones: condiciones del servicio y la suscripción.
+- ${siteUrl}/politica-de-cambios-y-devoluciones: reglas de cancelación y revisión de cobros.
+- ${siteUrl}/libro-reclamaciones: formulario público del Libro de Reclamaciones.
 - ${repositoryUrl}: código y documentación pública del proyecto.
 
 ## Categorías
