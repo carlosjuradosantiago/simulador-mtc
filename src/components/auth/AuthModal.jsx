@@ -1,6 +1,6 @@
 import { ArrowRight, KeyRound, Mail, RefreshCw, ShieldCheck, User, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { BRAND_NAME } from '../../data/brand.js';
 import { fallbackLicenseCategories, getCategoryById } from '../../data/vehicleChoices.js';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -320,6 +320,9 @@ export default function AuthModal() {
             <Input label="Tu nombre" autoComplete="name" value={registerForm.name} onChange={(event) => setRegisterForm({ ...registerForm, name: event.target.value })} required />
             <Input label="Tu correo" type="email" autoComplete="email" value={registerForm.email} onChange={(event) => setRegisterForm({ ...registerForm, email: event.target.value })} required />
             <Input label="Crea una contraseña" type="password" autoComplete="new-password" minLength={8} value={registerForm.password} onChange={(event) => setRegisterForm({ ...registerForm, password: event.target.value })} required />
+            <p className="text-sm leading-6 text-slate-600">
+              Al crear tu cuenta, aceptas los <Link className="font-bold text-brand hover:underline" to="/terminos-y-condiciones" target="_blank" rel="noopener noreferrer">Términos y condiciones</Link> y confirmas que leíste la <Link className="font-bold text-brand hover:underline" to="/politica-de-privacidad" target="_blank" rel="noopener noreferrer">Política de privacidad</Link>.
+            </p>
             <Feedback error={error} notice={notice} />
             <Button type="submit" size="lg" className="w-full" disabled={busy}>
               {loading ? 'Creando cuenta...' : 'Crear y practicar'}

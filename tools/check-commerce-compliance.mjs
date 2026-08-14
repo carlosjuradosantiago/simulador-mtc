@@ -6,6 +6,11 @@ const paths = {
   routes: '../src/routes/AppRoutes.jsx',
   legal: '../src/data/legal.js',
   legalPage: '../src/pages/LegalPage.jsx',
+  authModal: '../src/components/auth/AuthModal.jsx',
+  profile: '../src/pages/ProfilePage.jsx',
+  vehicleStart: '../src/components/practice/VehicleStartPanel.jsx',
+  plansData: '../src/data/mockPlans.js',
+  seoGenerator: './generate-seo-assets.mjs',
   subscription: '../src/pages/SubscriptionPage.jsx',
   complaint: '../src/pages/ComplaintBookPage.jsx',
   plans: '../src/pages/PlansPage.jsx',
@@ -34,11 +39,18 @@ assert.doesNotMatch(protectedRoutes, /path="\/libro-reclamaciones"/);
 
 assert.match(files.subscription, /S\/ \{MONTHLY_PLAN\.price\}/);
 assert.match(files.subscription, /Prácticas cortas son gratuitas|prácticas cortas para conocer el servicio/i);
-assert.match(files.legalPage, /no ofrecemos devolución por cambio de opinión/);
+assert.match(files.legalPage, /Crear una cuenta no autoriza ningún cobro/);
+assert.match(files.legalPage, /15 días hábiles/);
+assert.match(files.legalPage, /no excluye nuestra responsabilidad por dolo, culpa, falta de idoneidad/);
+assert.match(files.legalPage, /no generan por sí solos una devolución/);
 assert.match(files.legalPage, /cobro duplicado/);
 assert.match(files.legalPage, /derechos irrenunciables/);
+assert.match(files.authModal, /Al crear tu cuenta, aceptas los/);
 assert.match(files.plans, /acceptLegal/);
 assert.match(files.plans, /Términos y condiciones/);
+
+const publicCommercialCopy = [files.legalPage, files.authModal, files.profile, files.vehicleStart, files.plansData, files.seoGenerator].join('\n');
+assert.doesNotMatch(publicCommercialCopy, /sin límites|acceso ilimitado|simulacros ilimitados|acceso gratuito temporal/i);
 
 assert.doesNotMatch(files.complaint, /type="file"|<Upload|30 días hábiles/);
 assert.match(files.complaint, /15 días hábiles/);

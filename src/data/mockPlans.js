@@ -13,7 +13,7 @@ export const plans = [
 
 export const planBenefits = [
   'Acceso a todas las categorias',
-  'Simulacros ilimitados',
+  'Simulacros completos de 40 preguntas',
   'Estadisticas de rendimiento',
   'Banco de preguntas completo',
   'Soporte por chat',

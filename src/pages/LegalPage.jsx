@@ -8,30 +8,36 @@ import { BUSINESS, MONTHLY_PLAN } from '../data/legal.js';
 const pages = {
   terms: {
     title: 'Términos y condiciones',
-    intro: 'Estas condiciones explican de forma sencilla cómo funciona Simulador MTC y qué aceptas al crear una cuenta o contratar la suscripción.',
+    intro: 'Estas condiciones regulan el uso de Simulador MTC, la creación de cuentas y, cuando corresponda, la contratación de servicios digitales.',
     sections: [
       ['1. Proveedor del servicio', <p key="provider">El servicio es ofrecido por <strong>{BUSINESS.legalName}</strong>, RUC {BUSINESS.ruc}, con domicilio en {BUSINESS.address}. Puedes contactarnos en <a className="font-bold text-brand hover:underline" href={BUSINESS.emailHref}>{BUSINESS.email}</a> o al <a className="font-bold text-brand hover:underline" href={BUSINESS.phoneHref}>{BUSINESS.phone}</a>.</p>],
       ['2. Servicio educativo', <><p>{BRAND_NAME} permite practicar preguntas de conocimientos para licencias de conducir por categoría, rendir simulacros cronometrados y revisar resultados y temas por reforzar.</p><p className="mt-3">{BRAND_DISCLAIMER} La plataforma no reemplaza la información oficial ni garantiza la aprobación del examen.</p></>],
-      ['3. Práctica gratuita', <p>Las prácticas cortas están disponibles gratuitamente para que conozcas el contenido y el funcionamiento del servicio antes de contratar una suscripción.</p>],
-      ['4. Suscripción mensual', <><p>La suscripción cuesta <strong>S/ {MONTHLY_PLAN.price} por mes</strong> e incluye acceso a los simulacros completos, resultados, revisión de errores y seguimiento del progreso durante el periodo activo.</p><p className="mt-3">Con tarjeta, el cobro se renueva mensualmente hasta que canceles la renovación. Con Yape, el acceso dura un mes y no se realiza un cobro automático; al vencer podrás suscribirte nuevamente.</p></>],
-      ['5. Pagos y comprobantes', <p>Los pagos son procesados por Culqi. Simulador MTC no recibe ni almacena el número completo de tu tarjeta. Antes de pagar podrás elegir boleta o factura e ingresar los datos necesarios para el comprobante.</p>],
-      ['6. Cuenta y uso permitido', <p>Debes proporcionar información verdadera, mantener tus credenciales seguras y usar la cuenta de forma personal. No está permitido copiar masivamente el banco de preguntas, vulnerar la plataforma, compartir accesos con fines comerciales ni usar el servicio de forma ilícita.</p>],
-      ['7. Cancelación', <p>Puedes detener la renovación automática de tu tarjeta desde la sección de suscripción. No habrá nuevos cobros y conservarás el acceso hasta terminar el periodo ya pagado. Los pagos con Yape terminan automáticamente al cumplirse el mes.</p>],
-      ['8. Cambios, devoluciones y reclamos', <p>Las solicitudes económicas se atienden según nuestra <Link className="font-bold text-brand hover:underline" to="/politica-de-cambios-y-devoluciones">Política de cambios y devoluciones</Link>. También puedes presentar una queja o reclamo en el <Link className="font-bold text-brand hover:underline" to="/libro-reclamaciones">Libro de Reclamaciones</Link>.</p>],
-      ['9. Propiedad intelectual y disponibilidad', <p>El diseño, software, organización y contenido propio de la plataforma están protegidos por la legislación aplicable. Podemos realizar mantenimiento o correcciones razonables para mantener el servicio seguro y actualizado.</p>],
-      ['10. Ley aplicable', <p>Estas condiciones se interpretan conforme a las leyes de la República del Perú, incluido el Código de Protección y Defensa del Consumidor. Ninguna disposición limita derechos irrenunciables reconocidos por ley.</p>],
+      ['3. Aceptación y capacidad', <p>Antes de crear una cuenta ponemos estas condiciones y la <Link className="font-bold text-brand hover:underline" to="/politica-de-privacidad">Política de privacidad</Link> a tu disposición. Al seleccionar “Crear y practicar” o “Crear con Google” confirmas que las leíste y aceptas. Si eres menor de edad, debes utilizar el servicio con autorización y supervisión de tu madre, padre o representante legal.</p>],
+      ['4. Información antes de contratar', <p>Crear una cuenta no autoriza ningún cobro. Si se ofrece una contratación, antes de confirmarla mostraremos las funciones incluidas, precio total, duración, medio de pago, condiciones de renovación y forma de cancelación. Solo procesaremos el pago después de una acción y autorización expresa del usuario.</p>],
+      ['5. Suscripción mensual, cuando esté disponible', <><p>El plan mensual tiene un precio de <strong>S/ {MONTHLY_PLAN.price}</strong> e incluye durante el periodo contratado las funciones indicadas en la pantalla de compra.</p><p className="mt-3">El pago con tarjeta se renueva únicamente cuando autorizas expresamente el cobro recurrente y puedes cancelar futuras renovaciones. El pago con Yape cubre un mes y no genera renovación automática.</p></>],
+      ['6. Pagos y comprobantes', <p>Los pagos son procesados por Culqi. {BRAND_NAME} no recibe ni almacena el número completo ni el código de seguridad de tu tarjeta. Antes de pagar podrás elegir boleta o factura e ingresar los datos necesarios para emitir el comprobante correspondiente.</p>],
+      ['7. Cuenta y seguridad', <p>Debes proporcionar información verdadera, mantener tus credenciales seguras y notificarnos si detectas un uso no autorizado. La cuenta es personal. Las acciones realizadas con tus credenciales se atribuyen a tu cuenta, salvo que nos comuniques oportunamente una vulneración o exista responsabilidad legal del proveedor.</p>],
+      ['8. Uso permitido', <p>No está permitido copiar o redistribuir masivamente el banco de preguntas, compartir o vender accesos, intentar vulnerar la plataforma, automatizar consultas que afecten el servicio, suplantar a otra persona ni utilizar el contenido con fines ilícitos. Podemos limitar o suspender una cuenta por fraude, riesgo de seguridad, incumplimiento grave o mandato legal, informando el motivo cuando sea posible y sin impedir el ejercicio de tus derechos como consumidor.</p>],
+      ['9. Contenido y fuentes oficiales', <p>Revisamos el contenido para mantenerlo útil y actualizado, pero las normas, balotarios y criterios de evaluación pueden cambiar. Debes contrastar requisitos, fechas y reglas con el MTC y otras fuentes oficiales antes de realizar trámites o rendir el examen.</p>],
+      ['10. Disponibilidad del servicio', <p>Podemos realizar mantenimiento, correcciones de seguridad y mejoras técnicas. Procuraremos comunicar las interrupciones programadas relevantes. Si una incidencia atribuible al servicio impide usar una función contratada, evaluaremos la corrección, extensión o solución que corresponda según la oferta y la legislación aplicable.</p>],
+      ['11. Cambios en las condiciones', <p>Podemos actualizar estas condiciones por cambios legales, comerciales, técnicos o de seguridad. Los cambios materiales se informarán de forma clara antes de que produzcan efectos. No reducirán beneficios ya adquiridos durante un periodo pagado ni se aplicarán retroactivamente en perjuicio del consumidor.</p>],
+      ['12. Cancelaciones, devoluciones y reclamos', <p>Las solicitudes económicas se atienden según nuestra <Link className="font-bold text-brand hover:underline" to="/politica-de-cambios-y-devoluciones">Política de cambios y devoluciones</Link>. Puedes contactarnos mediante nuestros <Link className="font-bold text-brand hover:underline" to="/contacto">canales de atención</Link> o presentar una queja o reclamo en el <Link className="font-bold text-brand hover:underline" to="/libro-reclamaciones">Libro de Reclamaciones</Link>. Los reclamos se responden por escrito en un plazo máximo de 15 días hábiles, conforme a la normativa peruana.</p>],
+      ['13. Responsabilidad', <p>En la medida permitida por ley, no respondemos por decisiones tomadas exclusivamente con base en material educativo, cambios realizados por autoridades, fallas de equipos o conexión del usuario ni interrupciones inevitables de terceros. Esta regla no excluye nuestra responsabilidad por dolo, culpa, falta de idoneidad, incumplimiento de obligaciones de seguridad o cualquier supuesto que legalmente no pueda limitarse.</p>],
+      ['14. Propiedad intelectual', <p>El diseño, software, organización, marca y contenido propio de la plataforma están protegidos por la legislación aplicable. El acceso al servicio concede solo una licencia personal, limitada, no exclusiva e intransferible para estudiar; no transfiere derechos de propiedad intelectual.</p>],
+      ['15. Ley aplicable y derechos del consumidor', <p>Estas condiciones se interpretan conforme a las leyes de la República del Perú, incluido el Código de Protección y Defensa del Consumidor. Ninguna disposición limita derechos irrenunciables ni impide acudir al Indecopi o a la autoridad judicial competente.</p>],
     ],
   },
   returns: {
     title: 'Política de cambios y devoluciones',
-    intro: 'Queremos que conozcas el servicio antes de pagar y que sepas exactamente en qué casos corresponde revisar un cobro.',
+    intro: 'Esta política explica cómo atendemos incidencias de acceso y, cuando corresponda, solicitudes relacionadas con una contratación.',
     sections: [
-      ['Prueba antes de suscribirte', <p key="preview">Las prácticas cortas son gratuitas y permiten revisar la interfaz, el tipo de preguntas y las explicaciones antes de contratar la suscripción mensual.</p>],
-      ['Servicio digital de acceso inmediato', <p>La suscripción activa inmediatamente el acceso digital a simulacros completos, resultados y análisis durante un mes. Por ese motivo, una vez activado el acceso no ofrecemos devolución por cambio de opinión, falta de uso o por no aprobar un examen.</p>],
-      ['Casos que sí revisamos', <><p>Evaluaremos y, cuando corresponda, corregiremos o devolveremos importes por:</p><ul className="mt-3 list-disc space-y-2 pl-6"><li>cobro duplicado o por un importe distinto al mostrado;</li><li>pago confirmado sin activación del acceso;</li><li>operación no reconocida, sujeta a la validación del medio de pago;</li><li>cualquier supuesto exigido por las normas de protección al consumidor.</li></ul></>],
-      ['Cómo solicitar una revisión', <p>Escríbenos a <a className="font-bold text-brand hover:underline" href={BUSINESS.emailHref}>{BUSINESS.email}</a> indicando tu nombre, correo de la cuenta, fecha, importe y código de la operación. También puedes usar el <Link className="font-bold text-brand hover:underline" to="/libro-reclamaciones">Libro de Reclamaciones</Link>.</p>],
-      ['Cancelación de tarjeta', <p>Cancelar la renovación evita los siguientes cobros. El acceso continúa hasta finalizar el periodo ya pagado y luego se desactiva.</p>],
-      ['Pago con Yape', <p>El pago con Yape activa un mes sin renovación automática. Cuando termine el periodo, el acceso se desactiva y podrás volver a suscribirte cuando lo necesites.</p>],
+      ['Condiciones informadas antes del pago', <p key="purchase-terms">Antes de una contratación mostraremos el servicio, precio total, duración, medio de pago y condiciones de renovación. La información específica mostrada y aceptada en esa operación forma parte de la contratación.</p>],
+      ['Incidencias del servicio', <p>Si una función ofrecida no se habilita o presenta una falla relevante, puedes solicitar soporte. Primero intentaremos restablecer el acceso o corregir la incidencia; cuando ello no sea posible, aplicaremos la solución, extensión o devolución que corresponda según la oferta y la ley.</p>],
+      ['Casos que revisamos', <><p>Evaluaremos y, cuando corresponda, corregiremos o devolveremos importes por:</p><ul className="mt-3 list-disc space-y-2 pl-6"><li>cobro duplicado o por un importe distinto al aceptado;</li><li>pago confirmado sin activación del servicio adquirido;</li><li>operación no reconocida, sujeta a la validación del medio de pago;</li><li>falta de idoneidad no corregida dentro de un plazo razonable; o</li><li>cualquier supuesto exigido por las normas de protección al consumidor.</li></ul></>],
+      ['Casos sin devolución automática', <p>Cuando el acceso digital contratado fue activado correctamente, el cambio de opinión, la falta de uso o el resultado obtenido en un examen no generan por sí solos una devolución. Cada solicitud se evalúa según la oferta, la idoneidad del servicio y los derechos irrenunciables del consumidor.</p>],
+      ['Cómo solicitar una revisión', <p>Escríbenos a <a className="font-bold text-brand hover:underline" href={BUSINESS.emailHref}>{BUSINESS.email}</a> indicando tu nombre, correo de la cuenta, fecha, importe y código de la operación. También puedes usar el <Link className="font-bold text-brand hover:underline" to="/libro-reclamaciones">Libro de Reclamaciones</Link>. Confirmaremos la recepción y, cuando la solicitud constituya un reclamo, responderemos por escrito en un plazo máximo de 15 días hábiles.</p>],
+      ['Cancelación de renovaciones', <p>Cuando exista una suscripción con tarjeta, cancelar la renovación evita cobros posteriores. El acceso contratado continúa hasta finalizar el periodo ya pagado. Los pagos con Yape no se renuevan automáticamente.</p>],
+      ['Forma de devolución', <p>Una devolución aprobada se tramitará, cuando sea posible, al mismo medio de pago utilizado. El plazo de abono puede depender del banco o proveedor de pago; comunicaremos el resultado y la referencia de la operación.</p>],
       ['Derechos del consumidor', <p>Esta política no excluye ni reduce los derechos irrenunciables que correspondan según la legislación peruana.</p>],
     ],
   },
@@ -46,32 +52,6 @@ const pages = {
       ['Conservación y seguridad', <p>Conservamos los datos durante el tiempo necesario para prestar el servicio y cumplir obligaciones tributarias, contractuales y de protección al consumidor. Aplicamos controles técnicos y organizativos razonables, aunque ningún sistema conectado a internet puede ofrecer riesgo cero.</p>],
       ['Tus derechos', <p>Puedes solicitar acceso, rectificación, cancelación u oposición al tratamiento de tus datos escribiendo a <a className="font-bold text-brand hover:underline" href={BUSINESS.emailHref}>{BUSINESS.email}</a>. Incluye información suficiente para verificar tu identidad y atender la solicitud.</p>],
       ['Comunicaciones', <p>Los correos necesarios para verificar la cuenta, recuperar el acceso, confirmar pagos o atender reclamos forman parte del servicio. Las comunicaciones promocionales, si se habilitan, podrán desactivarse.</p>],
-    ],
-  },
-};
-
-const freeAccessPages = {
-  terms: {
-    title: 'Términos y condiciones',
-    intro: 'Estas condiciones explican de forma sencilla cómo funciona Simulador MTC y qué aceptas al crear una cuenta y utilizar el servicio.',
-    sections: [
-      ['1. Proveedor del servicio', <p key="provider">El servicio es ofrecido por <strong>{BUSINESS.legalName}</strong>, RUC {BUSINESS.ruc}, con domicilio en {BUSINESS.address}. Puedes contactarnos en <a className="font-bold text-brand hover:underline" href={BUSINESS.emailHref}>{BUSINESS.email}</a> o al <a className="font-bold text-brand hover:underline" href={BUSINESS.phoneHref}>{BUSINESS.phone}</a>.</p>],
-      ['2. Servicio educativo', <><p>{BRAND_NAME} permite practicar preguntas de conocimientos para licencias de conducir por categoría, rendir simulacros cronometrados y revisar resultados y temas por reforzar.</p><p className="mt-3">{BRAND_DISCLAIMER} La plataforma no reemplaza la información oficial ni garantiza la aprobación del examen.</p></>],
-      ['3. Acceso actual', <p>Por ahora puedes practicar sin límites, incluidos los simulacros completos, la revisión de resultados y el seguimiento de tu progreso. No se solicita ningún pago para utilizar estas funciones.</p>],
-      ['4. Cuenta y uso permitido', <p>Debes proporcionar información verdadera, mantener tus credenciales seguras y usar la cuenta de forma personal. No está permitido copiar masivamente el banco de preguntas, vulnerar la plataforma, compartir accesos con fines comerciales ni usar el servicio de forma ilícita.</p>],
-      ['5. Consultas y reclamos', <p>Puedes comunicarte mediante nuestros <Link className="font-bold text-brand hover:underline" to="/contacto">canales de atención</Link> o presentar una queja o reclamo en el <Link className="font-bold text-brand hover:underline" to="/libro-reclamaciones">Libro de Reclamaciones</Link>.</p>],
-      ['6. Propiedad intelectual y disponibilidad', <p>El diseño, software, organización y contenido propio de la plataforma están protegidos por la legislación aplicable. Podemos realizar mantenimiento o correcciones razonables para mantener el servicio seguro y actualizado.</p>],
-      ['7. Ley aplicable', <p>Estas condiciones se interpretan conforme a las leyes de la República del Perú, incluido el Código de Protección y Defensa del Consumidor. Ninguna disposición limita derechos irrenunciables reconocidos por ley.</p>],
-    ],
-  },
-  returns: {
-    title: 'Política de cambios y devoluciones',
-    intro: 'Por ahora, el acceso a las prácticas y simulacros completos no tiene costo.',
-    sections: [
-      ['Acceso sin costo', <p key="free-access">Puedes practicar sin límites por ahora. La plataforma no solicita pagos para acceder a los simulacros completos, resultados o análisis de progreso.</p>],
-      ['Sin cobros que devolver', <p>Mientras este acceso gratuito se encuentre vigente, no se generan cargos por el uso del simulador y, por tanto, no existen importes que cancelar o devolver.</p>],
-      ['Consultas y correcciones', <p>Si encuentras un problema con tu cuenta o con el acceso al servicio, escríbenos a <a className="font-bold text-brand hover:underline" href={BUSINESS.emailHref}>{BUSINESS.email}</a>. También puedes usar el <Link className="font-bold text-brand hover:underline" to="/libro-reclamaciones">Libro de Reclamaciones</Link>.</p>],
-      ['Derechos del consumidor', <p>Esta política no excluye ni reduce los derechos irrenunciables que correspondan según la legislación peruana.</p>],
     ],
   },
 };
@@ -105,7 +85,7 @@ function ContactPage() {
 }
 
 export default function LegalPage({ page }) {
-  const content = FULL_EXAM_IS_FREE && freeAccessPages[page] ? freeAccessPages[page] : pages[page];
+  const content = pages[page];
 
   useEffect(() => {
     const previousTitle = document.title;
