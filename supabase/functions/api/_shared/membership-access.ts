@@ -48,8 +48,16 @@ export function partitionAttempts<T extends { tipo_intento?: string | null; tota
   return { timed, quick, ignored };
 }
 
-export function isRealPayment(payment: { estado?: string | null; metodo_pago?: string | null }) {
+export function isRealPayment(payment: {
+  estado?: string | null;
+  metodo_pago?: string | null;
+  culqi_charge_id?: string | null;
+  verificado_proveedor_en?: string | null;
+}) {
   const status = String(payment.estado || '').toLowerCase();
+  const chargeId = String(payment.culqi_charge_id || '');
   return ['exitoso', 'exitosa', 'pagado', 'pagada', 'paid', 'approved', 'aprobado', 'aprobada', 'success', 'succeeded'].includes(status)
-    && payment.metodo_pago !== SIMULATED_PAYMENT_METHOD;
+    && payment.metodo_pago !== SIMULATED_PAYMENT_METHOD
+    && Boolean(payment.verificado_proveedor_en)
+    && chargeId.startsWith('chr_live_');
 }

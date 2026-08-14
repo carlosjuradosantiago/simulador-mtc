@@ -3,12 +3,14 @@ import {
   Banknote,
   BookOpen,
   CalendarClock,
+  CircleDollarSign,
   CreditCard,
   Download,
   Eye,
   FileSpreadsheet,
   MousePointerClick,
   RefreshCw,
+  Search,
   ShieldCheck,
   Target,
   TrendingUp,
@@ -31,6 +33,7 @@ import {
 import Badge from '../components/ui/Badge.jsx';
 import Button from '../components/ui/Button.jsx';
 import Card from '../components/ui/Card.jsx';
+import { PaginationControls, SortableTh } from '../components/admin/AdminTableControls.jsx';
 import { api } from '../services/api.js';
 import { cn } from '../utils/cn.js';
 
@@ -81,6 +84,12 @@ const emptyOverview = {
   recentUsers: [],
   recentPayments: [],
   subscriptions: [],
+};
+
+const emptyUsers = {
+  items: [],
+  pagination: { page: 1, size: 10, total: 0, totalPages: 1 },
+  sort: { field: 'registeredAt', direction: 'desc' },
 };
 
 const exportOptions = [
@@ -231,6 +240,15 @@ export default function AdminDashboardPage() {
   const [error, setError] = useState('');
   const [exportType, setExportType] = useState('summary');
   const [exporting, setExporting] = useState(false);
+  const [users, setUsers] = useState(emptyUsers);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [usersError, setUsersError] = useState('');
+  const [usersPage, setUsersPage] = useState(1);
+  const [usersSize, setUsersSize] = useState(10);
+  const [usersSort, setUsersSort] = useState('registeredAt');
+  const [usersDirection, setUsersDirection] = useState('desc');
+  const [usersSearchInput, setUsersSearchInput] = useState('');
+  const [usersSearch, setUsersSearch] = useState('');
 
   const metrics = { ...emptyMetrics, ...(overview.metrics ?? {}) };
   const trafficDaily = overview.series?.trafficDaily ?? [];
@@ -253,6 +271,40 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     loadOverview();
   }, [loadOverview]);
+
+  const loadUsers = useCallback(() => {
+    setUsersLoading(true);
+    setUsersError('');
+    api.getAdminUsers({
+      page: usersPage,
+      size: usersSize,
+      sort: usersSort,
+      direction: usersDirection,
+      search: usersSearch,
+    })
+      .then(setUsers)
+      .catch((requestError) => setUsersError(requestError.message || 'No se pudo cargar la lista de usuarios.'))
+      .finally(() => setUsersLoading(false));
+  }, [usersDirection, usersPage, usersSearch, usersSize, usersSort]);
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
+
+  const sortUsers = (field) => {
+    if (usersSort === field) {
+      setUsersDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setUsersSort(field);
+      setUsersDirection(field === 'name' || field === 'email' || field === 'status' ? 'asc' : 'desc');
+    }
+    setUsersPage(1);
+  };
+
+  const refreshAll = () => {
+    loadOverview();
+    loadUsers();
+  };
 
   const kpis = useMemo(() => [
     {
@@ -337,13 +389,13 @@ export default function AdminDashboardPage() {
             </p>
           </div>
 
-          <div className="grid w-full gap-2 sm:grid-cols-[minmax(180px,1fr)_auto_auto_auto] lg:w-auto">
+          <div className="flex w-full flex-wrap gap-2 lg:w-auto lg:justify-end">
             <label className="sr-only" htmlFor="admin-export-type">Tipo de reporte</label>
             <select
               id="admin-export-type"
               value={exportType}
               onChange={(event) => setExportType(event.target.value)}
-              className="min-h-11 rounded-lg border border-line bg-white px-3 font-bold text-ink focus:border-brand"
+              className="min-h-11 min-w-40 flex-1 rounded-lg border border-line bg-white px-3 font-bold text-ink focus:border-brand sm:flex-none"
             >
               {exportOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
@@ -355,7 +407,15 @@ export default function AdminDashboardPage() {
               <BookOpen className="h-4 w-4" aria-hidden="true" />
               Reclamaciones
             </Button>
-            <Button variant="secondary" size="sm" onClick={loadOverview} disabled={loading}>
+            <Button as={Link} to="/admin/finanzas" variant="secondary" size="sm">
+              <CircleDollarSign className="h-4 w-4" aria-hidden="true" />
+              Finanzas
+            </Button>
+            <Button as={Link} to="/admin/preguntas" variant="secondary" size="sm">
+              <FileSpreadsheet className="h-4 w-4" aria-hidden="true" />
+              Preguntas
+            </Button>
+            <Button variant="secondary" size="sm" onClick={refreshAll} disabled={loading || usersLoading}>
               <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} aria-hidden="true" />
               Actualizar
             </Button>
@@ -536,23 +596,45 @@ export default function AdminDashboardPage() {
           <Card className="overflow-hidden shadow-sm">
             <SectionHeading
               icon={Users}
-              title="Usuarios recientes"
-              helper={`${formatNumber(metrics.usersToday)} registros hoy`}
-              action={<Badge variant="blue">{overview.recentUsers?.length ?? 0} visibles</Badge>}
+              title="Usuarios"
+              helper={`${formatNumber(metrics.usersToday)} registros hoy · orden y paginación en el servidor`}
+              action={<Badge variant="blue">{formatNumber(users.pagination?.total)} registrados</Badge>}
             />
-            <div className="max-h-[470px] overflow-auto fine-scrollbar">
+            <form
+              className="flex gap-2 border-b border-line p-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                setUsersPage(1);
+                setUsersSearch(usersSearchInput.trim());
+              }}
+            >
+              <label className="relative min-w-0 flex-1">
+                <span className="sr-only">Buscar usuario</span>
+                <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" aria-hidden="true" />
+                <input
+                  type="search"
+                  value={usersSearchInput}
+                  onChange={(event) => setUsersSearchInput(event.target.value)}
+                  placeholder="Nombre o correo"
+                  className="min-h-10 w-full rounded-lg border border-line bg-white pl-10 pr-3 text-sm focus:border-brand focus:outline-none focus:ring-4 focus:ring-blue-100"
+                />
+              </label>
+              <Button variant="secondary" size="sm" type="submit">Buscar</Button>
+            </form>
+            {usersError ? <p className="border-b border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-danger" role="alert">{usersError}</p> : null}
+            <div className="overflow-x-auto fine-scrollbar">
               <table className="w-full min-w-[720px] text-left text-sm">
-                <thead className="sticky top-0 bg-slate-50 text-xs uppercase text-slate-500">
+                <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                   <tr>
-                    <th className="px-4 py-3">Usuario</th>
-                    <th className="px-3 py-3">Estado</th>
-                    <th className="px-3 py-3 text-right">Prácticas</th>
-                    <th className="px-3 py-3 text-right">Pagado</th>
-                    <th className="px-4 py-3">Registro</th>
+                    <SortableTh field="name" label="Usuario" activeField={usersSort} direction={usersDirection} onSort={sortUsers} className="pl-4" />
+                    <SortableTh field="status" label="Estado" activeField={usersSort} direction={usersDirection} onSort={sortUsers} />
+                    <SortableTh field="practices" label="Prácticas" activeField={usersSort} direction={usersDirection} onSort={sortUsers} align="right" />
+                    <SortableTh field="paid" label="Pagado" activeField={usersSort} direction={usersDirection} onSort={sortUsers} align="right" />
+                    <SortableTh field="registeredAt" label="Registro" activeField={usersSort} direction={usersDirection} onSort={sortUsers} className="pr-4" />
                   </tr>
                 </thead>
                 <tbody>
-                  {(overview.recentUsers ?? []).map((user) => (
+                  {(users.items ?? []).map((user) => (
                     <tr key={user.id} className="border-t border-line">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -569,10 +651,20 @@ export default function AdminDashboardPage() {
                       <td className="px-4 py-3 text-slate-500">{formatDate(user.registeredAt)}</td>
                     </tr>
                   ))}
-                  {!overview.recentUsers?.length ? <EmptyTableRow columns={5}>Aún no hay usuarios para mostrar.</EmptyTableRow> : null}
+                  {!usersLoading && !users.items?.length ? <EmptyTableRow columns={5}>No hay usuarios que coincidan con el filtro.</EmptyTableRow> : null}
+                  {usersLoading ? <EmptyTableRow columns={5}>Cargando usuarios...</EmptyTableRow> : null}
                 </tbody>
               </table>
             </div>
+            <PaginationControls
+              pagination={users.pagination}
+              onPageChange={setUsersPage}
+              onSizeChange={(size) => {
+                setUsersSize(size);
+                setUsersPage(1);
+              }}
+              disabled={usersLoading}
+            />
           </Card>
 
           <Card className="overflow-hidden shadow-sm">

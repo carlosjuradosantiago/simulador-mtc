@@ -60,6 +60,14 @@ function percentage(part: number, total: number) {
   return Math.round((part / total) * 1000) / 10;
 }
 
+function cleanAdminSearch(value: unknown) {
+  return String(value || '')
+    .replace(/[^\p{L}\p{N}@._\-\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 100);
+}
+
 function visitorKey(row: any) {
   return row.visitor_id || (row.id_usuario ? 'user-' + row.id_usuario : null);
 }
@@ -271,7 +279,7 @@ async function buildAdminOverview(supabase: any) {
       .limit(10000),
     supabase
       .from('transacciones_pago')
-      .select('id, id_usuario, id_plan_membresia, monto, moneda, metodo_pago, estado, fecha_pago, creado_en, correo_cliente, planes_membresia:id_plan_membresia(nombre, precio, duracion_meses), usuarios:id_usuario(correo_electronico, primer_nombre, apellido, nombre_usuario)')
+      .select('id, id_usuario, id_plan_membresia, monto, moneda, metodo_pago, estado, fecha_pago, creado_en, correo_cliente, culqi_charge_id, verificado_proveedor_en, planes_membresia:id_plan_membresia(nombre, precio, duracion_meses), usuarios:id_usuario(correo_electronico, primer_nombre, apellido, nombre_usuario)')
       .order('creado_en', { ascending: false })
       .limit(10000),
     supabase
@@ -487,6 +495,75 @@ export async function handleGetAdminOverview(req: Request) {
   }
 }
 
+export async function handleGetAdminUsers(req: Request) {
+  try {
+    const admin = await requireAdmin(req);
+    if (!admin.ok) return admin.response;
+
+    const url = new URL(req.url);
+    const page = Math.max(Number.parseInt(url.searchParams.get('page') || '1', 10), 1);
+    const size = Math.min(Math.max(Number.parseInt(url.searchParams.get('size') || '10', 10), 5), 100);
+    const direction = url.searchParams.get('direction') === 'asc' ? 'asc' : 'desc';
+    const search = cleanAdminSearch(url.searchParams.get('search'));
+    const sortColumns: Record<string, string> = {
+      name: 'display_name',
+      email: 'email',
+      status: 'status',
+      practices: 'practice_sessions',
+      paid: 'paid_amount',
+      registeredAt: 'registered_at',
+    };
+    const sort = Object.hasOwn(sortColumns, url.searchParams.get('sort') || '')
+      ? String(url.searchParams.get('sort'))
+      : 'registeredAt';
+    const offset = (page - 1) * size;
+
+    let query = admin.supabase
+      .from('admin_user_summary')
+      .select('*', { count: 'exact' });
+
+    if (search) {
+      query = query.or(`display_name.ilike.%${search}%,email.ilike.%${search}%,username.ilike.%${search}%`);
+    }
+
+    const { data, error, count } = await query
+      .order(sortColumns[sort], { ascending: direction === 'asc', nullsFirst: false })
+      .order('id', { ascending: false })
+      .range(offset, offset + size - 1);
+
+    if (error) throw error;
+
+    const total = count || 0;
+    return jsonResponse({
+      items: (data || []).map((user: any) => ({
+        id: user.id,
+        name: user.display_name,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        registeredAt: user.registered_at,
+        practiceSessions: Number(user.practice_sessions || 0),
+        paymentCount: Number(user.payment_count || 0),
+        paidAmount: Number(user.paid_amount || 0),
+        membershipStartedAt: user.membership_started_at,
+        membershipEndsAt: user.membership_ends_at,
+        status: user.status,
+      })),
+      pagination: {
+        page,
+        size,
+        total,
+        totalPages: Math.max(Math.ceil(total / size), 1),
+      },
+      sort: { field: sort, direction },
+      search,
+    });
+  } catch (error) {
+    console.error('Admin users error:', error);
+    return errorResponse('No se pudo cargar la lista de usuarios', 500);
+  }
+}
+
 export async function handleExportAdminReport(req: Request) {
   try {
     const admin = await requireAdmin(req);
@@ -497,7 +574,13 @@ export async function handleExportAdminReport(req: Request) {
     const overview = await buildAdminOverview(admin.supabase);
 
     if (type === 'users') {
-      return csvResponse('usuarios-admin.csv', overview.recentUsers);
+      const { data, error } = await admin.supabase
+        .from('admin_user_summary')
+        .select('id, display_name, email, role, status, practice_sessions, payment_count, paid_amount, membership_ends_at, registered_at')
+        .order('registered_at', { ascending: false })
+        .limit(10000);
+      if (error) throw error;
+      return csvResponse('usuarios-admin.csv', data || []);
     }
     if (type === 'payments') {
       return csvResponse('pagos-admin.csv', overview.recentPayments);

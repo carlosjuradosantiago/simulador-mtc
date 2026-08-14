@@ -13,6 +13,7 @@
     "check:email-recipient": "node tools/check-email-recipient.mjs",
     "check:admin-access": "node tools/check-admin-access.mjs",
     "check:admin-complaints": "node tools/check-admin-complaints.mjs",
+    "check:admin-operations": "node tools/check-admin-operations.mjs",
     "check:remote-environments": "node tools/check-remote-environments.mjs",
     "check:payment-security": "node tools/check-payment-security.mjs",
     "check:commerce-compliance": "node tools/check-commerce-compliance.mjs",

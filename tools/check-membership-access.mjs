@@ -47,9 +47,11 @@ assert.deepEqual(attempts.timed.map(({ id }) => id), [2]);
 assert.deepEqual(attempts.quick.map(({ id }) => id), [1]);
 assert.deepEqual(attempts.ignored.map(({ id }) => id), [3, 4]);
 
-assert.equal(isRealPayment({ estado: 'exitoso', metodo_pago: 'tarjeta' }), true);
+assert.equal(isRealPayment({ estado: 'exitoso', metodo_pago: 'tarjeta', culqi_charge_id: 'chr_live_verified', verificado_proveedor_en: '2026-08-14T00:00:00.000Z' }), true);
 assert.equal(isRealPayment({ estado: 'exitoso', metodo_pago: 'simulacion' }), false);
 assert.equal(isRealPayment({ estado: 'fallido', metodo_pago: 'tarjeta' }), false);
+assert.equal(isRealPayment({ estado: 'exitoso', metodo_pago: 'tarjeta', culqi_charge_id: 'chr_test_sandbox', verificado_proveedor_en: '2026-08-14T00:00:00.000Z' }), false);
+assert.equal(isRealPayment({ estado: 'exitoso', metodo_pago: 'tarjeta', culqi_charge_id: 'chr_live_unverified' }), false);
 
 assert.equal(OFFICIAL_EXAM_RULES.questionCount, OFFICIAL_EXAM_QUESTION_COUNT);
 assert.equal(OFFICIAL_EXAM_RULES.durationSeconds, OFFICIAL_EXAM_DURATION_SECONDS);
