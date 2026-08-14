@@ -73,7 +73,7 @@ export default function ProfilePage() {
                 <Link to="/dashboard?chooseCategory=1" className="font-bold text-brand hover:underline">Cambiar</Link>
               </span>
               <span className="inline-flex items-center gap-2"><Calendar className="h-4 w-4 text-brand" /> Registro {user?.registeredAt}</span>
-              <span className="inline-flex items-center gap-2"><Calendar className="h-4 w-4 text-brand" /> Plan {FULL_EXAM_IS_FREE ? 'Acceso sin límites por ahora' : membership?.planName ?? 'Sin membresía activa'}</span>
+              <span className="inline-flex items-center gap-2"><Calendar className="h-4 w-4 text-brand" /> {FULL_EXAM_IS_FREE ? 'Acceso al simulador' : `Plan ${membership?.planName ?? 'Sin membresía activa'}`}</span>
             </div>
           </div>
         </div>

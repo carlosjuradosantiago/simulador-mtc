@@ -73,7 +73,7 @@ assert.match(simulatorPage, /Suscribete para volver a rendir simulacros completo
 assert.match(publicHeader, /!FULL_EXAM_IS_FREE/);
 assert.match(publicFooter, /!FULL_EXAM_IS_FREE/);
 assert.match(routes, /path="\/suscripcion" element=\{FULL_EXAM_IS_FREE \? <Navigate to="\/" replace \/>/);
-assert.match(vehicleStartPanel, /Puedes practicar sin límites por ahora/);
+assert.match(vehicleStartPanel, /Simulacro completo disponible/);
 assert.doesNotMatch(seoGenerator, /suscripción mensual por S\/ 12/);
 assert.match(apiRouter, /path\.startsWith\('\/pagos\/'\) && isFullExamFree/);
 

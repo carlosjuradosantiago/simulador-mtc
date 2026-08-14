@@ -1629,7 +1629,7 @@ ${disclaimer}
 - El MTC informa que el examen de reglas tiene 40 preguntas y una duración máxima de 40 minutos.
 - La publicación del MTC indica que se requieren al menos 35 respuestas correctas para aprobar.
 - Las preguntas y balotarios se organizan según la categoría de licencia elegida.
-- Por ahora, las personas registradas pueden practicar y rendir simulacros completos sin límites.
+- Las condiciones de acceso se muestran dentro de la plataforma antes de iniciar una práctica o contratación.
 - Cada página de categoría publica cuarenta preguntas completas, con cuatro alternativas, respuesta y referencia al balotario correspondiente.
 - Fuente del formato oficial: ${officialSources.find((source) => source.id === 'exam-format').url}
 - Balotarios oficiales: ${officialMtcSource}
@@ -1644,7 +1644,7 @@ ${disclaimer}
 - ${siteUrl}/metodologia-simulador-mtc: metodología editorial, alcance y actualización del contenido.
 - ${siteUrl}/contacto: datos de ${legalName}, RUC ${taxId}, dirección, teléfono y correo.
 - ${siteUrl}/terminos-y-condiciones: condiciones de uso del servicio.
-- ${siteUrl}/politica-de-cambios-y-devoluciones: condiciones aplicables durante el acceso gratuito.
+- ${siteUrl}/politica-de-cambios-y-devoluciones: atención de incidencias, cobros, cambios y devoluciones.
 - ${siteUrl}/libro-reclamaciones: formulario público del Libro de Reclamaciones.
 - ${repositoryUrl}: código y documentación pública del proyecto.
 
