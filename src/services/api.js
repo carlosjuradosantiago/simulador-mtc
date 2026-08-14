@@ -538,4 +538,23 @@ export const api = {
   trackEvent: (payload) => apiRequest('/analytics/event', { method: 'POST', body: payload }).catch(() => null),
   getAdminOverview: () => apiRequest('/admin/overview', { auth: true }),
   exportAdminReport: (type = 'summary') => apiTextRequest(`/admin/export?type=${encodeURIComponent(type)}`, { auth: true }),
+  getAdminComplaints: (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') params.set(key, value);
+    });
+    return apiRequest(`/admin/reclamaciones?${params.toString()}`, { auth: true });
+  },
+  getAdminComplaint: (id) => apiRequest(`/admin/reclamaciones/${id}`, { auth: true }),
+  updateAdminComplaintStatus: (id, status) => apiRequest(`/admin/reclamaciones/${id}/estado`, {
+    method: 'PATCH',
+    body: { status },
+    auth: true,
+  }),
+  respondAdminComplaint: (id, response) => apiRequest(`/admin/reclamaciones/${id}/responder`, {
+    method: 'POST',
+    body: { response },
+    auth: true,
+  }),
+  exportAdminComplaints: () => apiTextRequest('/admin/reclamaciones/exportar', { auth: true }),
 };

@@ -574,5 +574,10 @@ function formatDateShort(dateStr) {
 </body>
 </html>
   `;
-  return sendEmail(data.email, `✅ Respuesta a su ${tipoTexto} N° ${data.numeroReclamo} - ${PROVEEDOR_CONFIG.razonSocial}`, html);
+  return sendEmail(
+    data.email,
+    `✅ Respuesta a su ${tipoTexto} N° ${data.numeroReclamo} - ${PROVEEDOR_CONFIG.razonSocial}`,
+    html,
+    { idempotencyKey: `complaint-response/${data.numeroReclamo}` },
+  );
 }

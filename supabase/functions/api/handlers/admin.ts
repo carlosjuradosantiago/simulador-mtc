@@ -100,7 +100,7 @@ function daysRemaining(value: unknown, now = new Date()) {
   return Math.ceil((endDate.getTime() - now.getTime()) / DAY_MS);
 }
 
-async function requireAdmin(req: Request) {
+export async function requireAdmin(req: Request) {
   const user = await getUserFromToken(req);
   if (!user?.userId) return { ok: false, response: unauthorizedResponse() };
 
