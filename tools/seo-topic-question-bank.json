@@ -1,8 +1,8 @@
 {
   "meta": {
     "sourceFile": "data/mtc_extracted/questions_deduped.json",
-    "sourceSha256": "6a58b0f658fbcbe1217606cc879e8dd80c4ff551be29af0191da462cc2672ee5",
-    "sourceQuestionCount": 655,
+    "sourceSha256": "f457d740035e25bf1bb8322405f3805143a486850dc829b1806b6cb6976ae29c",
+    "sourceQuestionCount": 640,
     "maxQuestionsPerTopic": 40,
     "selectionPolicy": "Solo preguntas con enunciado, cuatro alternativas, una clave válida y sin dependencia de imágenes."
   },
@@ -17,7 +17,7 @@
         "señales de tránsito examen",
         "balotario MTC con respuestas"
       ],
-      "sourceQuestionCount": 215,
+      "sourceQuestionCount": 200,
       "eligibleQuestionCount": 133,
       "questions": [
         {
@@ -76,7 +76,7 @@
             "A-IIIB",
             "A-IIIC"
           ],
-          "text": "La señal vertical reglamentaria R-6 ¿prohibido voltear a la izquierda¿, significa que:",
+          "text": "La señal vertical reglamentaria R-6 \"prohibido voltear a la izquierda\", significa que:",
           "options": [
             "Está prohibido voltear a la izquierda y, por lo tanto también está prohibido el giro en U.",
             "Está prohibido voltear a la izquierda, sin embargo, está permitido el giro en U.",
@@ -210,7 +210,7 @@
           ],
           "text": "Si llega a una intersección donde el semáforo muestra una luz intermitente, qué afirmación es correcta:",
           "options": [
-            "Si la luz intermitente es roja, ésta es equivalente a un ¿CEDA EL PASO?",
+            "Si la luz intermitente es roja, ésta es equivalente a un \"CEDA EL PASO\"",
             "Si la luz intermitente es ámbar, tiene preferencia, debiendo reducir la velocidad y continuar con precaución.",
             "Si la luz intermitente es verde, ésta es equivalente a un \"PARE\".",
             "Ninguna de las alternativas es correcta."
@@ -5054,7 +5054,7 @@
             "Llevar al taller del concesionario autorizado"
           ],
           "correctAnswer": "Realizar una inspección visual y controles básicos diarios",
-          "fundamento": "Sin mayor gasto de tiempo y dinero, una rápida inspecciòn visual y controles básicos es suficiente para el mantenimiento básico del vehículo"
+          "fundamento": "Sin mayor gasto de tiempo y dinero, una rápida inspección visual y controles básicos es suficiente para el mantenimiento básico del vehículo"
         },
         {
           "id": "a855adab92248c17227102b2a0f70da5e910558247731909c66125e8095e475d",
@@ -5649,14 +5649,14 @@
           "fundamento": ""
         },
         {
-          "id": "f0c9dc6167ec83b3b04635dca317781671d777f68cb0a424fc2f9b9f226148b0",
+          "id": "9a71506f3267f1fe8ccdfa39a6145c7d53b28bf35d20e624689fd9cdf3346824",
           "sourceCode": "B-IIA",
           "number": 154,
           "balotarios": [
             "B-IIA",
             "B-IIC"
           ],
-          "text": "¿Una vez contacatdo al nùmero de emergencia, qué acciones debe realizar con una persona herida en un accidente de tránsito?",
+          "text": "¿Una vez contactado al número de emergencia, qué acciones debe realizar con una persona herida en un accidente de tránsito?",
           "options": [
             "Girar su torso hacia la derecha",
             "Inmovilizar al herido",

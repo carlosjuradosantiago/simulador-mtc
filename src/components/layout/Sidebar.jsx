@@ -1,4 +1,4 @@
-import { BarChart3, BookOpenCheck, Car, Home, User, ClipboardList, CreditCard, FileText, ShieldCheck, X } from 'lucide-react';
+import { BarChart3, BookOpenCheck, Car, Home, User, FileDown, CreditCard, FileText, ShieldCheck, X } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import BrandLogo from './BrandLogo.jsx';
 import SidebarPromo from './SidebarPromo.jsx';
@@ -10,7 +10,7 @@ import { isAdminUser } from '../../utils/admin.js';
 const navItems = [
   { label: 'Dashboard', to: '/dashboard', icon: Home },
   { label: 'Simuladores', to: '/dashboard', icon: Car },
-  { label: 'Banco de preguntas', to: '/banco-preguntas', icon: ClipboardList },
+  { label: 'PDF oficiales', to: '/materiales', icon: FileDown },
   { label: 'Clases', to: '/clases', icon: BookOpenCheck },
   { label: 'Resultados', to: '/resultados', icon: BarChart3 },
   { label: 'Perfil', to: '/perfil', icon: User },

@@ -354,11 +354,11 @@ export default function VehicleStartPanel({
           <BookOpen className="h-6 w-6" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-emerald-700">También puedes aprender sin tiempo</p>
-          <p className="font-display text-xl font-black text-ink">Señales y reglas de tránsito</p>
+          <p className="text-sm font-bold text-emerald-700">Material oficial para estudiar</p>
+          <p className="font-display text-xl font-black text-ink">Balotarios oficiales del MTC</p>
         </div>
-        <Link to="/banco-preguntas" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-success px-5 font-bold text-white hover:bg-emerald-700">
-          Ver temas
+        <Link to="/materiales" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-success px-5 font-bold text-white hover:bg-emerald-700">
+          Ver PDF
           <ArrowRight className="h-5 w-5" />
         </Link>
       </div>

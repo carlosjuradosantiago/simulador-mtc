@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { requireAdmin } from './admin.ts';
 
 const learningTopicKeywords: Record<string, string[]> = {
   semaforos: ['semáforo', 'semaforo', 'luz roja', 'luz verde', 'luz ámbar', 'luz ambar', 'ámbar', 'ambar', 'intermitente', 'flecha roja', 'flecha verde'],
@@ -52,6 +53,9 @@ async function getQuestionIdsForCategories(supabase: any, categoryIds: number[])
 
 export async function handleGetQuestionBank(req: Request) {
   try {
+    const admin = await requireAdmin(req);
+    if (!admin.ok) return admin.response;
+
     const url = new URL(req.url);
     const tipoExamenId = parseInt(url.searchParams.get('tipoExamenId') || '2');
     const categoriaId = url.searchParams.get('categoriaId');

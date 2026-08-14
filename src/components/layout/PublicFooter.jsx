@@ -18,6 +18,7 @@ const licenseGuides = [
 
 const publicLinks = [
   ...(!FULL_EXAM_IS_FREE ? [['Suscripción', '/suscripcion']] : []),
+  ['PDF oficiales del MTC', '/materiales'],
   ['Contacto', '/contacto'],
   ['Términos y condiciones', '/terminos-y-condiciones'],
   ['Cambios y devoluciones', '/politica-de-cambios-y-devoluciones'],

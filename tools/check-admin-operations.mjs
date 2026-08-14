@@ -40,6 +40,7 @@ assert.doesNotMatch(api, /CULQI_SECRET_KEY/);
 
 assert.match(questionBank, /numeroPdf: 'numero_pdf'/);
 assert.match(questionBank, /\.order\(sortColumns\[sort\]/);
+assert.match(questionBank, /requireAdmin\(req\)/);
 assert.match(api, /getAdminUsers/);
 assert.match(api, /getAdminReconciliation/);
 assert.match(api, /exportAdminFinance/);

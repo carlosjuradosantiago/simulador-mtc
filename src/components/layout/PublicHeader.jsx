@@ -20,6 +20,7 @@ export default function PublicHeader() {
 
         <nav aria-label="Navegación principal" className="ml-auto hidden items-center gap-5 lg:flex">
           <NavLink to="/" end className={navLinkClass}>Practicar</NavLink>
+          <NavLink to="/materiales" className={navLinkClass}>PDF oficiales</NavLink>
           {!FULL_EXAM_IS_FREE ? <NavLink to="/suscripcion" className={navLinkClass}>Suscripción</NavLink> : null}
           <NavLink to="/contacto" className={navLinkClass}>Contacto</NavLink>
         </nav>

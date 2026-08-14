@@ -419,16 +419,61 @@ def cell_for_rect(rect: fitz.Rect, columns: list[Column], row_y0: float, row_y1:
     return None
 
 
-def image_rects_by_page(page: fitz.Page) -> list[fitz.Rect]:
-    rects: list[fitz.Rect] = []
+def image_rects_by_page(page: fitz.Page) -> list[tuple[int, fitz.Rect]]:
+    rects: list[tuple[int, fitz.Rect]] = []
     for image in page.get_images(full=True):
         xref = image[0]
         for rect in page.get_image_rects(xref):
             vrect = visual_rect(rect, page)
             if vrect.width < 8 or vrect.height < 8:
                 continue
-            rects.append(vrect)
+            rects.append((xref, vrect))
     return rects
+
+
+def extract_pdf_image(doc: fitz.Document, xref: int) -> Image.Image | None:
+    pixmap = fitz.Pixmap(doc, xref)
+    if pixmap.colorspace is None or pixmap.width < 12 or pixmap.height < 12:
+        return None
+    if pixmap.n not in {1, 3, 4}:
+        pixmap = fitz.Pixmap(fitz.csRGB, pixmap)
+
+    mode = "RGBA" if pixmap.alpha else ("L" if pixmap.n == 1 else "RGB")
+    image = Image.frombytes(mode, [pixmap.width, pixmap.height], pixmap.samples)
+    if mode == "RGBA":
+        background = Image.new("RGB", image.size, "white")
+        background.paste(image, mask=image.getchannel("A"))
+        return background
+    return image.convert("RGB")
+
+
+def compose_pdf_images(
+    doc: fitz.Document,
+    instances: list[tuple[int, fitz.Rect]],
+    scale: int = 3,
+    pad: int = 6,
+) -> Image.Image | None:
+    if not instances:
+        return None
+    bounds = fitz.Rect(instances[0][1])
+    for _, rect in instances[1:]:
+        bounds.include_rect(rect)
+    canvas = Image.new(
+        "RGB",
+        (max(1, round(bounds.width * scale) + pad * 2), max(1, round(bounds.height * scale) + pad * 2)),
+        "white",
+    )
+    for xref, rect in instances:
+        image = extract_pdf_image(doc, xref)
+        if image is None:
+            return None
+        width = max(1, round(rect.width * scale))
+        height = max(1, round(rect.height * scale))
+        resized = image.resize((width, height), Image.Resampling.LANCZOS)
+        x = round((rect.x0 - bounds.x0) * scale) + pad
+        y = round((rect.y0 - bounds.y0) * scale) + pad
+        canvas.paste(resized, (x, y))
+    return canvas
 
 
 def save_media_crop(
@@ -437,6 +482,11 @@ def save_media_crop(
     sequence: int,
     cell: str,
     media_index: int,
+    *,
+    source_page: int | None = None,
+    source_xref: int | None = None,
+    source_rect: fitz.Rect | None = None,
+    extraction: str = "cell_crop",
 ) -> dict[str, Any]:
     MEDIA_DIR.mkdir(parents=True, exist_ok=True)
     filename = f"{source_code}_{sequence:03d}_{cell}_{media_index}.png"
@@ -445,7 +495,7 @@ def save_media_crop(
     payload = path.read_bytes()
     digest = hashlib.sha256(payload).hexdigest()
     data_uri = "data:image/png;base64," + base64.b64encode(payload).decode("ascii")
-    return {
+    media = {
         "cell": cell,
         "filename": str(path.relative_to(ROOT)).replace("\\", "/"),
         "sha256": digest,
@@ -453,7 +503,15 @@ def save_media_crop(
         "width": crop.width,
         "height": crop.height,
         "data_uri": data_uri,
+        "extraction": extraction,
     }
+    if source_page is not None:
+        media["source_page"] = source_page
+    if source_xref is not None:
+        media["source_xref"] = source_xref
+    if source_rect is not None:
+        media["source_rect"] = [round(value, 3) for value in source_rect]
+    return media
 
 
 def option_cell_has_visual(page_image: Image.Image, col: Column, y0: float, y1: float, scale: int = 3) -> bool:
@@ -522,15 +580,57 @@ def parse_pdf(pdf_path: Path, source_code: str) -> list[dict[str, Any]]:
 
             row_media_by_cell: dict[str, list[dict[str, Any]]] = {key: [] for key in ["pregunta", *OPTION_LABELS]}
             raster_cells: set[str] = set()
-            for rect in raster_rects:
+            raster_by_cell: dict[str, list[tuple[int, fitz.Rect]]] = {key: [] for key in row_media_by_cell}
+            for xref, rect in raster_rects:
                 cell = cell_for_rect(rect, columns, y0, y1)
                 if cell not in row_media_by_cell:
                     continue
                 raster_cells.add(cell)
-                crop = crop_visual_rect(page_image, rect, scale=3, pad=18)
-                if crop:
+                raster_by_cell[cell].append((xref, rect))
+
+            for cell, instances in raster_by_cell.items():
+                if cell in OPTION_LABELS and len(instances) > 1:
+                    crop = compose_pdf_images(doc, instances)
+                    if not crop:
+                        continue
                     media_index += 1
-                    row_media_by_cell[cell].append(save_media_crop(crop, source_code, sequence, cell, media_index))
+                    media = save_media_crop(
+                        crop,
+                        source_code,
+                        sequence,
+                        cell,
+                        media_index,
+                        source_page=page_index + 1,
+                        source_rect=fitz.Rect(
+                            min(rect.x0 for _, rect in instances),
+                            min(rect.y0 for _, rect in instances),
+                            max(rect.x1 for _, rect in instances),
+                            max(rect.y1 for _, rect in instances),
+                        ),
+                        extraction="pdf_image_group",
+                    )
+                    media["source_instances"] = [
+                        {"xref": xref, "rect": [round(value, 3) for value in rect]}
+                        for xref, rect in instances
+                    ]
+                    row_media_by_cell[cell].append(media)
+                    continue
+
+                for xref, rect in instances:
+                    crop = extract_pdf_image(doc, xref)
+                    if crop:
+                        media_index += 1
+                        row_media_by_cell[cell].append(save_media_crop(
+                            crop,
+                            source_code,
+                            sequence,
+                            cell,
+                            media_index,
+                            source_page=page_index + 1,
+                            source_xref=xref,
+                            source_rect=rect,
+                            extraction="pdf_image",
+                        ))
 
             # In rotated class-B PDFs, many road-sign alternatives are vector drawings,
             # not embedded images. If the option text is empty but the cell has visual
@@ -548,7 +648,14 @@ def parse_pdf(pdf_path: Path, source_code: str) -> list[dict[str, Any]]:
                         crop = crop_option_cell(page_image, col, y0, y1, scale=3)
                         if crop:
                             media_index += 1
-                            row_media_by_cell[label].append(save_media_crop(crop, source_code, sequence, label, media_index))
+                            row_media_by_cell[label].append(save_media_crop(
+                                crop,
+                                source_code,
+                                sequence,
+                                label,
+                                media_index,
+                                source_page=page_index + 1,
+                            ))
 
             options = []
             for order, label in enumerate(OPTION_LABELS, start=1):

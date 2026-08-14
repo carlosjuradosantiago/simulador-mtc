@@ -1,13 +1,32 @@
 export const officialMtcPdfs = [
-  { code: 'A-I', categoryIds: [25], filename: 'balotario_A-I.pdf', bytes: 943041 },
-  { code: 'A-IIA', categoryIds: [16], filename: 'balotario_A-IIA.pdf', bytes: 999170 },
-  { code: 'A-IIB', categoryIds: [17], filename: 'balotario_A-IIB.pdf', bytes: 1106158 },
-  { code: 'A-IIIA', categoryIds: [18], filename: 'balotario_A-IIIA.pdf', bytes: 1096436 },
-  { code: 'A-IIIB', categoryIds: [19], filename: 'balotario_A-IIIB.pdf', bytes: 1104305 },
-  { code: 'A-IIIC', categoryIds: [20], filename: 'balotario_A-IIIC.pdf', bytes: 1583797 },
-  { code: 'B-IIA', categoryIds: [22], filename: 'balotario_B-IIA.pdf', bytes: 212522 },
-  { code: 'B-IIB', categoryIds: [23], filename: 'balotario_B-IIB.pdf', bytes: 202684 },
-  { code: 'B-IIC', categoryIds: [24], filename: 'balotario_B-IIC.pdf', bytes: 211815 },
+  { code: 'A-I', categoryIds: [25], vehicle: 'Auto particular', filename: 'balotario_A-I.pdf', bytes: 943041 },
+  { code: 'A-IIA', categoryIds: [16], vehicle: 'Taxi y vehículo especial', filename: 'balotario_A-IIA.pdf', bytes: 999170 },
+  { code: 'A-IIB', categoryIds: [17], vehicle: 'Microbús y camión mediano', filename: 'balotario_A-IIB.pdf', bytes: 1106158 },
+  { code: 'A-IIIA', categoryIds: [18], vehicle: 'Ómnibus', filename: 'balotario_A-IIIA.pdf', bytes: 1096436 },
+  { code: 'A-IIIB', categoryIds: [19], vehicle: 'Camión y volquete', filename: 'balotario_A-IIIB.pdf', bytes: 1104305 },
+  { code: 'A-IIIC', categoryIds: [20], vehicle: 'Ómnibus y camión pesado', filename: 'balotario_A-IIIC.pdf', bytes: 1583797 },
+  { code: 'B-IIA', categoryIds: [22], vehicle: 'Bicimoto', filename: 'balotario_B-IIA.pdf', bytes: 212522 },
+  { code: 'B-IIB', categoryIds: [23], vehicle: 'Motocicleta', filename: 'balotario_B-IIB.pdf', bytes: 202684 },
+  { code: 'B-IIC', categoryIds: [24], vehicle: 'Mototaxi', filename: 'balotario_B-IIC.pdf', bytes: 211815 },
+].map((pdf) => ({
+  ...pdf,
+  href: `/mtc-official/${pdf.filename}`,
+  size: formatPdfSize(pdf.bytes),
+}));
+
+export const officialMtcRules = [
+  {
+    code: 'R.D. 5980-2017-MTC/15',
+    description: 'Aprueba el balotario de preguntas para la evaluación de conocimientos.',
+    filename: 'norma_RD-5980-2017.pdf',
+    bytes: 1652250,
+  },
+  {
+    code: 'R.D. 3748-2016-MTC/15',
+    description: 'Establece los temas de la evaluación de conocimientos para licencias de conducir.',
+    filename: 'norma_RD-3748-2016.pdf',
+    bytes: 752305,
+  },
 ].map((pdf) => ({
   ...pdf,
   href: `/mtc-official/${pdf.filename}`,
