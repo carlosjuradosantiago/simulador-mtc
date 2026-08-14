@@ -71,7 +71,7 @@ function uniqueVisitors(rows: any[]) {
 function normalizeRoute(value: unknown) {
   const route = String(value || '/').trim();
   try {
-    return new URL(route, 'https://simuladormtc.pe').pathname || '/';
+    return new URL(route, 'https://www.simuladormtc.com').pathname || '/';
   } catch {
     return route.split('?')[0] || '/';
   }

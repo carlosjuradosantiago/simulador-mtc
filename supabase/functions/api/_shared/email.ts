@@ -12,17 +12,21 @@ import { resolveEmailRecipient } from './email-recipient.ts';
  * 3. Notificación al consumidor cuando hay respuesta
  */ // Configuración del proveedor (empresa)
 export const PROVEEDOR_CONFIG = {
-  razonSocial: 'Simulador MTC S.A.C.',
-  ruc: '20123456789',
-  direccion: 'Av. Principal 123, Lima, Perú',
-  email: 'reclamaciones@simuladormtc.pe',
-  telefono: '(01) 234-5678',
-  website: 'https://simuladormtc.pe'
+  razonSocial: 'CJ VERTEXLABS GROUP EIRL',
+  ruc: '20614965836',
+  direccion: 'Sector 3, Grupo 20, Manzana M, Lote 36, Villa El Salvador, Lima, Perú',
+  email: 'admin@simuladormtc.com',
+  telefono: '+51 987 617 635',
+  website: 'https://www.simuladormtc.com'
 };
-// Email desde donde se envían (debe estar verificado en Resend)
-const FROM_EMAIL = 'Simulador MTC <noreply@simuladormtc.pe>';
-// Para desarrollo, usar el dominio de Resend
+// El remitente del dominio debe estar verificado en Resend antes de producción.
+const FROM_EMAIL = 'Simulador MTC <admin@simuladormtc.com>';
 const FROM_EMAIL_DEV = 'Simulador MTC <onboarding@resend.dev>';
+
+function getFromEmail() {
+  return Deno.env.get('RESEND_FROM_EMAIL')
+    || (Deno.env.get('RESEND_ALLOWED_RECIPIENT') ? FROM_EMAIL_DEV : FROM_EMAIL);
+}
 /**
  * Envía un email usando la API de Resend
  */ export async function sendEmail(to, subject, html, options = {}) {
@@ -59,7 +63,7 @@ const FROM_EMAIL_DEV = 'Simulador MTC <onboarding@resend.dev>';
         ...(options.idempotencyKey ? { 'Idempotency-Key': options.idempotencyKey } : {})
       },
       body: JSON.stringify({
-        from: FROM_EMAIL_DEV,
+        from: getFromEmail(),
         to: [
           recipient.deliveryRecipient
         ],
@@ -177,7 +181,7 @@ function formatDateShort(dateStr) {
  */ export async function enviarEmailConfirmacionConsumidor(data) {
   console.log('[EMAIL] Enviando confirmación al consumidor:', data.email);
   const tipoTexto = data.tipoReclamo === 'RECLAMO' ? 'RECLAMO' : 'QUEJA';
-  const plazoTexto = data.tipoReclamo === 'RECLAMO' ? 'Según la normativa INDECOPI, tiene un plazo máximo de 30 días calendario para recibir una respuesta.' : 'Su queja será atendida a la brevedad posible.';
+  const plazoTexto = 'Conforme a la normativa de protección al consumidor, recibirá una respuesta en un plazo máximo e improrrogable de 15 días hábiles.';
   const html = `
 <!DOCTYPE html>
 <html lang="es">
@@ -434,7 +438,7 @@ function formatDateShort(dateStr) {
               <div style="background-color: #ffebee; border: 1px solid #ffcdd2; border-radius: 8px; padding: 15px; text-align: center;">
                 <p style="margin: 0; color: #c62828; font-size: 14px;">
                   ⚠️ <strong>ACCIÓN REQUERIDA</strong><br>
-                  ${data.tipoReclamo === 'RECLAMO' ? 'Debe responder este reclamo antes del ' + (data.fechaLimiteRespuesta ? formatDateShort(data.fechaLimiteRespuesta) : 'plazo establecido') + ' según normativa INDECOPI.' : 'Por favor atienda esta queja a la brevedad posible.'}
+                  Debe responder esta solicitud antes del ${data.fechaLimiteRespuesta ? formatDateShort(data.fechaLimiteRespuesta) : 'plazo establecido'} según la normativa de protección al consumidor.
                 </p>
               </div>
             </td>

@@ -84,6 +84,7 @@ export default function PlansPage() {
   const [success, setSuccess] = useState(null);
   const [paymentChoice, setPaymentChoice] = useState('tarjeta');
   const [acceptRecurring, setAcceptRecurring] = useState(false);
+  const [acceptLegal, setAcceptLegal] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [form, setForm] = useState({
@@ -231,6 +232,10 @@ export default function PlansPage() {
     }
     if (paymentChoice === 'tarjeta' && !acceptRecurring) {
       setError('Autoriza el cobro mensual para continuar con la suscripcion.');
+      return;
+    }
+    if (!acceptLegal) {
+      setError('Acepta los terminos y la politica de cambios para continuar.');
       return;
     }
 
@@ -393,6 +398,11 @@ export default function PlansPage() {
           {success?.cancellation ? <div className="mt-5 border-l-4 border-brand bg-blue-50 px-4 py-3 text-sm text-blue-950" role="status"><p className="font-black">Renovacion cancelada</p><p className="mt-1">No habra mas cobros. Tu acceso conserva la fecha ya pagada.</p></div> : null}
           {success && !success.pending && !success.cancellation ? <div className="mt-5 border-l-4 border-success bg-emerald-50 px-4 py-3 text-sm text-emerald-950" role="status"><p className="flex items-center gap-2 font-black"><FileCheck2 className="h-5 w-5" />Pago confirmado</p><p className="mt-1">{success.receipt?.number ? `${success.receipt.type} ${success.receipt.number} generada correctamente.` : 'Tu acceso esta activo. El comprobante quedo registrado para revision.'}</p></div> : null}
           {error ? <p className="mt-4 border-l-4 border-danger bg-red-50 px-4 py-3 text-sm font-bold text-danger" role="alert">{error}</p> : null}
+
+          {!hasAccess ? <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm leading-5 text-slate-700">
+            <input type="checkbox" className="mt-1 h-5 w-5 shrink-0 accent-blue-600" checked={acceptLegal} onChange={(event) => setAcceptLegal(event.target.checked)} />
+            <span>He leído y acepto los <Link className="font-bold text-brand hover:underline" to="/terminos-y-condiciones" target="_blank" rel="noopener noreferrer">Términos y condiciones</Link> y la <Link className="font-bold text-brand hover:underline" to="/politica-de-cambios-y-devoluciones" target="_blank" rel="noopener noreferrer">Política de cambios y devoluciones</Link>.</span>
+          </label> : null}
 
           <Button size="lg" className="mt-5 w-full" onClick={hasAccess ? () => navigate(examPath) : openCheckout} disabled={processing || cancelling || paymentPending}>
             {hasAccess ? <Target className="h-6 w-6" /> : <LockKeyhole className="h-5 w-5" />}
