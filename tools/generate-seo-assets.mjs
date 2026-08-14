@@ -1216,8 +1216,8 @@ function renderHtml(page) {
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" type="image/svg+xml" href="/brand-mark.svg?v=1">
-    <link rel="shortcut icon" href="/brand-mark.svg?v=1">
+    <link rel="icon" type="image/svg+xml" href="/brand-mark.svg?v=2">
+    <link rel="shortcut icon" href="/brand-mark.svg?v=2">
     <title>${escapeHtml(page.title)}</title>
     <meta name="description" content="${escapeHtml(page.description)}">
     <meta name="author" content="Equipo editorial de Simulador MTC">
