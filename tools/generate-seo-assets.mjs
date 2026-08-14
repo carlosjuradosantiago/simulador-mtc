@@ -1185,7 +1185,7 @@ function renderHtml(page) {
         '@id': organizationId,
         name: brandName,
         url: siteUrl,
-        logo: `${siteUrl}/og-simulador-mtc.png`,
+        logo: `${siteUrl}/brand-mark.svg`,
         description: disclaimer,
         publishingPrinciples: `${siteUrl}/metodologia-simulador-mtc`,
         sameAs: [repositoryUrl],
@@ -1216,6 +1216,8 @@ function renderHtml(page) {
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="/brand-mark.svg?v=1">
+    <link rel="shortcut icon" href="/brand-mark.svg?v=1">
     <title>${escapeHtml(page.title)}</title>
     <meta name="description" content="${escapeHtml(page.description)}">
     <meta name="author" content="Equipo editorial de Simulador MTC">
@@ -1246,7 +1248,7 @@ function renderHtml(page) {
       .wrap { width:min(1120px, calc(100% - 32px)); margin:0 auto; }
       .topbar { min-height:72px; display:flex; align-items:center; justify-content:space-between; gap:20px; }
       .logo { display:flex; align-items:center; gap:12px; font-weight:900; font-size:22px; }
-      .mark { width:40px; height:40px; display:grid; place-items:center; border-radius:50%; background:var(--deep); color:#fff; }
+      .mark { width:40px; height:40px; flex:0 0 40px; }
       nav { display:flex; gap:16px; flex-wrap:wrap; font-size:14px; font-weight:700; color:#4d617d; }
       .hero { background:#eef6ff; border-bottom:1px solid var(--line); }
       .hero-grid { display:grid; grid-template-columns: minmax(0,1.05fr) minmax(280px,.95fr); gap:32px; align-items:center; padding:44px 0; }
@@ -1325,7 +1327,7 @@ function renderHtml(page) {
     <header>
       <div class="wrap topbar">
         <a class="logo" href="/">
-          <span class="mark" aria-hidden="true">MTC</span>
+          <img class="mark" src="/brand-mark.svg" alt="">
           <span>Simulador MTC</span>
         </a>
         <nav aria-label="Recursos principales">
