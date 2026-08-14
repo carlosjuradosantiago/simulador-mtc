@@ -59,10 +59,22 @@ assert.equal(passesOfficialExam(35), true);
 
 const plansPage = readFileSync(new URL('../src/pages/PlansPage.jsx', import.meta.url), 'utf8');
 const simulatorPage = readFileSync(new URL('../src/pages/SimulatorPage.jsx', import.meta.url), 'utf8');
+const publicHeader = readFileSync(new URL('../src/components/layout/PublicHeader.jsx', import.meta.url), 'utf8');
+const publicFooter = readFileSync(new URL('../src/components/layout/PublicFooter.jsx', import.meta.url), 'utf8');
+const vehicleStartPanel = readFileSync(new URL('../src/components/practice/VehicleStartPanel.jsx', import.meta.url), 'utf8');
+const routes = readFileSync(new URL('../src/routes/AppRoutes.jsx', import.meta.url), 'utf8');
+const seoGenerator = readFileSync(new URL('./generate-seo-assets.mjs', import.meta.url), 'utf8');
+const apiRouter = readFileSync(new URL('../supabase/functions/api/index.ts', import.meta.url), 'utf8');
 assert.match(plansPage, /Suscribete nuevamente para volver a rendir simulacros completos/);
 assert.match(plansPage, /Con Yape, tu suscripcion mensual queda activa durante un mes/);
 assert.doesNotMatch(plansPage, /Un mes, sin renovacion|no realiza cobros futuros|Pagar \$\{priceLabel\(plan\.price\)\} con Yape/);
 assert.match(simulatorPage, /Necesitas una suscripcion activa/);
 assert.match(simulatorPage, /Suscribete para volver a rendir simulacros completos/);
+assert.match(publicHeader, /!FULL_EXAM_IS_FREE/);
+assert.match(publicFooter, /!FULL_EXAM_IS_FREE/);
+assert.match(routes, /path="\/suscripcion" element=\{FULL_EXAM_IS_FREE \? <Navigate to="\/" replace \/>/);
+assert.match(vehicleStartPanel, /Puedes practicar sin límites por ahora/);
+assert.doesNotMatch(seoGenerator, /suscripción mensual por S\/ 12/);
+assert.match(apiRouter, /path\.startsWith\('\/pagos\/'\) && isFullExamFree/);
 
 console.log('membership access checks passed');
