@@ -8,6 +8,7 @@ const CULQI_API_URL = 'https://api.culqi.com/v2';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TOKEN_PATTERN = /^[a-z]{3,12}_(?:test|live)_[a-z0-9]+$/i;
 const RUC_WEIGHTS = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+const CURRENT_TERMS_VERSION = '2026-08-13';
 
 type BillingInput = {
   receiptType: 'boleta' | 'factura';
@@ -25,6 +26,8 @@ type PaymentRequest = {
   idempotency_key?: unknown;
   payment_method?: unknown;
   accept_recurring?: unknown;
+  accept_legal?: unknown;
+  terms_version?: unknown;
   device_fingerprint_id?: unknown;
   billing?: Record<string, unknown>;
   authentication_3DS?: Record<string, unknown>;
@@ -862,6 +865,7 @@ async function startRecurringSubscription(
         renovacion_automatica: true,
         datos_facturacion: billing,
         terminos_aceptados_en: acceptedAt,
+        terminos_version: CURRENT_TERMS_VERSION,
       })
       .select()
       .single();
@@ -987,6 +991,8 @@ export async function handleProcesarPago(req: Request) {
     const idempotencyKey = cleanText(body.idempotency_key, 40);
     const paymentMethod = tokenId.startsWith('ype_') ? 'yape' : 'tarjeta';
     const acceptsRecurring = body.accept_recurring === true;
+    const acceptsLegal = body.accept_legal === true;
+    const termsVersion = cleanText(body.terms_version, 32);
     const deviceId = cleanText(body.device_fingerprint_id, 80);
     const authentication3ds = normalize3ds(body.authentication_3DS);
 
@@ -1004,6 +1010,9 @@ export async function handleProcesarPago(req: Request) {
     }
     if (paymentMethod === 'tarjeta' && !acceptsRecurring) {
       throw new ProviderError('Debes autorizar el cobro mensual para suscribirte', 'recurring_terms_required', 400);
+    }
+    if (!acceptsLegal || termsVersion !== CURRENT_TERMS_VERSION) {
+      throw new ProviderError('Debes aceptar los terminos vigentes para continuar', 'legal_terms_required', 400);
     }
     if ((Deno.env.get('APP_ENV') || 'development') !== 'production' && !tokenId.includes('_test_')) {
       throw new ProviderError('No pudimos validar el medio de pago', 'invalid_payment_token', 400);
@@ -1091,6 +1100,8 @@ export async function handleProcesarPago(req: Request) {
           correo_cliente: dbUser.correo_electronico,
           telefono_cliente: billing.phone || null,
           datos_facturacion: billing,
+          terminos_aceptados_en: new Date().toISOString(),
+          terminos_version: CURRENT_TERMS_VERSION,
           culqi_token_id: null,
           respuesta_culqi: null,
         })

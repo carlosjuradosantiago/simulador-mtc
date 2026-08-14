@@ -16,6 +16,7 @@ import Button from '../components/ui/Button.jsx';
 import Input from '../components/ui/Input.jsx';
 import Modal from '../components/ui/Modal.jsx';
 import { OFFICIAL_EXAM_RULES } from '../data/examRules.js';
+import { LEGAL_TERMS_VERSION } from '../data/legal.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { api, normalizeCategoryName, resolveCategoryId } from '../services/api.js';
 
@@ -170,6 +171,8 @@ export default function PlansPage() {
         idempotency_key: attempt.idempotencyKey,
         payment_method: attempt.paymentMethod,
         accept_recurring: attempt.paymentMethod === 'tarjeta' && attempt.acceptRecurring,
+        accept_legal: acceptLegal,
+        terms_version: LEGAL_TERMS_VERSION,
         device_fingerprint_id: deviceIdRef.current || undefined,
         billing: {
           receiptType: form.receiptType,
