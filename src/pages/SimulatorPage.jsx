@@ -48,6 +48,8 @@ export default function SimulatorPage() {
     savingAnswer,
     quickPractice,
     adaptivePractice,
+    timedSession,
+    progress,
     selectAnswer,
     goToQuestion,
     finishExam,
@@ -64,7 +66,8 @@ export default function SimulatorPage() {
   const pendingAnswer = currentQuestion ? pendingAnswers[currentQuestion.id] : null;
   const currentFeedback = currentQuestion ? feedbackByQuestion[currentQuestion.id] : null;
   const isAnswered = hasAnswer(currentAnswer);
-  const isRevealed = quickPractice && isAnswered && Boolean(currentFeedback);
+  const instantFeedbackPractice = quickPractice && !adaptivePractice;
+  const isRevealed = instantFeedbackPractice && isAnswered && Boolean(currentFeedback);
   const selectedAnswerId = isRevealed ? currentAnswer : (hasAnswer(pendingAnswer) ? pendingAnswer : currentAnswer);
   const selectedOption = currentQuestion?.opciones.find((option) => String(option.id) === String(currentAnswer));
   const correctOption = currentQuestion?.opciones.find((option) => (
@@ -87,7 +90,7 @@ export default function SimulatorPage() {
     ? `${String.fromCharCode(65 + correctOptionIndex)}. ${correctOption.texto || 'Respuesta con imagen'}`
     : currentFeedback?.opcionCorrecta?.texto || currentQuestion?.respuestaCorrecta || 'No disponible';
   const isLastQuestion = currentIndex === questions.length - 1;
-  const canContinue = quickPractice ? (isRevealed || hasAnswer(pendingAnswer)) : isAnswered;
+  const canContinue = instantFeedbackPractice ? (isRevealed || hasAnswer(pendingAnswer)) : isAnswered;
   const primaryActionDisabled = !canContinue || finishing || savingAnswer;
   const examLabel = normalizeCategoryName(categoria);
   const practiceLabel = adaptivePractice
@@ -155,10 +158,10 @@ export default function SimulatorPage() {
   }, [finishExam, finishing, loading, navigate, questions.length]);
 
   useEffect(() => {
-    if (!quickPractice && timeRemaining === 0 && questions.length) {
+    if (timedSession && timeRemaining === 0 && questions.length) {
       void handleFinish();
     }
-  }, [handleFinish, questions.length, quickPractice, timeRemaining]);
+  }, [handleFinish, questions.length, timeRemaining, timedSession]);
 
   const toggleSpeech = () => {
     if (!currentQuestion || !('speechSynthesis' in window)) return;
@@ -197,8 +200,9 @@ export default function SimulatorPage() {
   };
 
   const chooseAnswer = (optionId) => {
-    if (isAnswered || savingAnswer || !currentQuestion) return;
-    if (quickPractice) {
+    if (savingAnswer || !currentQuestion) return;
+    if (instantFeedbackPractice) {
+      if (isAnswered) return;
       setPendingAnswers((current) => ({ ...current, [currentQuestion.id]: optionId }));
       return;
     }
@@ -218,7 +222,7 @@ export default function SimulatorPage() {
   };
 
   const handlePrimaryAction = () => {
-    if (quickPractice && !isRevealed) {
+    if (instantFeedbackPractice && !isRevealed) {
       revealAnswer();
       return;
     }
@@ -334,16 +338,16 @@ export default function SimulatorPage() {
               Pregunta {currentIndex + 1} de {questions.length}
             </p>
             <p className="mt-1 text-sm text-slate-500">
-              {quickPractice
-                ? adaptivePractice
-                  ? 'Sin cronómetro. Mezcla tus errores, preguntas nuevas y repaso.'
-                  : strategy === 'weak'
+              {adaptivePractice
+                ? `${OFFICIAL_EXAM_RULES.questionCount} preguntas · ${OFFICIAL_EXAM_RULES.durationMinutes} minutos · puedes revisar y corregir antes de entregar.`
+                : quickPractice
+                  ? strategy === 'weak'
                   ? 'Primero verás lo que más necesitas reforzar.'
                   : 'Sin tiempo. Preguntas de toda la categoría.'
                 : `${OFFICIAL_EXAM_RULES.questionCount} preguntas · ${OFFICIAL_EXAM_RULES.durationMinutes} minutos · tu resultado mide tu preparación.`}
             </p>
           </div>
-          {!quickPractice ? (
+          {timedSession ? (
             <div className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-blue-50 px-4 text-lg font-black text-brand" aria-label={`Tiempo restante ${formatTime(timeRemaining)}`}>
               <Clock3 className="h-5 w-5" />
               {formatTime(timeRemaining)}
@@ -369,10 +373,50 @@ export default function SimulatorPage() {
           <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-200">
             <div
               className="h-full rounded-full bg-brand transition-[width]"
-              style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+              style={{ width: `${progress.percent}%` }}
             />
           </div>
         )}
+
+        {timedSession ? (
+          <section className="mt-4 rounded-lg border border-line bg-slate-50 p-3 sm:p-4" aria-labelledby="question-navigator-title">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 id="question-navigator-title" className="font-display text-base font-black text-ink">Navega y corrige tus respuestas</h2>
+                <p className="mt-0.5 text-sm text-slate-600">Puedes volver a cualquier pregunta antes de entregar.</p>
+              </div>
+              <p className="text-sm font-black text-brand">{progress.answered}/{questions.length} respondidas</p>
+            </div>
+            <div className="mt-3 grid grid-cols-8 gap-1.5 sm:grid-cols-10" aria-label="Preguntas del 1 al 40">
+              {questions.map((question, index) => {
+                const answered = hasAnswer(answers[question.id]);
+                const current = index === currentIndex;
+                return (
+                  <button
+                    key={question.id}
+                    type="button"
+                    onClick={() => goToQuestion(index)}
+                    aria-label={`Ir a la pregunta ${index + 1}${answered ? ', respondida' : ', pendiente'}`}
+                    aria-current={current ? 'step' : undefined}
+                    className={cn(
+                      'grid h-10 min-w-0 place-items-center rounded-md border text-sm font-black transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand',
+                      current && 'border-brand bg-brand text-white',
+                      !current && answered && 'border-success bg-emerald-50 text-emerald-800 hover:bg-emerald-100',
+                      !current && !answered && 'border-line bg-white text-slate-600 hover:border-brand hover:text-brand',
+                    )}
+                  >
+                    {index + 1}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-bold text-slate-600" aria-hidden="true">
+              <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-brand" /> Actual</span>
+              <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm border border-success bg-emerald-50" /> Respondida</span>
+              <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm border border-line bg-white" /> Pendiente</span>
+            </div>
+          </section>
+        ) : null}
 
         <section className="mt-4" aria-labelledby="question-title">
           {currentQuestion.imagenBase64 ? (
@@ -428,7 +472,7 @@ export default function SimulatorPage() {
                   type="button"
                   aria-pressed={selected}
                   data-testid="answer-option"
-                  disabled={isAnswered || savingAnswer}
+                  disabled={isRevealed || savingAnswer}
                   onClick={() => chooseAnswer(option.id)}
                   className={cn(
                     'flex min-h-14 w-full items-start gap-3 rounded-lg border-2 border-line bg-white px-3 py-3 text-left text-base leading-6 text-ink transition hover:border-blue-300 hover:bg-blue-50 disabled:cursor-default sm:min-h-16 sm:items-center sm:px-4 sm:text-lg',
@@ -528,7 +572,7 @@ export default function SimulatorPage() {
               ? 'Guardando resultado...'
               : savingAnswer
                 ? 'Revisando respuesta...'
-                : quickPractice && !isRevealed
+                : instantFeedbackPractice && !isRevealed
                 ? 'Responder'
                 : isLastQuestion
                   ? 'Ver mi resultado'

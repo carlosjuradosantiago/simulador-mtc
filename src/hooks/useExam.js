@@ -31,6 +31,7 @@ function elapsedLabel(startedAt) {
 export function useExam(category, mode = 'quick', strategy = 'random') {
   const quickPractice = mode !== 'exam';
   const adaptivePractice = mode === 'adaptive';
+  const timedSession = mode === 'exam' || adaptivePractice;
   const practiceStrategy = adaptivePractice ? 'adaptive' : strategy === 'weak' ? 'weak' : 'random';
   const practiceQuestionCount = adaptivePractice ? ADAPTIVE_PRACTICE_QUESTIONS : QUICK_PRACTICE_QUESTIONS;
   const startedAtRef = useRef(Date.now());
@@ -39,7 +40,7 @@ export function useExam(category, mode = 'quick', strategy = 'random') {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [marked, setMarked] = useState([]);
-  const [timeRemaining, setTimeRemaining] = useState(quickPractice ? null : OFFICIAL_EXAM_RULES.durationSeconds);
+  const [timeRemaining, setTimeRemaining] = useState(timedSession ? OFFICIAL_EXAM_RULES.durationSeconds : null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [errorStatus, setErrorStatus] = useState(null);
@@ -60,7 +61,7 @@ export function useExam(category, mode = 'quick', strategy = 'random') {
     setSavingAnswer(false);
     setCurrentIndex(0);
     setSessionId(null);
-    setTimeRemaining(quickPractice ? null : OFFICIAL_EXAM_RULES.durationSeconds);
+    setTimeRemaining(timedSession ? OFFICIAL_EXAM_RULES.durationSeconds : null);
     startedAtRef.current = Date.now();
 
     const categoryId = resolveCategoryId(category);
@@ -79,7 +80,7 @@ export function useExam(category, mode = 'quick', strategy = 'random') {
       const questionLimit = quickPractice ? practiceQuestionCount : rawQuestions.length;
       setSessionId(response.practiceSessionId ?? response.sessionId ?? response.idSesionPractica ?? response.id_sesion_practica ?? response.id);
       setQuestions(rawQuestions.slice(0, questionLimit).map((question) => toQuestion(question, category)));
-      if (!quickPractice) {
+      if (timedSession) {
         setTimeRemaining(response.tiempoRestante ?? response.durationSeconds ?? OFFICIAL_EXAM_RULES.durationSeconds);
       }
     }).catch((requestError) => {
@@ -94,21 +95,21 @@ export function useExam(category, mode = 'quick', strategy = 'random') {
     return () => {
       cancelled = true;
     };
-  }, [category, mode, practiceQuestionCount, practiceStrategy, quickPractice]);
+  }, [category, mode, practiceQuestionCount, practiceStrategy, quickPractice, timedSession]);
 
   useEffect(() => {
-    if (quickPractice || !questions.length) return undefined;
+    if (!timedSession || !questions.length) return undefined;
     const intervalId = window.setInterval(() => {
       setTimeRemaining((currentTime) => Math.max((currentTime ?? 0) - 1, 0));
     }, 1000);
     return () => window.clearInterval(intervalId);
-  }, [questions.length, quickPractice]);
+  }, [questions.length, timedSession]);
 
   const currentQuestion = questions[currentIndex];
 
   const selectAnswer = useCallback(async (questionId, optionId) => {
     setAnswers((currentAnswers) => ({ ...currentAnswers, [questionId]: optionId }));
-    if (!sessionId) return null;
+    if (timedSession || !sessionId) return null;
 
     setSavingAnswer(true);
     try {
@@ -124,7 +125,7 @@ export function useExam(category, mode = 'quick', strategy = 'random') {
     } finally {
       setSavingAnswer(false);
     }
-  }, [quickPractice, sessionId]);
+  }, [quickPractice, sessionId, timedSession]);
 
   const toggleMarked = useCallback((questionId) => {
     setMarked((currentMarked) => (
@@ -218,6 +219,7 @@ export function useExam(category, mode = 'quick', strategy = 'random') {
     sessionId,
     quickPractice,
     adaptivePractice,
+    timedSession,
     practiceStrategy,
     selectAnswer,
     toggleMarked,
