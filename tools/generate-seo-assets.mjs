@@ -11,6 +11,9 @@ const categoryQuestionsBySlug = new Map(
 const topicQuestionBank = JSON.parse(
   readFileSync(new URL('./seo-topic-question-bank.json', import.meta.url), 'utf8'),
 );
+const questionPageBank = JSON.parse(
+  readFileSync(new URL('./seo-question-page-bank.json', import.meta.url), 'utf8'),
+);
 
 const siteUrl = 'https://www.simuladormtc.com';
 const brandName = 'Simulador MTC';
@@ -18,8 +21,8 @@ const disclaimer = 'Plataforma educativa independiente. No afiliada al Ministeri
 const officialMtcSource = 'https://www.gob.pe/institucion/mtc/informes-publicaciones/1928110-examen-de-conocimientos-para-postulantes-a-licencias-de-conducir';
 const contentPublished = '2026-06-05';
 // ponytail: update this only after a real editorial review; builds must not fake freshness.
-const contentLastReviewed = '2026-08-11';
-const contentLastReviewedLabel = '11 de agosto de 2026';
+const contentLastReviewed = '2026-08-14';
+const contentLastReviewedLabel = '14 de agosto de 2026';
 const organizationId = `${siteUrl}/#organization`;
 const websiteId = `${siteUrl}/#website`;
 const repositoryUrl = 'https://github.com/carlosjuradosantiago/simulador-mtc';
@@ -324,48 +327,6 @@ const articlePages = [
   },
   {
     type: 'Article',
-    slug: 'balotario-mtc-a1-pdf',
-    title: 'Balotario MTC A1 PDF: como estudiar para licencia A-I',
-    description: 'Guia para estudiar el balotario MTC A1 PDF y practicar preguntas de licencia A-I con explicaciones.',
-    h1: 'Balotario MTC A1 PDF para licencia A-I',
-    intro: 'La categoria A-I es una de las busquedas mas comunes porque aplica a vehiculos particulares. Para estudiar bien, combina el PDF con practica guiada por errores.',
-    primaryCta: '/balotario-mtc-a1',
-    ctaText: 'Abrir balotario A1',
-    keywords: ['balotario mtc a1 pdf', 'simulador mtc a1', 'examen mtc a1', 'licencia a1 peru'],
-    sections: [
-      ['Que revisar primero', 'Empieza por senales, semaforos, limites, prioridades, adelantamiento, estacionamiento y conducta segura en intersecciones.'],
-      ['Como practicar A1', 'Haz simulacros completos y luego repasa solo las preguntas falladas. El objetivo es entender la regla, no memorizar una letra.'],
-      ['Errores comunes', 'Confundir linea continua con discontinua, responder por intuicion en semaforos o ignorar palabras como siempre, nunca o salvo.'],
-    ],
-    faqs: [
-      ['A1 y A-I son lo mismo?', 'A1 suele usarse como forma comun de referirse a la categoria A-I.'],
-      ['Donde practico A1?', 'Puedes usar la pagina de simulador MTC A1 y el banco de preguntas por tema.'],
-      ['Debo imprimir el PDF?', 'No es obligatorio; puedes descargarlo y repasarlo desde el celular.'],
-    ],
-  },
-  {
-    type: 'Article',
-    slug: 'examen-conocimientos-mtc-a1',
-    title: 'Examen de conocimientos MTC A1: temas que debes dominar',
-    description: 'Temas clave para el examen de conocimientos MTC A1: senales, reglas, seguridad vial, mecanica basica y primeros auxilios.',
-    h1: 'Examen de conocimientos MTC A1',
-    intro: 'Para licencia A-I, la preparacion debe cubrir normas generales y situaciones concretas de conduccion urbana y carretera.',
-    primaryCta: '/simulador-mtc-a1',
-    ctaText: 'Practicar A1',
-    keywords: ['examen conocimientos mtc a1', 'preguntas mtc a1', 'licencia a1 examen'],
-    sections: [
-      ['Senales y marcas viales', 'Aprende a diferenciar prohibiciones, advertencias y guias informativas. Las marcas en el pavimento tambien son parte de la decision.'],
-      ['Reglas de circulacion', 'Prioridad de paso, intersecciones, luces, velocidad, adelantamiento y estacionamiento son bloques que conviene dominar.'],
-      ['Seguridad y emergencias', 'Manejo defensivo, primeros auxilios y mecanica basica te ayudan a responder situaciones de riesgo.'],
-    ],
-    faqs: [
-      ['Que categoria corresponde a A1?', 'A1 se usa comunmente para la categoria A-I.'],
-      ['Que pasa si fallo un tema?', 'Refuerza ese tema con practicas cortas antes de volver al simulacro completo.'],
-      ['La practica muestra explicaciones?', 'Si, despues de confirmar una respuesta puedes revisar por que la alternativa correcta tiene sentido.'],
-    ],
-  },
-  {
-    type: 'Article',
     slug: 'preguntas-frecuentes-examen-mtc',
     title: 'Preguntas frecuentes del examen MTC antes de rendir',
     description: 'Respuestas a dudas frecuentes sobre el examen MTC de conocimientos, practica, balotarios y preparacion por categoria.',
@@ -555,27 +516,6 @@ const articlePages = [
   },
   {
     type: 'Article',
-    slug: 'licencia-a1-peru-examen',
-    title: 'Licencia A1 Peru: examen MTC y preparacion',
-    description: 'Guia para prepararte al examen MTC de licencia A1 en Peru con balotario, simulador y temas prioritarios.',
-    h1: 'Licencia A1 en Peru: preparacion para el examen MTC',
-    intro: 'Si buscas licencia A1, conviene estudiar con una ruta sencilla: balotario A-I, practica por tema, simulacros completos y revision de errores.',
-    primaryCta: '/simulador-mtc-a1',
-    ctaText: 'Practicar licencia A1',
-    keywords: ['licencia a1 peru examen', 'simulador licencia a1', 'balotario a1 mtc'],
-    sections: [
-      ['Material de estudio', 'Usa el balotario A-I como base y complementa con preguntas online para recibir explicaciones.'],
-      ['Temas prioritarios', 'Senales, semaforos, prioridad, adelantamiento, velocidad, seguridad vial y mecanica basica.'],
-      ['Como medir avance', 'No te quedes solo con el promedio. Mira que temas bajan tu nota y repitelos hasta entenderlos.'],
-    ],
-    faqs: [
-      ['A1 aplica a vehiculos particulares?', 'A-I se asocia comunmente a vehiculos particulares livianos, segun la regulacion vigente.'],
-      ['Puedo practicar sin pagar ahora?', 'Puedes entrar y practicar segun la configuracion actual de la plataforma.'],
-      ['La informacion es oficial?', 'La plataforma es educativa e independiente; verifica siempre fuentes oficiales.'],
-    ],
-  },
-  {
-    type: 'Article',
     slug: 'revalidacion-licencia-mtc-examen',
     title: 'Revalidacion de licencia MTC: como prepararte para el examen',
     description: 'Consejos para prepararte si debes rendir examen de conocimientos en una revalidacion de licencia MTC.',
@@ -593,27 +533,6 @@ const articlePages = [
       ['Revalidar significa estudiar menos?', 'No necesariamente. Debes estar actualizado y responder segun la norma, no solo por costumbre.'],
       ['Que temas repasar para revalidacion?', 'Senales, reglas de circulacion, seguridad vial, infracciones y mantenimiento basico.'],
       ['Donde verifico requisitos?', 'Consulta fuentes oficiales y el centro autorizado correspondiente.'],
-    ],
-  },
-  {
-    type: 'Article',
-    slug: 'simulacro-mtc-con-respuestas',
-    title: 'Simulacro MTC con respuestas explicadas para estudiar mejor',
-    description: 'Practica simulacros MTC con respuestas explicadas y aprende a revisar tus errores por tema antes del examen.',
-    h1: 'Simulacro MTC con respuestas explicadas',
-    intro: 'Un simulacro sirve de verdad cuando no solo te da una nota, sino que te muestra que fallaste y por que. Las explicaciones convierten cada error en una oportunidad de estudio.',
-    primaryCta: '/simulador-mtc',
-    ctaText: 'Iniciar simulacro',
-    keywords: ['simulacro mtc con respuestas', 'respuestas examen mtc', 'simulador mtc respuestas explicadas'],
-    sections: [
-      ['Responde primero', 'Elige tu alternativa y confirma la respuesta para recibir evaluacion. Asi evitas mirar la solucion antes de decidir.'],
-      ['Lee la explicacion', 'La explicacion debe ayudarte a entender la regla y descartar opciones incompletas o inseguras.'],
-      ['Repite los errores', 'Despues del resultado, vuelve a practicar los temas con menor porcentaje para subir de forma real.'],
-    ],
-    faqs: [
-      ['Cuando veo si fue correcto?', 'Despues de confirmar la respuesta en el simulacro.'],
-      ['Puedo revisar respuestas al final?', 'Si. El resultado permite revisar el desempeno y los temas que necesitas reforzar.'],
-      ['Por que usar explicaciones?', 'Porque entender la causa del error evita depender de memoria mecanica.'],
     ],
   },
   {
@@ -639,7 +558,7 @@ const articlePages = [
   },
 ];
 
-const questionPages = [
+const manualQuestionPages = [
   {
     type: 'Quiz',
     slug: 'luz-ambar-semaforo-pregunta-mtc',
@@ -778,6 +697,77 @@ const questionPages = [
   },
 ];
 
+const generatedQuestionPages = questionPageBank.pages.map((entry) => {
+  const primaryCategory = categories.find((category) => entry.categorySlugs.includes(category.slug)) || categories[0];
+  const simulatorDestination = `/simulacro/${primaryCategory.categoryId}?mode=quick&strategy=random`;
+  const heroImage = entry.variants
+    .flatMap((variant) => [
+      ...variant.questionMedia,
+      ...variant.options.flatMap((option) => option.media),
+    ])[0] || null;
+  const categoryLabel = entry.categories.join(', ');
+  const sourceReferences = entry.variants.flatMap((variant) => variant.sources);
+  const sourceSummary = [...new Map(sourceReferences.map((source) => [
+    `${source.code}-${source.number}-${source.page}`,
+    `${source.code}, pregunta ${source.number}, página ${source.page}`,
+  ])).values()].join('; ');
+
+  return {
+    type: 'Quiz',
+    slug: entry.slug,
+    categorySlug: primaryCategory.slug,
+    title: entry.title,
+    description: entry.description,
+    h1: entry.h1,
+    intro: entry.intro,
+    primaryCta: `/?auth=register&category=${primaryCategory.categoryId}&next=${encodeURIComponent(simulatorDestination)}`,
+    ctaText: `Practicar ${primaryCategory.common}`,
+    secondaryCta: `/mtc-official/${primaryCategory.pdf}`,
+    secondaryCtaText: `Abrir balotario ${primaryCategory.code}`,
+    keywords: [entry.h1, `pregunta examen MTC ${primaryCategory.common}`, `balotario ${categoryLabel}`, entry.topic],
+    topicName: entry.topic,
+    topicSlug: entry.topicSlug,
+    questionVariants: entry.variants,
+    questionCategories: entry.categories,
+    heroImage,
+    sections: [
+      ['Respuesta indicada en el balotario', entry.intro],
+      ['Categorías donde aparece', `Esta pregunta se encuentra en los balotarios ${categoryLabel}. Revisa la versión de tu licencia antes de memorizar una alternativa.`],
+      ['Ubicación verificable', `Referencias conservadas desde los PDF publicados: ${sourceSummary}.`],
+    ],
+    faqs: [
+      ['Cuál es la respuesta correcta?', entry.intro],
+      ['En qué categorías aparece esta pregunta?', `Aparece en ${categoryLabel}.`],
+      ['Dónde puedo comprobar el texto completo?', 'En los PDF del MTC enlazados junto a cada versión de la pregunta.'],
+    ],
+  };
+});
+
+const questionPages = [...manualQuestionPages, ...generatedQuestionPages];
+const questionDirectoryPage = {
+  slug: 'preguntas-mtc',
+  title: 'Preguntas MTC con respuestas por tema y categoría',
+  description: 'Consulta preguntas del balotario MTC con alternativas, respuesta, imágenes y referencia al PDF de cada categoría de licencia.',
+  h1: 'Preguntas MTC con respuestas verificables',
+  intro: `Explora ${generatedQuestionPages.length} preguntas prioritarias con su texto completo, respuesta y ubicación en los balotarios publicados por el MTC.`,
+  primaryCta: '/simulador-mtc',
+  ctaText: 'Practicar en el simulador',
+  secondaryCta: '/fuentes-mtc',
+  secondaryCtaText: 'Revisar fuentes',
+  keywords: ['preguntas examen MTC', 'balotario MTC con respuestas', 'preguntas MTC por categoría', 'respuestas examen de manejo'],
+  questionDirectory: true,
+  sections: [
+    ['Texto completo', 'Cada enlace abre una sola pregunta con sus alternativas y sin recortar el enunciado.'],
+    ['Respuesta verificable', 'La respuesta se conserva desde el balotario y muestra su número, página y categoría de origen.'],
+    ['Imágenes reales', 'Cuando la pregunta depende de una señal o gráfico, la página incluye el recurso extraído y verificado contra el PDF.'],
+  ],
+  faqs: [
+    ['Las preguntas están separadas por categoría?', 'Sí. Cada respuesta indica en qué balotarios aparece y permite abrir la práctica correspondiente.'],
+    ['Las preguntas con imágenes muestran el gráfico?', 'Sí. Las páginas visuales conservan las imágenes extraídas de los PDF y su proporción original.'],
+    ['Dónde verifico una respuesta?', 'Cada pregunta enlaza el PDF y la página donde se encuentra la versión correspondiente.'],
+  ],
+};
+
 function pageUrl(slug) {
   return `${siteUrl}/${slug}`;
 }
@@ -899,7 +889,56 @@ function renderSections(sections) {
           </article>`).join('');
 }
 
+function renderQuestionMedia(mediaItems, alt, className = '') {
+  if (!mediaItems?.length) return '';
+  return `<div class="question-media-grid ${className}">
+            ${mediaItems.map((media) => `<figure>
+              <img src="${media.url}" width="${media.width || ''}" height="${media.height || ''}" alt="${escapeRawHtml(alt)}" loading="lazy" decoding="async">
+              <figcaption>${escapeRawHtml(alt)}</figcaption>
+            </figure>`).join('')}
+          </div>`;
+}
+
+function renderQuestionVariants(page) {
+  if (!page.questionVariants?.length) return '';
+
+  return `<section class="quiz-section" aria-labelledby="pregunta-oficial">
+        <div class="wrap">
+          <h2 id="pregunta-oficial">Alternativas, respuesta y fuente</h2>
+          <p class="section-intro">Selecciona la versión de tu categoría. El texto, las imágenes y la alternativa correcta se conservan desde el balotario correspondiente.</p>
+          <div class="variant-list">
+            ${page.questionVariants.map((variant, variantIndex) => {
+              const sourceLinks = variant.sources.map((source) => `<a href="/mtc-official/${source.pdf}#page=${source.page}">${escapeHtml(source.code)} · pregunta ${source.number} · página ${source.page}</a>`).join('');
+              return `<article class="quiz-panel question-variant" aria-labelledby="version-${variantIndex + 1}">
+                <p class="quiz-source">Versión del balotario</p>
+                <h3 id="version-${variantIndex + 1}">${escapeHtml(variant.categories.join(', '))}</h3>
+                <p class="question-text">${escapeRawHtml(variant.text)}</p>
+                ${renderQuestionMedia(variant.questionMedia, `Imagen oficial para: ${variant.text}`)}
+                <h4>Opciones de respuesta</h4>
+                <ol class="quiz-options">
+                  ${variant.options.map((option) => `<li>
+                    <span>${escapeHtml(option.label)}</span>
+                    <div class="option-content">
+                      <p>${escapeRawHtml(option.text)}</p>
+                      ${renderQuestionMedia(option.media, `Alternativa ${option.label} de la pregunta: ${variant.text}`, 'option-media')}
+                    </div>
+                  </li>`).join('')}
+                </ol>
+                <div class="quiz-answer">
+                  <strong>Respuesta correcta</strong>
+                  <p>${escapeRawHtml(variant.correctAnswer)}</p>
+                  ${variant.fundamento ? `<p><strong>Fundamento indicado en el balotario:</strong> ${escapeRawHtml(variant.fundamento)}</p>` : ''}
+                </div>
+                <div class="source-pills" aria-label="Ubicación en los PDF">${sourceLinks}</div>
+              </article>`;
+            }).join('')}
+          </div>
+        </div>
+      </section>`;
+}
+
 function renderQuestion(page) {
+  if (page.questionVariants?.length) return renderQuestionVariants(page);
   if (!page.question) return '';
 
   const letters = ['A', 'B', 'C', 'D'];
@@ -1033,7 +1072,7 @@ function relatedGuidesFor(page) {
       ]
     : [
         articlePages.find((guide) => guide.slug === 'como-aprobar-examen-mtc'),
-        articlePages.find((guide) => guide.slug === 'simulacro-mtc-con-respuestas'),
+        articlePages.find((guide) => guide.slug === 'preguntas-frecuentes-examen-mtc'),
         corePages.find((guide) => guide.slug === 'examen-mtc-preguntas'),
         corePages.find((guide) => guide.slug === 'fuentes-mtc'),
       ];
@@ -1061,11 +1100,32 @@ function renderTopicLinks(page) {
 }
 
 function relatedQuestionsFor(page) {
+  if (page.questionDirectory) return [];
   if (page.type === 'Quiz') {
-    return questionPages.filter((question) => question.slug !== page.slug).slice(0, 3);
+    const pageCategories = new Set(page.questionCategories || (page.categorySlug ? [categories.find((category) => category.slug === page.categorySlug)?.code] : []));
+    return questionPages
+      .filter((question) => question.slug !== page.slug)
+      .map((question) => {
+        const questionCategories = question.questionCategories || (question.categorySlug ? [categories.find((category) => category.slug === question.categorySlug)?.code] : []);
+        const sharedCategories = questionCategories.filter((category) => pageCategories.has(category)).length;
+        const sharedTopic = page.topicName && question.topicName && page.topicName === question.topicName ? 3 : 0;
+        return { question, score: sharedTopic + sharedCategories };
+      })
+      .sort((left, right) => right.score - left.score || left.question.slug.localeCompare(right.question.slug))
+      .slice(0, 4)
+      .map(({ question }) => question);
   }
-  if (page.categorySlug === 'a1' || /pregunta|senal|semaforo|adelantamiento/.test(page.slug)) {
-    return questionPages;
+  if (page.topicSlug) {
+    const topicQuestions = generatedQuestionPages.filter((question) => question.topicSlug === page.topicSlug);
+    if (topicQuestions.length) return topicQuestions.slice(0, 20);
+  }
+  if (page.categorySlug) {
+    const categoryCode = categories.find((category) => category.slug === page.categorySlug)?.code;
+    const categoryQuestions = generatedQuestionPages.filter((question) => question.questionCategories.includes(categoryCode));
+    if (categoryQuestions.length) return categoryQuestions.slice(0, 16);
+  }
+  if (/pregunta|senal|semaforo|adelantamiento/.test(page.slug)) {
+    return questionPages.slice(0, 12);
   }
   return [];
 }
@@ -1078,6 +1138,29 @@ function renderQuestionLinks(page) {
             </a>`).join('');
 }
 
+function renderQuestionDirectory(page) {
+  if (!page.questionDirectory) return '';
+  const groups = topicPages.map((topic) => ({
+    topic,
+    questions: generatedQuestionPages.filter((question) => question.topicSlug === topic.slug),
+  })).filter((group) => group.questions.length);
+
+  return `<section aria-labelledby="directorio-preguntas">
+        <div class="wrap">
+          <h2 id="directorio-preguntas">Buscar una pregunta por tema</h2>
+          <p class="section-intro">Abre el enunciado que deseas consultar. La respuesta y la referencia aparecen en la misma página.</p>
+          <div class="question-directory">
+            ${groups.map(({ topic, questions }) => `<details open>
+              <summary>${escapeHtml(topic.topicName)} <span>${questions.length}</span></summary>
+              <ul>
+                ${questions.map((question) => `<li><a href="/${question.slug}">${escapeRawHtml(question.h1)}</a></li>`).join('')}
+              </ul>
+            </details>`).join('')}
+          </div>
+        </div>
+      </section>`;
+}
+
 function shouldShowCategories(page) {
   return Boolean(page.categorySlug) || ['simulador-mtc', 'fuentes-mtc', 'balotario-mtc-pdf'].includes(page.slug);
 }
@@ -1085,7 +1168,9 @@ function shouldShowCategories(page) {
 function renderHtml(page) {
   const canonical = pageUrl(page.slug);
   const pageSources = sourcesForPage(page);
-  const schemaQuestions = page.question ? [page.question] : page.sampleQuestions || page.topicQuestions || [];
+  const schemaQuestions = page.question ? [page.question] : page.questionVariants || page.sampleQuestions || page.topicQuestions || [];
+  const primaryImageUrl = page.heroImage?.url ? `${siteUrl}${page.heroImage.url}` : `${siteUrl}/og-simulador-mtc.png`;
+  const primaryImageId = `${canonical}#primaryimage`;
   const faqSchema = {
     '@type': 'FAQPage',
     '@id': `${canonical}#faq`,
@@ -1120,7 +1205,7 @@ function renderHtml(page) {
     headline: page.type === 'Article' ? page.h1 : undefined,
     description: page.description,
     url: canonical,
-    image: `${siteUrl}/og-simulador-mtc.png`,
+    image: page.heroImage ? { '@id': primaryImageId } : primaryImageUrl,
     inLanguage: 'es-PE',
     datePublished: contentPublished,
     dateModified: contentLastReviewed,
@@ -1150,16 +1235,22 @@ function renderHtml(page) {
     name: page.h1,
     about: page.keywords.map((name) => ({ '@type': 'Thing', name })),
     educationalLevel: 'Postulante a licencia de conducir',
-    hasPart: schemaQuestions.map((question) => ({
-      '@type': 'Question',
-      eduQuestionType: 'Flashcard',
-      name: question.text,
-      text: question.text,
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: question.correctAnswer,
-      },
-    })),
+    hasPart: schemaQuestions.map((question) => {
+      const options = (question.options || []).map((option) => typeof option === 'string' ? option : option.text);
+      return {
+        '@type': 'Question',
+        eduQuestionType: 'Flashcard',
+        name: question.text,
+        text: question.text,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: question.correctAnswer,
+        },
+        suggestedAnswer: options
+          .filter((option) => option !== question.correctAnswer)
+          .map((text) => ({ '@type': 'Answer', text })),
+      };
+    }),
   } : null;
   const webPageSchema = {
     '@type': 'WebPage',
@@ -1176,8 +1267,31 @@ function renderHtml(page) {
     reviewedBy: { '@id': organizationId },
     breadcrumb: { '@id': `${canonical}#breadcrumb` },
     mainEntity: { '@id': `${canonical}#learning-resource` },
+    primaryImageOfPage: page.heroImage ? { '@id': primaryImageId } : undefined,
     about: page.keywords.map((name) => ({ '@type': 'Thing', name })),
   };
+  const imageSchema = page.heroImage ? {
+    '@type': 'ImageObject',
+    '@id': primaryImageId,
+    contentUrl: primaryImageUrl,
+    url: primaryImageUrl,
+    width: page.heroImage.width || undefined,
+    height: page.heroImage.height || undefined,
+    caption: `Imagen de la pregunta: ${page.h1}`,
+    representativeOfPage: true,
+  } : null;
+  const directorySchema = page.questionDirectory ? {
+    '@type': 'ItemList',
+    '@id': `${canonical}#questions`,
+    name: 'Preguntas MTC con respuestas',
+    numberOfItems: generatedQuestionPages.length,
+    itemListElement: generatedQuestionPages.map((question, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: question.h1,
+      url: pageUrl(question.slug),
+    })),
+  } : null;
   const structuredData = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -1203,6 +1317,8 @@ function renderHtml(page) {
       breadcrumbSchema,
       learningResourceSchema,
       ...(quizSchema ? [quizSchema] : []),
+      ...(imageSchema ? [imageSchema] : []),
+      ...(directorySchema ? [directorySchema] : []),
       faqSchema,
     ],
   };
@@ -1233,8 +1349,10 @@ function renderHtml(page) {
     <meta property="og:title" content="${escapeHtml(page.title)}">
     <meta property="og:description" content="${escapeHtml(page.description)}">
     <meta property="og:url" content="${canonical}">
-    <meta property="og:image" content="${siteUrl}/og-simulador-mtc.png">
-    <meta property="og:image:alt" content="Simulador MTC para practicar el examen de conocimientos">
+    <meta property="og:image" content="${primaryImageUrl}">
+    <meta property="og:image:alt" content="${escapeHtml(page.heroImage ? `Imagen de la pregunta: ${page.h1}` : 'Simulador MTC para practicar el examen de conocimientos')}">
+    ${page.heroImage?.width ? `<meta property="og:image:width" content="${page.heroImage.width}">` : ''}
+    ${page.heroImage?.height ? `<meta property="og:image:height" content="${page.heroImage.height}">` : ''}
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="${escapeHtml(page.title)}">
     <meta name="twitter:description" content="${escapeHtml(page.description)}">
@@ -1262,6 +1380,7 @@ function renderHtml(page) {
       .btn.secondary { background:#fff; color:var(--brand); }
       .hero-card { border:1px solid var(--line); border-radius:12px; background:#fff; overflow:hidden; box-shadow:0 18px 50px rgba(7,31,69,.10); }
       .hero-card img { width:100%; display:block; aspect-ratio: 16/10; object-fit:cover; }
+      .hero-card img.question-hero { object-fit:contain; padding:18px; background:#f8fbff; }
       .hero-card div { padding:16px; display:grid; gap:8px; }
       .notice { margin:24px 0 0; padding:12px 14px; border-left:4px solid var(--brand); background:#f8fbff; color:#40536f; line-height:1.6; }
       section { padding:34px 0; }
@@ -1276,9 +1395,31 @@ function renderHtml(page) {
       .quiz-source { margin:0 0 8px; color:var(--brand); font-size:13px; font-weight:900; text-transform:uppercase; }
       .quiz-panel h2 { margin:0; font-size:30px; line-height:1.25; }
       .quiz-panel h3 { margin:20px 0 0; font-size:16px; }
+      .quiz-panel h4 { margin:20px 0 0; font-size:16px; }
+      .variant-list { display:grid; gap:18px; margin-top:18px; }
+      .question-variant { width:100%; }
+      .question-variant h3 { margin:0; font-size:24px; }
+      .question-text { margin:14px 0 0; max-width:920px; font-size:21px; font-weight:800; line-height:1.5; }
       .quiz-options { margin:10px 0 0; padding:0; list-style:none; display:grid; gap:10px; }
       .quiz-options li { display:flex; align-items:flex-start; gap:12px; border:1px solid var(--line); padding:14px; line-height:1.55; }
       .quiz-options li span { width:30px; height:30px; flex:0 0 30px; display:grid; place-items:center; border-radius:50%; background:var(--soft); font-weight:900; }
+      .option-content { min-width:0; flex:1; }
+      .option-content > p { margin:3px 0 0; }
+      .question-media-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-top:18px; }
+      .question-media-grid figure { margin:0; border:1px solid var(--line); background:#f8fbff; padding:12px; }
+      .question-media-grid img { display:block; width:auto; max-width:100%; height:auto; max-height:360px; margin:0 auto; object-fit:contain; }
+      .question-media-grid figcaption { margin-top:9px; color:#5f718c; font-size:12px; line-height:1.45; }
+      .question-media-grid.option-media { margin-top:12px; }
+      .source-pills { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+      .source-pills a { border:1px solid var(--line); border-radius:999px; padding:7px 10px; color:var(--brand); font-size:12px; font-weight:800; }
+      .source-pills a:hover { border-color:var(--brand); background:#f2f7ff; }
+      .question-directory { display:grid; gap:12px; margin-top:18px; }
+      .question-directory details { padding:0; overflow:hidden; }
+      .question-directory summary { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 18px; background:#f8fbff; }
+      .question-directory summary span { color:var(--brand); }
+      .question-directory ul { margin:0; padding:8px 18px 16px 42px; columns:2; column-gap:36px; }
+      .question-directory li { break-inside:avoid; margin:10px 0; line-height:1.45; }
+      .question-directory a { color:var(--brand); text-decoration:underline; text-underline-offset:3px; }
       .quiz-answer { margin-top:18px; border-left:5px solid var(--ok); background:#f1fbf7; padding:18px; }
       .quiz-answer strong { color:#08794e; }
       .quiz-answer p { margin:8px 0 0; line-height:1.65; color:#31445f; }
@@ -1320,6 +1461,9 @@ function renderHtml(page) {
         .hero-grid { padding:30px 0; }
         h1 { font-size:36px; }
         .quiz-panel h2 { font-size:24px; }
+        .question-text { font-size:18px; }
+        .question-media-grid { grid-template-columns:1fr; }
+        .question-directory ul { columns:1; }
         .answer-panel { padding:18px; }
       }
     </style>
@@ -1333,7 +1477,7 @@ function renderHtml(page) {
         </a>
         <nav aria-label="Recursos principales">
           <a href="/simulador-mtc">Simulador</a>
-          <a href="/examen-mtc-preguntas">Preguntas</a>
+          <a href="/preguntas-mtc">Preguntas</a>
           <a href="/senales-de-transito">Señales</a>
           <a href="/reglas-de-transito-peru">Reglas</a>
           <a href="/metodologia-simulador-mtc">Metodología</a>
@@ -1354,10 +1498,10 @@ function renderHtml(page) {
             <p class="notice">${escapeHtml(disclaimer)}</p>
           </div>
           <aside class="hero-card" aria-label="Vista previa de Simulador MTC">
-            <img src="/og-simulador-mtc.png" alt="Vista previa de Simulador MTC con auto y ciudad">
+            <img class="${page.heroImage ? 'question-hero' : ''}" src="${page.heroImage?.url || '/og-simulador-mtc.png'}" alt="${escapeHtml(page.heroImage ? `Imagen de la pregunta: ${page.h1}` : 'Vista previa de Simulador MTC con auto y ciudad')}">
             <div>
-              <strong>Practica por categoría y revisa tus errores.</strong>
-              <span>Simulacros, explicaciones y resultados por tema en una sola plataforma.</span>
+              <strong>${page.heroImage ? 'Imagen conservada desde el balotario.' : 'Practica por categoría y revisa tus errores.'}</strong>
+              <span>${page.heroImage ? 'Revisa el gráfico completo antes de elegir una alternativa.' : 'Simulacros, explicaciones y resultados por tema en una sola plataforma.'}</span>
             </div>
           </aside>
         </div>
@@ -1380,6 +1524,7 @@ function renderHtml(page) {
       </section>
       ${renderCategorySamples(page)}
       ${renderTopicQuestions(page)}
+      ${renderQuestionDirectory(page)}
       ${shouldShowCategories(page) ? `<section>
         <div class="wrap">
           <h2>Categorías de licencia para practicar</h2>
@@ -1544,6 +1689,7 @@ function topicPageFor(topic) {
 const topicPages = topicQuestionBank.topics.map(topicPageFor);
 
 const pages = [
+  questionDirectoryPage,
   ...corePages,
   ...articlePages,
   ...questionPages,
@@ -1557,22 +1703,59 @@ async function main() {
   const seoDir = path.join(publicDir, 'seo');
   await mkdir(seoDir, { recursive: true });
 
-  await Promise.all(pages.map((page) => writeFile(path.join(seoDir, `${page.slug}.html`), renderHtml(page), 'utf8')));
+  await Promise.all(pages.map(async (page) => {
+    const outputPath = path.join(seoDir, `${page.slug}.html`);
+    await mkdir(path.dirname(outputPath), { recursive: true });
+    await writeFile(outputPath, renderHtml(page), 'utf8');
+  }));
 
-  const sitemapUrls = [
+  const coreSitemapUrls = [
     { loc: siteUrl, priority: '1.0', changefreq: 'daily' },
     ...publicSpaPages.map((pathname) => ({ loc: `${siteUrl}${pathname}`, priority: pathname === '/suscripcion' ? '0.9' : '0.6', changefreq: 'monthly' })),
-    ...pages.map((page) => ({ loc: pageUrl(page.slug), priority: page.slug === 'simulador-mtc' ? '0.95' : page.type === 'Article' ? '0.8' : '0.85', changefreq: 'weekly' })),
+    ...[questionDirectoryPage, ...corePages, ...articlePages].map((page) => ({ loc: pageUrl(page.slug), priority: page.slug === 'simulador-mtc' ? '0.95' : '0.8', changefreq: 'weekly' })),
   ];
-  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${sitemapUrls.map((item) => `  <url>
+  const categorySitemapUrls = [
+    ...categories.map(simulatorPageFor),
+    ...categories.map(balotarioPageFor),
+  ].map((page) => ({ loc: pageUrl(page.slug), priority: '0.85', changefreq: 'weekly' }));
+  const topicSitemapUrls = topicPages.map((page) => ({ loc: pageUrl(page.slug), priority: '0.8', changefreq: 'weekly' }));
+  const questionSitemapUrls = questionPages.map((page) => ({ loc: pageUrl(page.slug), priority: page.heroImage ? '0.85' : '0.8', changefreq: 'monthly' }));
+
+  const urlSet = (items, includeImages = false) => `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${includeImages ? ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"' : ''}>
+${items.map((item) => `  <url>
     <loc>${item.loc}</loc>
-    <lastmod>${contentLastReviewed}</lastmod>
-    <changefreq>${item.changefreq}</changefreq>
-    <priority>${item.priority}</priority>
+    <lastmod>${contentLastReviewed}</lastmod>${item.changefreq ? `
+    <changefreq>${item.changefreq}</changefreq>` : ''}${item.priority ? `
+    <priority>${item.priority}</priority>` : ''}${item.images?.map((image) => `
+    <image:image>
+      <image:loc>${image.loc}</image:loc>
+      <image:caption>${escapeRawHtml(image.caption)}</image:caption>
+    </image:image>`).join('') || ''}
   </url>`).join('\n')}
 </urlset>
+`;
+  const sitemapFiles = [
+    ['sitemap-core.xml', urlSet(coreSitemapUrls)],
+    ['sitemap-categories.xml', urlSet(categorySitemapUrls)],
+    ['sitemap-topics.xml', urlSet(topicSitemapUrls)],
+    ['sitemap-questions.xml', urlSet(questionSitemapUrls)],
+    ['sitemap-images.xml', urlSet(questionPages
+      .filter((page) => page.heroImage)
+      .map((page) => ({
+        loc: pageUrl(page.slug),
+        images: [{ loc: `${siteUrl}${page.heroImage.url}`, caption: `Imagen de la pregunta: ${page.h1}` }],
+      })), true)],
+  ];
+  await Promise.all(sitemapFiles.map(([filename, contents]) => writeFile(path.join(publicDir, filename), contents, 'utf8')));
+
+  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${sitemapFiles.map(([filename]) => `  <sitemap>
+    <loc>${siteUrl}/${filename}</loc>
+    <lastmod>${contentLastReviewed}</lastmod>
+  </sitemap>`).join('\n')}
+</sitemapindex>
 `;
   await writeFile(path.join(publicDir, 'sitemap.xml'), sitemap, 'utf8');
 
@@ -1641,6 +1824,7 @@ ${disclaimer}
 
 - ${siteUrl}/simulador-mtc: simulador MTC general para examen de conocimientos.
 - ${siteUrl}/examen-mtc-preguntas: guía de preguntas y temas del examen.
+- ${siteUrl}/preguntas-mtc: índice de preguntas con respuesta, imágenes y referencia al PDF.
 - ${siteUrl}/senales-de-transito: señales de tránsito para practicar.
 - ${siteUrl}/reglas-de-transito-peru: reglas de tránsito en Perú.
 - ${siteUrl}/fuentes-mtc: fuentes oficiales y balotarios de referencia.

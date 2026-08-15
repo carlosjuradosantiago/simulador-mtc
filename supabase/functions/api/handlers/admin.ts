@@ -3,6 +3,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { errorResponse, jsonResponse, unauthorizedResponse } from '../_shared/response.ts';
 import { getSupabaseClient } from '../_shared/supabase.ts';
 import { isRealPayment } from '../_shared/membership-access.ts';
+import { classifyTrafficSource } from '../_shared/traffic-source.ts';
 
 const ADMIN_ROLE = 'ADMIN';
 const PERU_OFFSET_MS = 5 * 60 * 60 * 1000;
@@ -250,6 +251,33 @@ function buildTopPages(pageViews: any[]) {
     }));
 }
 
+function trafficSource(event: any) {
+  return classifyTrafficSource(event.ruta, event.referrer);
+}
+
+function buildTopSources(pageViews: any[]) {
+  const sourceMap = new Map<string, { source: string; views: number; visitors: Set<string> }>();
+
+  pageViews.forEach((event) => {
+    const source = trafficSource(event);
+    const current = sourceMap.get(source) || { source, views: 0, visitors: new Set<string>() };
+    current.views += 1;
+    const key = visitorKey(event);
+    if (key) current.visitors.add(key);
+    sourceMap.set(source, current);
+  });
+
+  return Array.from(sourceMap.values())
+    .sort((left, right) => right.views - left.views)
+    .slice(0, 12)
+    .map((source) => ({
+      source: source.source,
+      views: source.views,
+      visitors: source.visitors.size,
+      share: percentage(source.views, pageViews.length),
+    }));
+}
+
 async function buildAdminOverview(supabase: any) {
   const now = new Date();
   const today = startOfToday(now);
@@ -393,6 +421,7 @@ async function buildAdminOverview(supabase: any) {
       trafficDaily,
     },
     topPages: buildTopPages(allPageViews),
+    topSources: buildTopSources(allPageViews),
     recentUsers: recentUsers.map((user: any) => {
       const activeMembership = activeMembershipByUser.get(user.id);
       const hasPaid = realPayingUserIds.has(user.id);

@@ -12,6 +12,16 @@ const questionPages = new Set([
   'senal-r6-prohibido-voltear-izquierda-mtc.html',
 ]);
 
+async function htmlFilesUnder(directory, prefix = '') {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const nested = await Promise.all(entries.map(async (entry) => {
+    const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) return htmlFilesUnder(path.join(directory, entry.name), relativePath);
+    return entry.name.endsWith('.html') ? [relativePath] : [];
+  }));
+  return nested.flat();
+}
+
 function firstMatch(html, pattern, label, file) {
   const value = html.match(pattern)?.[1]?.trim();
   assert(value, `${file}: falta ${label}`);
@@ -32,9 +42,14 @@ function escapeRawHtml(value) {
 }
 
 async function main() {
-  const [fileNames, sitemap, robots, llms, home, readme, vercel, categoryBankText, topicBankText] = await Promise.all([
-    readdir(seoDir),
+  const [fileNames, sitemap, sitemapCore, sitemapCategories, sitemapTopics, sitemapQuestions, sitemapImages, robots, llms, home, readme, vercel, categoryBankText, topicBankText, questionBankText] = await Promise.all([
+    htmlFilesUnder(seoDir),
     readFile(path.resolve('public', 'sitemap.xml'), 'utf8'),
+    readFile(path.resolve('public', 'sitemap-core.xml'), 'utf8'),
+    readFile(path.resolve('public', 'sitemap-categories.xml'), 'utf8'),
+    readFile(path.resolve('public', 'sitemap-topics.xml'), 'utf8'),
+    readFile(path.resolve('public', 'sitemap-questions.xml'), 'utf8'),
+    readFile(path.resolve('public', 'sitemap-images.xml'), 'utf8'),
     readFile(path.resolve('public', 'robots.txt'), 'utf8'),
     readFile(path.resolve('public', 'llms.txt'), 'utf8'),
     readFile(path.resolve('index.html'), 'utf8'),
@@ -42,9 +57,13 @@ async function main() {
     readFile(path.resolve('vercel.json'), 'utf8'),
     readFile(path.resolve('tools', 'seo-category-question-bank.json'), 'utf8'),
     readFile(path.resolve('tools', 'seo-topic-question-bank.json'), 'utf8'),
+    readFile(path.resolve('tools', 'seo-question-page-bank.json'), 'utf8'),
   ]);
   const categoryBank = JSON.parse(categoryBankText);
   const topicBank = JSON.parse(topicBankText);
+  const questionBank = JSON.parse(questionBankText);
+  const sitemapUrls = [sitemapCore, sitemapCategories, sitemapTopics, sitemapQuestions].join('\n');
+  const questionDirectoryHtml = await readFile(path.join(seoDir, 'preguntas-mtc.html'), 'utf8');
   assert.equal(categoryBank.meta.sourceQuestionCount, 640, 'El banco por categoría debe provenir de las 640 preguntas deduplicadas');
   assert.equal(categoryBank.meta.questionsPerCategory, 40, 'Cada categoría debe publicar 40 preguntas');
   assert.equal(categoryBank.categories.length, 9, 'Deben existir bancos para las 9 categorías');
@@ -90,6 +109,23 @@ async function main() {
     }
   }
   assert.equal(new Set(topicQuestionIds).size, topicQuestionIds.length, 'Hay preguntas repetidas entre páginas temáticas');
+  assert.equal(questionBank.meta.sourceQuestionCount, 640, 'Las páginas de preguntas deben provenir de las 640 preguntas deduplicadas');
+  assert.equal(questionBank.meta.publishedPageCount, 80, 'La primera cohorte debe publicar 80 preguntas');
+  assert.equal(questionBank.pages.length, 80, 'El banco de páginas debe contener 80 preguntas');
+  assert.equal(new Set(questionBank.pages.map((page) => page.slug)).size, 80, 'Hay slugs repetidos en las páginas de preguntas');
+  const generatedQuestionByFile = new Map(questionBank.pages.map((page) => [`${page.slug}.html`, page]));
+  for (const page of questionBank.pages) {
+    assert(page.slug.startsWith('preguntas-mtc/'), `${page.slug}: debe vivir bajo /preguntas-mtc/`);
+    assert(page.variants.length >= 1, `${page.slug}: falta una variante verificable`);
+    for (const variant of page.variants) {
+      assert.equal(variant.options.length, 4, `${page.slug}: se requieren cuatro alternativas`);
+      assert.equal(variant.options.filter((option) => option.isCorrect).length, 1, `${page.slug}: debe existir una respuesta correcta`);
+      assert(variant.options.some((option) => option.text === variant.correctAnswer && option.isCorrect), `${page.slug}: la clave no coincide`);
+      assert(variant.sources.every((source) => source.code && source.number && source.page && source.pdf), `${page.slug}: falta trazabilidad al PDF`);
+    }
+    assert(questionDirectoryHtml.includes(`href="/${page.slug}"`), `${page.slug}: falta enlace desde el directorio público`);
+  }
+  assert.equal((questionDirectoryHtml.match(/<li><a href="\/preguntas-mtc\//g) || []).length, 80, 'El directorio debe enlazar las 80 preguntas prioritarias');
   const vercelConfig = JSON.parse(vercel);
   const redirects = vercelConfig.redirects || [];
   assert.equal(vercelConfig.trailingSlash, false, 'vercel.json: las URLs canónicas no deben terminar en /');
@@ -105,8 +141,16 @@ async function main() {
     redirects.some(({ source, destination, permanent }) => source === '/seo/:slug' && destination === '/:slug' && permanent),
     'vercel.json: las rutas internas sin extensión deben redirigir a su URL pública',
   );
+  for (const [source, destination] of [
+    ['/balotario-mtc-a1-pdf', '/balotario-mtc-a1'],
+    ['/examen-conocimientos-mtc-a1', '/simulador-mtc-a1'],
+    ['/licencia-a1-peru-examen', '/simulador-mtc-a1'],
+    ['/simulacro-mtc-con-respuestas', '/simulador-mtc'],
+  ]) {
+    assert(redirects.some((redirect) => redirect.source === source && redirect.destination === destination && redirect.permanent), `vercel.json: falta consolidar ${source}`);
+  }
   const htmlFiles = fileNames.filter((file) => file.endsWith('.html')).sort();
-  assert(htmlFiles.length >= 58, `Se esperaban al menos 58 páginas SEO; se encontraron ${htmlFiles.length}`);
+  assert(htmlFiles.length >= 130, `Se esperaban al menos 130 páginas SEO; se encontraron ${htmlFiles.length}`);
 
   const titles = new Set();
   const descriptions = new Set();
@@ -141,7 +185,7 @@ async function main() {
     assert(!descriptions.has(description), `${file}: description duplicada: ${description}`);
     assert(!canonicals.has(canonical), `${file}: canonical duplicado: ${canonical}`);
     assert(canonical.startsWith(`${siteUrl}/`), `${file}: canonical fuera del dominio`);
-    assert(sitemap.includes(`<loc>${canonical}</loc>`), `${file}: canonical ausente del sitemap`);
+    assert(sitemapUrls.includes(`<loc>${canonical}</loc>`), `${file}: canonical ausente de los sitemaps`);
 
     titles.add(title);
     descriptions.add(description);
@@ -161,6 +205,29 @@ async function main() {
       assert(types.has('Quiz'), `${file}: falta schema Quiz`);
       assert(html.includes('Respuesta correcta'), `${file}: falta la respuesta completa visible`);
       assert(html.includes('Opciones'), `${file}: faltan las opciones completas visibles`);
+    }
+
+    const generatedQuestion = generatedQuestionByFile.get(file);
+    if (generatedQuestion) {
+      assert(types.has('Quiz'), `${file}: falta schema Quiz`);
+      assert(html.includes('Alternativas, respuesta y fuente'), `${file}: falta el bloque verificable`);
+      assert.equal((html.match(/class="quiz-panel question-variant"/g) || []).length, generatedQuestion.variants.length, `${file}: faltan variantes visibles`);
+      const quiz = graph.find((item) => item['@type'] === 'Quiz');
+      assert.equal(quiz?.hasPart?.length, generatedQuestion.variants.length, `${file}: schema Quiz incompleto`);
+      for (const [index, variant] of generatedQuestion.variants.entries()) {
+        assert(html.includes(escapeRawHtml(variant.text)), `${file}: se alteró el enunciado ${variant.id}`);
+        assert(html.includes(escapeRawHtml(variant.correctAnswer)), `${file}: se alteró la respuesta ${variant.id}`);
+        assert.equal(quiz.hasPart[index]?.text, variant.text, `${file}: el schema alteró el enunciado ${variant.id}`);
+        for (const option of variant.options) {
+          assert(html.includes(escapeRawHtml(option.text)), `${file}: se alteró una alternativa de ${variant.id}`);
+          for (const media of option.media) assert(html.includes(media.url), `${file}: falta una imagen de alternativa`);
+        }
+        for (const media of variant.questionMedia) assert(html.includes(media.url), `${file}: falta una imagen de pregunta`);
+      }
+      if (generatedQuestion.hasMedia) {
+        assert(types.has('ImageObject'), `${file}: falta schema ImageObject`);
+        assert(sitemapImages.includes(`<loc>${canonical}</loc>`), `${file}: falta en el sitemap de imágenes`);
+      }
     }
 
     const category = categoryByFile.get(file);
@@ -214,7 +281,7 @@ async function main() {
     }
 
     const webpage = graph.find((item) => item['@type'] === 'WebPage');
-    assert.equal(webpage.dateModified, '2026-08-11', `${file}: fecha editorial inesperada`);
+    assert.equal(webpage.dateModified, '2026-08-14', `${file}: fecha editorial inesperada`);
     assert(webpage.mainEntity?.['@id'], `${file}: WebPage no enlaza su recurso principal`);
 
     const relatedBlock = html.match(/<div class="guide-strip">([\s\S]*?)<\/div>/)?.[1] || '';
@@ -226,6 +293,9 @@ async function main() {
     assert(robots.includes(`User-agent: ${crawler}\nAllow: /`), `robots.txt: falta permiso para ${crawler}`);
   }
   assert(robots.includes(`Sitemap: ${siteUrl}/sitemap.xml`), 'robots.txt: falta sitemap');
+  for (const filename of ['sitemap-core.xml', 'sitemap-categories.xml', 'sitemap-topics.xml', 'sitemap-questions.xml', 'sitemap-images.xml']) {
+    assert(sitemap.includes(`<loc>${siteUrl}/${filename}</loc>`), `sitemap.xml: falta ${filename}`);
+  }
   assert(llms.includes('40 preguntas'), 'llms.txt: falta el formato verificable del examen');
   assert(llms.includes('35 respuestas correctas'), 'llms.txt: falta el puntaje mínimo verificable');
   assert(llms.includes('## Preguntas oficiales explicadas'), 'llms.txt: faltan las preguntas explicadas');
@@ -235,6 +305,7 @@ async function main() {
     assert(home.includes(`href="/${topic.slug}"`), `index.html: falta enlace estático a ${topic.slug}`);
   }
   assert(llms.includes('/metodologia-simulador-mtc'), 'llms.txt: falta la metodología editorial');
+  assert(llms.includes('/preguntas-mtc:'), 'llms.txt: falta el directorio de preguntas exactas');
   assert(llms.includes('## Criterios editoriales'), 'llms.txt: faltan criterios editoriales');
   for (const category of categoryBank.categories) {
     const categoryPath = `/simulador-mtc-${category.slug}`;
@@ -256,6 +327,7 @@ async function main() {
     assert(vercel.includes(`/${file.replace(/\.html$/, '')}`), `vercel.json: falta rewrite para ${file}`);
   }
   assert(vercel.includes('"source": "/preguntas-:slug-mtc"'), 'vercel.json: falta rewrite para las páginas temáticas');
+  assert(vercel.includes('"source": "/preguntas-mtc/:slug"'), 'vercel.json: falta rewrite para páginas de preguntas exactas');
 
   const homeSchemas = [...home.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
     .map((match) => JSON.parse(match[1]))
