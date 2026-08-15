@@ -14,7 +14,16 @@ function extractSitemapUrls(xml) {
 
 async function main() {
   const sitemap = await readFile('public/sitemap.xml', 'utf8');
-  const urlList = extractSitemapUrls(sitemap);
+  const sitemapUrls = extractSitemapUrls(sitemap);
+  const childSitemaps = sitemapUrls.filter((url) => url.endsWith('.xml'));
+  const childXml = await Promise.all(childSitemaps.map((url) => {
+    const fileName = new URL(url).pathname.replace(/^\/+/, '');
+    return readFile(`public/${fileName}`, 'utf8');
+  }));
+  const urlList = [...new Set([
+    ...sitemapUrls.filter((url) => !url.endsWith('.xml')),
+    ...childXml.flatMap(extractSitemapUrls).filter((url) => !url.endsWith('.xml')),
+  ])];
 
   if (urlList.length === 0) {
     throw new Error('No URLs found in public/sitemap.xml for IndexNow submission.');
