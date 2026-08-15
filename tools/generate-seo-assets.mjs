@@ -149,7 +149,7 @@ const corePages = [
     ctaText: 'Elegir categoría y practicar',
     keywords: ['simulador mtc', 'examen de conocimientos mtc', 'balotario mtc', 'licencia de conducir peru'],
     sections: [
-      ['Entrenamiento inteligente 20/12/8', 'Cada práctica de aprendizaje busca combinar 20 preguntas por reforzar, 12 nuevas y 8 de repaso. La mezcla se ajusta cuando aún no existe suficiente historial.'],
+      ['Entrenamiento inteligente 20/12/8', 'Cada práctica cronometrada combina hasta 20 preguntas por reforzar, 12 nuevas y 8 de repaso. Tienes 40 minutos y puedes revisar o corregir tus respuestas antes de entregar.'],
       ['Repaso espaciado, no repetición automática', 'Una pregunta fallada continúa en refuerzo hasta acertarla en dos prácticas distintas y no se repite inmediatamente, para comprobar que la respuesta fue comprendida.'],
       ['Simulacro cronometrado', 'Responde 40 preguntas en 40 minutos. Solo estos simulacros alimentan el promedio, la evolución y los temas débiles de Mi avance.'],
       ['Balotario por categoría', 'Cada licencia usa su propia selección de preguntas. La plataforma enlaza el PDF correspondiente y las fuentes oficiales del MTC.'],
@@ -172,7 +172,7 @@ const corePages = [
     secondaryCtaText: 'Revisar fuentes oficiales',
     keywords: ['metodo para aprobar examen mtc', 'metodologia simulador mtc', 'practica inteligente mtc', 'repaso examen mtc', 'preguntas oficiales mtc'],
     sections: [
-      ['20 para reforzar, 12 nuevas y 8 de repaso', 'La práctica de 40 preguntas intenta reservar la mitad para fallos aún no dominados, doce para avanzar por el banco y ocho para comprobar que lo aprendido no se olvida. Si un grupo no tiene suficientes preguntas, completa la práctica con los otros grupos.'],
+      ['20 para reforzar, 12 nuevas y 8 de repaso', 'La práctica cronometrada de 40 preguntas intenta reservar la mitad para fallos aún no dominados, doce para avanzar por el banco y ocho para comprobar que lo aprendido no se olvida. Tienes 40 minutos y puedes revisar o corregir antes de entregar.'],
       ['Dos aciertos en prácticas distintas', 'Una pregunta fallada no desaparece del refuerzo por acertarla una sola vez. Se considera dominada después de dos aciertos posteriores en prácticas diferentes.'],
       ['Repaso con separación', 'Las preguntas falladas no vuelven a aparecer de inmediato. El sistema espera al menos doce horas antes de priorizarlas otra vez y mezcla tanto las preguntas como sus alternativas.'],
       ['Una medición cada cuatro entrenamientos', 'Después de cuatro entrenamientos inteligentes se recomienda un simulacro de 40 preguntas completamente aleatorio, con 40 minutos y sin ayudas durante la prueba.'],

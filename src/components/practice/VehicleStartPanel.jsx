@@ -122,7 +122,7 @@ export default function VehicleStartPanel({
                 Entrenamiento inteligente 20/12/8
               </h2>
               <p className="mt-3 max-w-3xl text-base leading-7 text-blue-100 sm:text-lg">
-                Cada práctica está optimizada para acercarte a tu objetivo: prioriza tus errores, incorpora preguntas nuevas y comprueba que no olvidaste lo aprendido. Recibes la explicación después de cada respuesta.
+                Cada práctica está optimizada para acercarte a tu objetivo: 40 preguntas en 40 minutos, con libertad para revisar y corregir antes de entregar. Al finalizar verás cada respuesta explicada.
               </p>
               <div className="mt-5 grid grid-cols-3 divide-x divide-blue-400 border-y border-blue-400/60 py-3 text-center">
                 <span className="px-1">
