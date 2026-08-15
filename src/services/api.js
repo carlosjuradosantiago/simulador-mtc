@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
 import { DEFAULT_LEARNING_TOPIC, deriveLearningTopic, getLearningTopicById } from '../utils/learningTopics.js';
 import { isAdminRole } from '../utils/admin.js';
 
@@ -11,20 +10,34 @@ export const AUTH_TOKEN_KEY = 'simulamanejo:authToken';
 
 const SUPABASE_AUTH_CLIENT_VERSION = 'pkce-v1';
 
-export const supabaseAuth = globalThis.__simulamanejoSupabaseAuthVersion === SUPABASE_AUTH_CLIENT_VERSION
-  ? globalThis.__simulamanejoSupabaseAuth
-  : createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    autoRefreshToken: true,
-    detectSessionInUrl: false,
-    flowType: 'pkce',
-    persistSession: true,
-    storageKey: 'simulamanejo:supabase-auth',
-  },
-});
+let supabaseAuthPromise;
 
-globalThis.__simulamanejoSupabaseAuth = supabaseAuth;
-globalThis.__simulamanejoSupabaseAuthVersion = SUPABASE_AUTH_CLIENT_VERSION;
+export async function getSupabaseAuth() {
+  if (globalThis.__simulamanejoSupabaseAuthVersion === SUPABASE_AUTH_CLIENT_VERSION && globalThis.__simulamanejoSupabaseAuth) {
+    return globalThis.__simulamanejoSupabaseAuth;
+  }
+  if (supabaseAuthPromise) return supabaseAuthPromise;
+
+  supabaseAuthPromise = import('@supabase/supabase-js').then(({ createClient }) => {
+    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        autoRefreshToken: true,
+        detectSessionInUrl: false,
+        flowType: 'pkce',
+        persistSession: true,
+        storageKey: 'simulamanejo:supabase-auth',
+      },
+    });
+    globalThis.__simulamanejoSupabaseAuth = client;
+    globalThis.__simulamanejoSupabaseAuthVersion = SUPABASE_AUTH_CLIENT_VERSION;
+    return client;
+  }).catch((error) => {
+    supabaseAuthPromise = null;
+    throw error;
+  });
+
+  return supabaseAuthPromise;
+}
 
 const categoryAccent = ['emerald', 'cyan', 'blue', 'orange', 'violet'];
 const fallbackCategoryByCode = {
@@ -153,6 +166,7 @@ export async function apiTextRequest(path, { method = 'GET', token = getStoredTo
 export async function getGoogleOAuthUrl({ redirectTo } = {}) {
   window.localStorage.removeItem('simulamanejo:supabase-auth-code-verifier');
 
+  const supabaseAuth = await getSupabaseAuth();
   const { data, error } = await supabaseAuth.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -173,6 +187,7 @@ export async function getGoogleOAuthUrl({ redirectTo } = {}) {
 }
 
 export async function exchangeSupabaseOAuthCode(code) {
+  const supabaseAuth = await getSupabaseAuth();
   const { data, error } = await supabaseAuth.auth.exchangeCodeForSession(code);
   if (error) {
     if (/code verifier|flow state/i.test(error.message || '')) {

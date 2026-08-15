@@ -29,6 +29,7 @@ El usuario elige su licencia antes de comenzar. El banco se filtra para A1, A2A,
 
 ## Preguntas completas por tema
 
+- [Índice de preguntas MTC con respuesta](https://www.simuladormtc.com/preguntas-mtc)
 - [Reglamento de tránsito y señales](https://www.simuladormtc.com/preguntas-reglamento-transito-mtc)
 - [Obligaciones del conductor](https://www.simuladormtc.com/preguntas-obligaciones-conductor-mtc)
 - [Regulación del transporte](https://www.simuladormtc.com/preguntas-regulacion-transporte-mtc)
@@ -71,6 +72,15 @@ npm run check:practice-selection
 npm run check:exam-submission
 npm run check:remote-environments
 npm run check:seo-bank
+npm run check:seo-question-pages
+npm run check:traffic-sources
 npm run check:seo
 npm run build
 ```
+
+Las páginas de preguntas se construyen desde el banco importado con
+`node tools/build-seo-question-pages.mjs` y `node tools/generate-seo-assets.mjs`.
+El proceso conserva el enunciado, las cuatro alternativas, la respuesta, la
+referencia al PDF oficial y las imágenes extraídas. Los sitemaps se separan por
+páginas base, categorías, temas, preguntas e imágenes para mantenerlos
+rastreables.

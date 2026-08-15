@@ -4,7 +4,7 @@ import BrandLogo from '../components/layout/BrandLogo.jsx';
 import Button from '../components/ui/Button.jsx';
 import Card from '../components/ui/Card.jsx';
 import { useAuth } from '../hooks/useAuth.js';
-import { exchangeSupabaseOAuthCode, getStoredToken, supabaseAuth } from '../services/api.js';
+import { exchangeSupabaseOAuthCode, getStoredToken, getSupabaseAuth } from '../services/api.js';
 import { safeInternalPath } from '../utils/navigation.js';
 
 const oauthCodeExchangePromises = new Map();
@@ -61,6 +61,7 @@ export default function AuthCallbackPage() {
         }
 
         if (!token) {
+          const supabaseAuth = await getSupabaseAuth();
           const { data } = await supabaseAuth.auth.getSession();
           token = data?.session?.access_token ?? null;
         }

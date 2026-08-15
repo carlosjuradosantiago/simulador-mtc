@@ -10,6 +10,36 @@
       "permanent": true
     },
     {
+      "source": "/balotario-mtc-a1-pdf",
+      "destination": "/balotario-mtc-a1",
+      "permanent": true
+    },
+    {
+      "source": "/examen-conocimientos-mtc-a1",
+      "destination": "/simulador-mtc-a1",
+      "permanent": true
+    },
+    {
+      "source": "/licencia-a1-peru-examen",
+      "destination": "/simulador-mtc-a1",
+      "permanent": true
+    },
+    {
+      "source": "/simulacro-mtc-con-respuestas",
+      "destination": "/simulador-mtc",
+      "permanent": true
+    },
+    {
+      "source": "/seo/preguntas-mtc/:slug.html",
+      "destination": "/preguntas-mtc/:slug",
+      "permanent": true
+    },
+    {
+      "source": "/seo/preguntas-mtc/:slug",
+      "destination": "/preguntas-mtc/:slug",
+      "permanent": true
+    },
+    {
       "source": "/seo/:slug.html",
       "destination": "/:slug",
       "permanent": true
@@ -101,6 +131,10 @@
       "destination": "/seo/examen-mtc-preguntas.html"
     },
     {
+      "source": "/preguntas-mtc",
+      "destination": "/seo/preguntas-mtc.html"
+    },
+    {
       "source": "/senales-de-transito",
       "destination": "/seo/senales-de-transito.html"
     },
@@ -145,14 +179,6 @@
       "destination": "/seo/balotario-mtc-pdf.html"
     },
     {
-      "source": "/balotario-mtc-a1-pdf",
-      "destination": "/seo/balotario-mtc-a1-pdf.html"
-    },
-    {
-      "source": "/examen-conocimientos-mtc-a1",
-      "destination": "/seo/examen-conocimientos-mtc-a1.html"
-    },
-    {
       "source": "/preguntas-frecuentes-examen-mtc",
       "destination": "/seo/preguntas-frecuentes-examen-mtc.html"
     },
@@ -189,16 +215,8 @@
       "destination": "/seo/primeros-auxilios-examen-mtc.html"
     },
     {
-      "source": "/licencia-a1-peru-examen",
-      "destination": "/seo/licencia-a1-peru-examen.html"
-    },
-    {
       "source": "/revalidacion-licencia-mtc-examen",
       "destination": "/seo/revalidacion-licencia-mtc-examen.html"
-    },
-    {
-      "source": "/simulacro-mtc-con-respuestas",
-      "destination": "/seo/simulacro-mtc-con-respuestas.html"
     },
     {
       "source": "/temas-mas-dificiles-examen-mtc",
@@ -215,6 +233,10 @@
     {
       "source": "/preguntas-:slug-mtc",
       "destination": "/seo/preguntas-:slug-mtc.html"
+    },
+    {
+      "source": "/preguntas-mtc/:slug",
+      "destination": "/seo/preguntas-mtc/:slug.html"
     },
     {
       "source": "/(.*)",

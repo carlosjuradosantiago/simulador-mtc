@@ -8,6 +8,7 @@ import {
   Download,
   Eye,
   FileSpreadsheet,
+  Globe2,
   MousePointerClick,
   RefreshCw,
   Search,
@@ -81,6 +82,7 @@ const emptyOverview = {
     trafficDaily: [],
   },
   topPages: [],
+  topSources: [],
   recentUsers: [],
   recentPayments: [],
   subscriptions: [],
@@ -550,6 +552,38 @@ export default function AdminDashboardPage() {
             </div>
           </Card>
         </section>
+
+        <Card className="overflow-hidden shadow-sm">
+          <SectionHeading
+            icon={Globe2}
+            title="De dónde llegan las visitas"
+            helper="Buscadores, asistentes de IA, campañas y accesos directos de los últimos 30 días"
+            action={<Badge variant="blue">{overview.topSources?.length ?? 0} fuentes</Badge>}
+          />
+          <div className="overflow-x-auto fine-scrollbar">
+            <table className="w-full min-w-[620px] text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-4 py-3">Fuente</th>
+                  <th className="px-3 py-3 text-right">Vistas</th>
+                  <th className="px-3 py-3 text-right">Visitantes</th>
+                  <th className="px-4 py-3 text-right">Participación</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(overview.topSources ?? []).map((source) => (
+                  <tr key={source.source} className="border-t border-line">
+                    <td className="px-4 py-3 font-bold text-ink">{source.source}</td>
+                    <td className="px-3 py-3 text-right font-bold">{formatNumber(source.views)}</td>
+                    <td className="px-3 py-3 text-right text-slate-600">{formatNumber(source.visitors)}</td>
+                    <td className="px-4 py-3 text-right text-slate-600">{source.share}%</td>
+                  </tr>
+                ))}
+                {!overview.topSources?.length ? <EmptyTableRow columns={4}>Aún no hay fuentes registradas.</EmptyTableRow> : null}
+              </tbody>
+            </table>
+          </div>
+        </Card>
 
         <Card className="overflow-hidden shadow-sm">
           <SectionHeading
