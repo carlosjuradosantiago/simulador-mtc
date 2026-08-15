@@ -1,4 +1,4 @@
-import { BarChart3, ChevronDown, CircleUserRound, Clock3, FileDown, FileText, HelpCircle, Home, LogOut, ShieldCheck, UserRound } from 'lucide-react';
+import { BarChart3, BrainCircuit, ChevronDown, CircleUserRound, Clock3, FileDown, FileText, HelpCircle, Home, LogOut, ShieldCheck, UserRound } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -7,6 +7,7 @@ import BrandLogo from './BrandLogo.jsx';
 
 function isActivePath(pathname, search, item) {
   if (item.id === 'home') return pathname === '/dashboard';
+  if (item.id === 'training') return pathname.startsWith('/simulacro') && new URLSearchParams(search).get('mode') !== 'exam';
   if (item.id === 'simulator') return pathname.startsWith('/simulacro') && new URLSearchParams(search).get('mode') === 'exam';
   if (item.id === 'learn') return pathname.startsWith('/materiales');
   if (item.id === 'progress') return pathname.startsWith('/resultados');
@@ -23,8 +24,9 @@ export default function Topbar() {
   const adminUser = isAdminUser(user);
   const navItems = [
     { id: 'home', label: 'Inicio', icon: Home, to: '/dashboard' },
+    { id: 'training', label: 'Entrenar', icon: BrainCircuit, to: category ? `/simulacro/${category}?mode=adaptive&strategy=adaptive` : '/dashboard?chooseCategory=1' },
     { id: 'simulator', label: 'Simulacro', icon: Clock3, to: category ? `/simulacro/${category}?mode=exam` : '/dashboard?chooseCategory=1' },
-    { id: 'learn', label: 'PDF MTC', icon: FileDown, to: '/materiales' },
+    { id: 'learn', label: 'PDF MTC', mobileLabel: 'PDF', icon: FileDown, to: '/materiales' },
     { id: 'progress', label: 'Mi avance', icon: BarChart3, to: '/resultados' },
   ];
 
@@ -143,7 +145,7 @@ export default function Topbar() {
         </div>
       </header>
 
-      <nav aria-label="Navegación móvil" className="fixed inset-x-0 bottom-0 z-40 grid h-[72px] grid-cols-4 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
+      <nav aria-label="Navegación móvil" className="fixed inset-x-0 bottom-0 z-40 grid h-[72px] grid-cols-5 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
         {navItems.map((item) => {
           const active = isActivePath(pathname, search, item);
           return (
@@ -156,7 +158,7 @@ export default function Topbar() {
               }`}
             >
               <item.icon className="h-6 w-6" />
-              <span className="max-w-full truncate">{item.label}</span>
+              <span className="max-w-full truncate">{item.mobileLabel ?? item.label}</span>
             </Link>
           );
         })}
