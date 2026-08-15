@@ -6,7 +6,6 @@ import path from 'node:path';
 const sourcePath = path.resolve('data', 'mtc_extracted', 'questions_deduped.json');
 const outputPath = path.resolve('tools', 'seo-question-page-bank.json');
 const publicMediaDir = path.resolve('public', 'seo-media');
-const targetPageCount = 80;
 
 const categories = [
   { slug: 'a1', code: 'A-I', categoryId: 25, pdf: 'balotario_A-I.pdf' },
@@ -102,41 +101,12 @@ function groupScore(group) {
     + (text.length <= 180 ? 20 : 0);
 }
 
-function selectPriorityGroups(groups) {
-  const ranked = [...groups].sort((left, right) => {
+function sortQuestionGroups(groups) {
+  return [...groups].sort((left, right) => {
     const scoreDifference = groupScore(right) - groupScore(left);
     if (scoreDifference) return scoreDifference;
     return normalizeQuestionText(left[0].text).localeCompare(normalizeQuestionText(right[0].text), 'es');
   });
-  const selected = [];
-  const selectedKeys = new Set();
-
-  function add(group) {
-    if (selected.length >= targetPageCount) return false;
-    const key = normalizeQuestionText(group[0].text);
-    if (selectedKeys.has(key)) return false;
-    selected.push(group);
-    selectedKeys.add(key);
-    return true;
-  }
-
-  ranked.filter((group) => group.some(hasMedia)).forEach(add);
-
-  for (const category of categories) {
-    while (selected.filter((group) => sourceCodesFor(group).includes(category.code)).length < 8) {
-      const candidate = ranked.find((group) => !selectedKeys.has(normalizeQuestionText(group[0].text))
-        && sourceCodesFor(group).includes(category.code));
-      if (!candidate) break;
-      add(candidate);
-    }
-  }
-
-  ranked.forEach((group) => {
-    if (selected.length < targetPageCount) add(group);
-  });
-
-  assert.equal(selected.length, targetPageCount, `Se esperaban ${targetPageCount} grupos prioritarios`);
-  return selected.sort((left, right) => groupScore(right) - groupScore(left));
 }
 
 async function publicMedia(media, pageId, kind, index, checkOnly) {
@@ -211,17 +181,21 @@ async function serializePage(group, checkOnly) {
     ? `La respuesta correcta es: ${answers[0]}`
     : `La respuesta presenta ${answers.length} variantes según el balotario. Revisa la alternativa correspondiente a ${categoryLabel}.`;
   const titleStem = shorten(group[0].text.replace(/[¿?:]+/g, '').trim(), 50);
+  const primarySource = variants[0]?.sources[0];
+  const sourceSuffix = primarySource
+    ? `| ${primarySource.code} pregunta ${primarySource.number}`
+    : '| Examen MTC';
   const signCodes = [...group[0].text.matchAll(/\b(?:R|P|I)-\d+(?:-\d+)?[A-Z]?\b/gi)]
     .map((match) => match[0].toUpperCase());
   const title = signCodes.length
-    ? `Señal ${[...new Set(signCodes)].join(' y ')}: ${shorten(group[0].text.replace(/[¿?:]+/g, '').trim(), 34)} | MTC`
-    : `${titleStem}: respuesta MTC`;
+    ? `Señal ${[...new Set(signCodes)].join(' y ')}: ${shorten(group[0].text.replace(/[¿?:]+/g, '').trim(), 28)} ${sourceSuffix}`
+    : `${shorten(titleStem, 38)} ${sourceSuffix}`;
 
   return {
     id,
     slug,
     title,
-    description: shorten(`Respuesta correcta, alternativas y fuente de “${group[0].text}”. Consulta los balotarios ${categoryLabel} y practica la categoría que te corresponde.`, 150),
+    description: `${shorten(`Respuesta correcta, alternativas y fuente de “${group[0].text}”.`, 118)}${primarySource ? ` Balotario ${primarySource.code}, pregunta ${primarySource.number}.` : ''}`,
     h1: group[0].text,
     intro: answerSummary,
     topic: group[0].tema,
@@ -247,7 +221,7 @@ async function buildBank(checkOnly = false) {
     grouped.set(key, group);
   }
 
-  const selected = selectPriorityGroups(grouped.values());
+  const selected = sortQuestionGroups(grouped.values());
   await mkdir(publicMediaDir, { recursive: true });
   const pages = await Promise.all(selected.map((group) => serializePage(group, checkOnly)));
   const bank = {
@@ -257,7 +231,7 @@ async function buildBank(checkOnly = false) {
       sourceQuestionCount: JSON.parse(sourceText).length,
       uniqueQuestionTextCount: grouped.size + manualQuestionTexts.size,
       publishedPageCount: pages.length,
-      selectionPolicy: 'Primera cohorte: todas las preguntas visuales disponibles, cobertura mínima por categoría y prioridad para fundamentos normativos y consultas de tránsito frecuentes.',
+      selectionPolicy: 'Todos los enunciados completos y válidos de la fuente deduplicada, agrupando únicamente las variantes del mismo texto entre categorías.',
     },
     pages,
   };
@@ -268,8 +242,8 @@ const checkOnly = process.argv.includes('--check');
 const expected = await buildBank(checkOnly);
 if (checkOnly) {
   assert.equal(await readFile(outputPath, 'utf8'), expected, 'El banco de páginas por pregunta no coincide con la fuente deduplicada');
-  console.log(`Banco SEO por pregunta verificado: ${targetPageCount} páginas prioritarias.`);
+  console.log(`Banco SEO por pregunta verificado: ${JSON.parse(expected).pages.length} páginas completas.`);
 } else {
   await writeFile(outputPath, expected, 'utf8');
-  console.log(`Banco SEO por pregunta generado: ${targetPageCount} páginas y medios públicos vinculados.`);
+  console.log(`Banco SEO por pregunta generado: ${JSON.parse(expected).pages.length} páginas y medios públicos vinculados.`);
 }

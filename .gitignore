@@ -5,6 +5,7 @@ dist/
 .playwright-mcp/
 .vscode/
 /data/
+/public/seo/preguntas-mtc/*.html
 IMAGENES DEL SISTEMA/
 login-current.png
 supabase/.temp/
