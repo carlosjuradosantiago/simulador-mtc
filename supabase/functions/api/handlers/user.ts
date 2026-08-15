@@ -430,16 +430,57 @@ export async function handleGetUserStats(req) {
         respuestas_incorrectas,
         sin_responder,
         respuestas_detalle,
+        created_at,
         categoria:id_categoria(id, nombre)
       `)
-      .eq('id_usuario', user.userId);
+      .eq('id_usuario', user.userId)
+      .order('created_at', { ascending: false });
     if (Number.isInteger(categoryId)) statsQuery = statsQuery.eq('id_categoria', categoryId);
     const { data: intentos, error } = await statsQuery;
     if (error) {
       console.error('Get user stats query error:', error);
       return errorResponse('Error al obtener el progreso', 500);
     }
-    const { timed: timedAttempts, quick: quickAttempts } = partitionAttempts(intentos || []);
+    const allAttempts = intentos || [];
+    const { timed: timedAttempts, quick: quickAttempts, adaptive: adaptiveAttempts } = partitionAttempts(allAttempts);
+    const seenQuestionIds = new Set<number>();
+    allAttempts.forEach((attempt: any) => {
+      const details = Array.isArray(attempt.respuestas_detalle) ? attempt.respuestas_detalle : [];
+      details.forEach((answer: any) => {
+        const questionId = Number(answer.idPregunta ?? answer.id_pregunta ?? answer.questionId);
+        if (Number.isInteger(questionId)) seenQuestionIds.add(questionId);
+      });
+    });
+    let questionGoal = 0;
+    if (Number.isInteger(categoryId)) {
+      const { count, error: questionCountError } = await supabase
+        .from('categoria_pregunta')
+        .select('*', { count: 'exact', head: true })
+        .eq('id_categoria', categoryId);
+      if (questionCountError) console.warn('Question coverage count error:', questionCountError);
+      questionGoal = count || 0;
+    }
+    const passedTimedExam = (attempt: any) => (
+      attempt.aprobado === true || Number(attempt.respuestas_correctas) >= OFFICIAL_EXAM_MIN_CORRECT
+    );
+    let passedStreak = 0;
+    for (const attempt of timedAttempts) {
+      if (!passedTimedExam(attempt)) break;
+      passedStreak += 1;
+    }
+    const latestTimedAt = timedAttempts[0]?.created_at ? Date.parse(timedAttempts[0].created_at) : 0;
+    const adaptiveSinceLastTimed = adaptiveAttempts.filter((attempt: any) => (
+      !latestTimedAt || Date.parse(attempt.created_at || '') > latestTimedAt
+    )).length;
+    const learningStats = {
+      adaptivePracticeCount: adaptiveAttempts.length,
+      adaptiveSinceLastTimed,
+      recommendTimedExam: adaptiveSinceLastTimed >= 4,
+      questionsSeen: seenQuestionIds.size,
+      questionGoal,
+      passedStreak,
+      readyForExam: questionGoal > 0 && seenQuestionIds.size >= questionGoal && passedStreak >= 3,
+    };
     if (timedAttempts.length === 0) {
       return jsonResponse({
         totalIntentos: 0,
@@ -452,6 +493,7 @@ export async function handleGetUserStats(req) {
         sinResponder: 0,
         weakTopics: [],
         categoryStats: [],
+        ...learningStats,
       });
     }
 
@@ -503,9 +545,7 @@ export async function handleGetUserStats(req) {
       totalIntentos: timedAttempts.length,
       freePracticeCount: quickAttempts.length,
       promedioGeneral,
-      intentosAprobados: timedAttempts.filter((i)=>(
-        i.aprobado === true || Number(i.respuestas_correctas) >= OFFICIAL_EXAM_MIN_CORRECT
-      )).length,
+      intentosAprobados: timedAttempts.filter(passedTimedExam).length,
       totalPreguntas: timedAttempts.reduce((sum, intento) => sum + (Number(intento.total_preguntas) || 0), 0),
       respuestasCorrectas: timedAttempts.reduce((sum, intento) => sum + (Number(intento.respuestas_correctas) || 0), 0),
       respuestasIncorrectas: timedAttempts.reduce((sum, intento) => sum + (Number(intento.respuestas_incorrectas) || 0), 0),
@@ -517,6 +557,7 @@ export async function handleGetUserStats(req) {
         attempts: category.attempts,
         average: Math.round(category.percentageTotal / category.attempts),
       })),
+      ...learningStats,
     });
   } catch (err) {
     console.error('Get user stats error:', err);

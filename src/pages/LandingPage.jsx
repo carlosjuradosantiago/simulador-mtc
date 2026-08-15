@@ -55,6 +55,12 @@ export default function LandingPage() {
   const fullExamTo = fullExamDestination
     ? `/?auth=register&category=${selectedCategoryId}&next=${encodeURIComponent(fullExamDestination)}`
     : null;
+  const adaptiveDestination = selectedCategoryId
+    ? `/simulacro/${selectedCategoryId}?mode=adaptive&strategy=adaptive`
+    : null;
+  const adaptiveTo = adaptiveDestination
+    ? `/?auth=register&category=${selectedCategoryId}&next=${encodeURIComponent(adaptiveDestination)}`
+    : null;
 
   return (
     <VehicleStartPanel
@@ -62,6 +68,7 @@ export default function LandingPage() {
       selectedCategoryId={selectedCategoryId}
       onCategoryChange={setSelectedCategoryId}
       onStart={startPractice}
+      adaptiveTo={adaptiveTo}
       fullExamTo={fullExamTo}
       fullExamIsFree={FULL_EXAM_IS_FREE}
       fullExamPrice={planPrice}

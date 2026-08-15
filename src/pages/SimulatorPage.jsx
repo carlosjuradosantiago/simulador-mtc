@@ -29,8 +29,9 @@ function hasAnswer(answerId) {
 export default function SimulatorPage() {
   const { categoria = '25' } = useParams();
   const [searchParams] = useSearchParams();
-  const mode = searchParams.get('mode') === 'exam' ? 'exam' : 'quick';
-  const strategy = searchParams.get('strategy') === 'weak' ? 'weak' : 'random';
+  const requestedMode = searchParams.get('mode');
+  const mode = requestedMode === 'exam' ? 'exam' : requestedMode === 'adaptive' ? 'adaptive' : 'quick';
+  const strategy = mode === 'adaptive' ? 'adaptive' : searchParams.get('strategy') === 'weak' ? 'weak' : 'random';
   const navigate = useNavigate();
   const finishedRef = useRef(false);
   const {
@@ -46,6 +47,7 @@ export default function SimulatorPage() {
     feedbackByQuestion,
     savingAnswer,
     quickPractice,
+    adaptivePractice,
     selectAnswer,
     goToQuestion,
     finishExam,
@@ -62,7 +64,7 @@ export default function SimulatorPage() {
   const pendingAnswer = currentQuestion ? pendingAnswers[currentQuestion.id] : null;
   const currentFeedback = currentQuestion ? feedbackByQuestion[currentQuestion.id] : null;
   const isAnswered = hasAnswer(currentAnswer);
-  const isRevealed = isAnswered && (quickPractice || Boolean(currentFeedback));
+  const isRevealed = quickPractice && isAnswered && Boolean(currentFeedback);
   const selectedAnswerId = isRevealed ? currentAnswer : (hasAnswer(pendingAnswer) ? pendingAnswer : currentAnswer);
   const selectedOption = currentQuestion?.opciones.find((option) => String(option.id) === String(currentAnswer));
   const correctOption = currentQuestion?.opciones.find((option) => (
@@ -85,10 +87,14 @@ export default function SimulatorPage() {
     ? `${String.fromCharCode(65 + correctOptionIndex)}. ${correctOption.texto || 'Respuesta con imagen'}`
     : currentFeedback?.opcionCorrecta?.texto || currentQuestion?.respuestaCorrecta || 'No disponible';
   const isLastQuestion = currentIndex === questions.length - 1;
-  const canContinue = quickPractice ? (isRevealed || hasAnswer(pendingAnswer)) : isRevealed;
-  const primaryActionDisabled = (!canContinue && !(isAnswered && !isRevealed)) || finishing || savingAnswer;
+  const canContinue = quickPractice ? (isRevealed || hasAnswer(pendingAnswer)) : isAnswered;
+  const primaryActionDisabled = !canContinue || finishing || savingAnswer;
   const examLabel = normalizeCategoryName(categoria);
-  const practiceLabel = strategy === 'weak' ? 'Refuerzo de errores' : 'Preguntas aleatorias';
+  const practiceLabel = adaptivePractice
+    ? 'Entrenamiento inteligente'
+    : strategy === 'weak'
+      ? 'Refuerzo de errores'
+      : 'Preguntas aleatorias';
 
   useEffect(() => {
     finishedRef.current = false;
@@ -216,11 +222,6 @@ export default function SimulatorPage() {
       revealAnswer();
       return;
     }
-    if (!quickPractice && isAnswered && !isRevealed) {
-      feedbackQuestionRef.current = currentQuestion.id;
-      void selectAnswer(currentQuestion.id, currentAnswer);
-      return;
-    }
     if (isLastQuestion) {
       void handleFinish();
       return;
@@ -334,7 +335,9 @@ export default function SimulatorPage() {
             </p>
             <p className="mt-1 text-sm text-slate-500">
               {quickPractice
-                ? strategy === 'weak'
+                ? adaptivePractice
+                  ? 'Sin cronómetro. Mezcla tus errores, preguntas nuevas y repaso.'
+                  : strategy === 'weak'
                   ? 'Primero verás lo que más necesitas reforzar.'
                   : 'Sin tiempo. Preguntas de toda la categoría.'
                 : `${OFFICIAL_EXAM_RULES.questionCount} preguntas · ${OFFICIAL_EXAM_RULES.durationMinutes} minutos · tu resultado mide tu preparación.`}
@@ -348,7 +351,7 @@ export default function SimulatorPage() {
           ) : null}
         </div>
 
-        {quickPractice ? (
+        {quickPractice && !adaptivePractice ? (
           <div className="mt-3 flex gap-2" aria-label={`Pregunta ${currentIndex + 1} de ${questions.length}`}>
             {questions.map((question, index) => (
               <span
@@ -525,9 +528,7 @@ export default function SimulatorPage() {
               ? 'Guardando resultado...'
               : savingAnswer
                 ? 'Revisando respuesta...'
-                : !quickPractice && isAnswered && !isRevealed
-                  ? 'Volver a intentar'
-              : quickPractice && !isRevealed
+                : quickPractice && !isRevealed
                 ? 'Responder'
                 : isLastQuestion
                   ? 'Ver mi resultado'

@@ -1,12 +1,12 @@
 import {
   ArrowRight,
+  BrainCircuit,
   BookOpen,
   CheckCircle2,
   CircleGauge,
   Clock3,
   LockKeyhole,
   Shuffle,
-  Sparkles,
   Target,
   TrendingUp,
 } from 'lucide-react';
@@ -46,6 +46,7 @@ export default function VehicleStartPanel({
   onCategoryChange,
   onStart,
   startTo,
+  adaptiveTo,
   fullExamTo,
   fullExamHasAccess = false,
   fullExamAccessLoading = false,
@@ -87,29 +88,78 @@ export default function VehicleStartPanel({
     <section className="mx-auto w-full max-w-[1280px] px-4 pb-10 pt-4 sm:px-6 lg:px-8 lg:pb-14 lg:pt-5">
       <div className="mx-auto max-w-5xl text-center">
         <h1 className="font-display text-3xl font-black text-ink sm:text-4xl lg:text-5xl">
-          {focusSelected && selectedCategory ? `Tu simulacro ${selectedCategory.title}` : 'Elige tu simulacro MTC'}
+          {focusSelected && selectedCategory ? `Tu entrenamiento inteligente ${selectedCategory.title}` : 'Entrena para tu examen MTC'}
         </h1>
         <p className="mx-auto mt-2 max-w-2xl text-base leading-6 text-slate-600 sm:text-lg sm:leading-7">
           {focusSelected && selectedCategory
-            ? `Todo está preparado para ${selectedCategory.vehicle}.`
-            : 'Prepárate con preguntas actualizadas para el examen MTC 2026, según la categoría de tu licencia.'}
+            ? `La práctica se adapta a tus errores y a tu progreso en ${selectedCategory.vehicle}.`
+            : 'Elige tu categoría. La práctica inteligente se adapta a lo que necesitas mejorar.'}
         </p>
-        <div className="mx-auto mt-4 flex max-w-3xl items-start gap-3 border-y border-blue-200 bg-blue-50 px-4 py-3 text-left sm:items-center sm:px-5">
+        {!selectedCategory ? <div className="mx-auto mt-4 flex max-w-3xl items-start gap-3 border-y border-blue-200 bg-blue-50 px-4 py-3 text-left sm:items-center sm:px-5">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand text-white">
-            <Sparkles className="h-5 w-5" aria-hidden="true" />
+            <BrainCircuit className="h-5 w-5" aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <p className="font-display text-base font-black text-ink sm:text-lg">La IA aprende de tus resultados</p>
+            <p className="font-display text-base font-black text-ink sm:text-lg">No practiques siempre las mismas preguntas</p>
             <p className="mt-0.5 text-sm leading-5 text-slate-700 sm:text-base sm:leading-6">
-              Detecta las preguntas y temas que más fallas, los prioriza en tus prácticas y te muestra tu progreso para ayudarte a mejorar.
+              La IA combina lo que fallas, preguntas nuevas y repaso para ayudarte a aprender, no solo a memorizar respuestas.
+              {' '}<Link to="/metodologia-simulador-mtc" className="font-bold text-brand underline underline-offset-2">Conoce el método</Link>.
             </p>
           </div>
-        </div>
+        </div> : null}
       </div>
 
+      {selectedCategory && adaptiveTo ? (
+        <section className="relative mx-auto mt-6 max-w-6xl overflow-hidden rounded-lg border-2 border-brand bg-brand-deep text-white shadow-[0_8px_0_#cfe0ff]" aria-labelledby="adaptive-practice-title">
+          <div className="absolute inset-x-0 top-0 h-2 bg-traffic-yellow" aria-hidden="true" />
+          <div className="grid gap-6 p-5 pt-7 md:grid-cols-[minmax(0,1fr)_300px] md:items-center sm:p-7 sm:pt-9">
+            <div className="min-w-0">
+              <p className="flex items-center gap-2 text-sm font-black uppercase text-traffic-yellow">
+                <BrainCircuit className="h-5 w-5" />
+                Recomendado para mejorar
+              </p>
+              <h2 id="adaptive-practice-title" className="mt-2 font-display text-3xl font-black leading-tight sm:text-4xl">
+                Entrenamiento inteligente 20/12/8
+              </h2>
+              <p className="mt-3 max-w-3xl text-base leading-7 text-blue-100 sm:text-lg">
+                La IA prepara 40 preguntas para ti: prioriza tus errores, incorpora preguntas nuevas y comprueba que no olvidaste lo aprendido. Recibes la explicación después de cada respuesta.
+              </p>
+              <div className="mt-5 grid grid-cols-3 divide-x divide-blue-400 border-y border-blue-400/60 py-3 text-center">
+                <span className="px-1">
+                  <strong className="block font-display text-3xl font-black text-traffic-yellow">20</strong>
+                  <span className="text-xs text-blue-100 sm:text-sm">por reforzar</span>
+                </span>
+                <span className="px-1">
+                  <strong className="block font-display text-3xl font-black text-white">12</strong>
+                  <span className="text-xs text-blue-100 sm:text-sm">nuevas</span>
+                </span>
+                <span className="px-1">
+                  <strong className="block font-display text-3xl font-black text-emerald-300">8</strong>
+                  <span className="text-xs text-blue-100 sm:text-sm">de repaso</span>
+                </span>
+              </div>
+              <p className="mt-3 text-xs leading-5 text-blue-200">
+                Categoría {selectedCategory.title} · {selectedCategory.vehicle}. La mezcla se ajusta a tu historial.
+              </p>
+            </div>
+            <div>
+              <Link to={adaptiveTo} className="inline-flex min-h-16 w-full items-center justify-center gap-2 rounded-lg bg-traffic-yellow px-5 text-center font-display text-xl font-black text-ink shadow-[0_5px_0_#d99b19] transition hover:bg-[#ffc94f] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-white">
+                <BrainCircuit className="h-7 w-7" />
+                Entrenar ahora
+                <ArrowRight className="h-6 w-6" />
+              </Link>
+              <Link to="/metodologia-simulador-mtc" className="mt-4 inline-flex min-h-11 w-full items-center justify-center font-bold text-blue-100 underline underline-offset-4 hover:text-white">
+                Cómo funciona el método
+              </Link>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <div className={cn(
-        'mx-auto mt-6 grid gap-4 lg:gap-5',
-        focusSelected && selectedCategory ? 'max-w-md grid-cols-1' : 'max-w-6xl md:grid-cols-3',
+        'mx-auto grid gap-4 lg:gap-5',
+        selectedCategory ? 'mt-4' : 'mt-6',
+        focusSelected && selectedCategory ? 'max-w-6xl grid-cols-1' : 'max-w-6xl md:grid-cols-3',
       )}>
         {vehicleChoices.map((choice) => {
           const selected = choice.id === selectedVehicle?.id;
@@ -122,23 +172,26 @@ export default function VehicleStartPanel({
               aria-expanded={categoryVehicleId === choice.id}
               onClick={() => chooseVehicle(choice)}
               className={cn(
-                'relative flex min-h-[300px] min-w-0 flex-col rounded-lg border-2 bg-white p-4 text-center transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-brand sm:min-h-[330px] lg:min-h-[350px] lg:p-5',
+                'relative min-w-0 rounded-lg border-2 bg-white text-center transition hover:border-blue-300 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-brand',
+                focusSelected && selectedCategory ? 'flex min-h-16 items-center gap-3 px-4 py-3 text-left' : 'flex min-h-[300px] flex-col p-4 hover:-translate-y-0.5 hover:shadow-lg sm:min-h-[330px] lg:min-h-[350px] lg:p-5',
                 selected ? 'border-brand bg-blue-50/40 shadow-[0_8px_0_#cfe0ff]' : 'border-line',
                 selectedCategory && !selected ? (focusSelected ? 'hidden' : 'hidden md:flex') : null,
               )}
             >
-              {selected ? (
+              {selected && !(focusSelected && selectedCategory) ? (
                 <span className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-brand text-white">
                   <CheckCircle2 className="h-6 w-6" />
                 </span>
               ) : null}
-              <span className="flex h-[205px] w-full items-center justify-center sm:h-[220px] lg:h-[235px]">
+              <span className={cn('items-center justify-center', focusSelected && selectedCategory ? 'hidden' : 'flex h-[205px] w-full sm:h-[220px] lg:h-[235px]')}>
                 <img src={choice.image} alt={choice.imageAlt} width="900" height="600" className="h-full w-full object-contain" />
               </span>
-              <span className="mt-1 block font-display text-2xl font-black leading-tight text-ink sm:text-3xl">{choice.title}</span>
+              {focusSelected && selectedCategory ? <CheckCircle2 className="h-6 w-6 shrink-0 text-brand" /> : null}
+              <span className={cn('block font-display font-black leading-tight text-ink', focusSelected && selectedCategory ? 'text-lg' : 'mt-1 text-2xl sm:text-3xl')}>{choice.title}</span>
               <span
                 className={cn(
-                  'mt-auto inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg px-3 py-2 font-bold',
+                  'inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 font-bold',
+                  focusSelected && selectedCategory ? 'ml-auto min-h-10 w-auto' : 'mt-auto min-h-12 w-full',
                   selected ? 'bg-brand text-white' : 'bg-slate-100 text-brand',
                 )}
               >
@@ -182,50 +235,45 @@ export default function VehicleStartPanel({
 
           {fullExamTo ? (
             <section
-              className="mx-auto mt-4 max-w-5xl overflow-hidden rounded-lg border-2 border-brand bg-brand-deep text-white"
+              className="mx-auto mt-5 max-w-6xl overflow-hidden rounded-lg border border-line bg-white text-ink"
               aria-labelledby="official-exam-title"
             >
-              <div className="grid gap-5 p-5 sm:grid-cols-[minmax(0,1fr)_240px] sm:items-center sm:p-6">
+              <div className="grid gap-4 p-5 sm:grid-cols-[minmax(0,1fr)_220px] sm:items-center sm:p-6">
                 <div className="min-w-0">
-                  <p className="flex items-center gap-2 text-sm font-black uppercase text-traffic-yellow">
+                  <p className="flex items-center gap-2 text-sm font-black uppercase text-brand">
                     <Clock3 className="h-5 w-5" />
-                    Simulacro cronometrado
+                    {progress?.recommendTimedExam ? 'Es momento de medir tu nivel' : 'Simulacro cronometrado'}
                   </p>
                   <h2 id="official-exam-title" className="mt-1 font-display text-2xl font-black sm:text-3xl">
-                    40 preguntas como en la evaluación
+                    Mide tu nivel con 40 preguntas
                   </h2>
-                  <p className="mt-2 text-sm leading-6 text-blue-100 sm:text-base">
-                    Este simulacro mide tu preparación y actualiza tus estadísticas.
+                  <p className="mt-2 text-sm leading-6 text-slate-600 sm:text-base">
+                    Sin ayudas y con tiempo. Úsalo para comprobar cuánto avanzaste después de entrenar.
                   </p>
-                  <div className="mt-4 grid grid-cols-3 divide-x divide-blue-400 border-y border-blue-400/60 py-3 text-center">
+                  <div className="mt-4 grid grid-cols-3 divide-x divide-line border-y border-line py-3 text-center">
                     <span>
                       <strong className="block font-display text-2xl font-black">{OFFICIAL_EXAM_RULES.questionCount}</strong>
-                      <span className="text-xs text-blue-100">preguntas</span>
+                      <span className="text-xs text-slate-500">preguntas</span>
                     </span>
                     <span>
                       <strong className="block font-display text-2xl font-black">{OFFICIAL_EXAM_RULES.durationMinutes} min</strong>
-                      <span className="text-xs text-blue-100">tiempo máximo</span>
+                      <span className="text-xs text-slate-500">tiempo máximo</span>
                     </span>
                     <span>
                       <strong className="block font-display text-2xl font-black">{OFFICIAL_EXAM_RULES.minimumCorrectAnswers}/40</strong>
-                      <span className="text-xs text-blue-100">para aprobar</span>
+                      <span className="text-xs text-slate-500">para aprobar</span>
                     </span>
                   </div>
-                  <p className="mt-3 text-sm font-bold text-blue-100">Sí cuenta en Mi avance · {fullExamAccessLabel}</p>
+                  <p className="mt-3 text-sm font-bold text-slate-600">Sí cuenta en Mi avance · {fullExamAccessLabel}</p>
                 </div>
                 {isCheckingFullExamAccess ? (
-                  <button type="button" disabled className="inline-flex min-h-16 items-center justify-center gap-2 rounded-lg bg-white/10 px-5 font-bold text-blue-100">
+                  <button type="button" disabled className="inline-flex min-h-14 items-center justify-center gap-2 rounded-lg bg-slate-100 px-5 font-bold text-slate-500">
                     Revisando acceso...
                   </button>
                 ) : (
                   <Link
                     to={fullExamTo}
-                    className={cn(
-                      'inline-flex min-h-16 items-center justify-center gap-2 rounded-lg px-5 text-center font-display text-lg font-black transition focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-white',
-                      canStartFullExam
-                        ? 'bg-traffic-yellow text-ink shadow-[0_5px_0_#d99b19] hover:bg-[#ffc94f]'
-                        : 'bg-white text-brand hover:bg-blue-50',
-                    )}
+                    className="inline-flex min-h-14 items-center justify-center gap-2 rounded-lg border-2 border-brand bg-white px-5 text-center font-display text-lg font-black text-brand transition hover:bg-blue-50 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-brand"
                   >
                     {canStartFullExam ? <CircleGauge className="h-7 w-7" /> : <LockKeyhole className="h-6 w-6" />}
                     {canStartFullExam ? 'Iniciar simulacro' : 'Suscribirme'}

@@ -19,7 +19,8 @@ export default function PublicHeader() {
         <BrandLogo className="hidden sm:inline-flex" />
 
         <nav aria-label="Navegación principal" className="ml-auto hidden items-center gap-5 lg:flex">
-          <NavLink to="/" end className={navLinkClass}>Practicar</NavLink>
+          <NavLink to="/" end className={navLinkClass}>Entrenar</NavLink>
+          <NavLink to="/metodologia-simulador-mtc" className={navLinkClass}>Método 20/12/8</NavLink>
           <NavLink to="/materiales" className={navLinkClass}>PDF oficiales</NavLink>
           {!FULL_EXAM_IS_FREE ? <NavLink to="/suscripcion" className={navLinkClass}>Suscripción</NavLink> : null}
           <NavLink to="/contacto" className={navLinkClass}>Contacto</NavLink>
@@ -32,7 +33,7 @@ export default function PublicHeader() {
               className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand px-3 font-bold text-white hover:bg-blue-700 sm:px-4"
             >
               <CircleUserRound className="h-5 w-5" aria-hidden="true" />
-              <span className="hidden min-[390px]:inline">Ir a practicar</span>
+              <span className="hidden min-[390px]:inline">Ir a entrenar</span>
               <span className="min-[390px]:hidden">Entrar</span>
             </Link>
           ) : (

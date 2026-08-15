@@ -7,6 +7,7 @@ import {
   OFFICIAL_EXAM_QUESTION_COUNT,
 } from '../_shared/exam-rules.ts';
 import { isFullExamFree, TIMED_SESSION_TYPE } from '../_shared/membership-access.ts';
+import { shuffled as shuffleItems } from '../_shared/practice-selection.ts';
 
 // Headers CORS para todas las respuestas
 const corsHeaders = {
@@ -346,16 +347,17 @@ function jsonResponse(data: unknown, status = 200) {
   
   // ============ PASO 6: TRANSFORMAR PREGUNTAS AL FORMATO ESPERADO ============
   console.log('\n🔄 PASO 6: Transformando preguntas al formato del frontend...');
-  const preguntasTransformadas = questions.map((q: any) => ({
+  const preguntasTransformadas = shuffleItems(questions).map((q: any) => ({
     id: q.id,
     texto: q.texto,
     tema: q.tema || 'General',
     numeroPdf: q.numero_pdf || null,
     tipoSeccion: q.tipo_seccion || null,
     clase: q.clase || null,
-    opciones: (q.opcion_pregunta || []).map((op: any) => ({
+    opciones: shuffleItems(q.opcion_pregunta || []).map((op: any, optionIndex: number) => ({
       id: op.id,
       texto: op.texto,
+      orden: optionIndex + 1,
       mediaType: op.tipo_multimedia || 'Text',
       mediaData: op.datos_multimedia || null
     })),
