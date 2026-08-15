@@ -141,15 +141,16 @@ const categories = [
 const corePages = [
   {
     slug: 'simulador-mtc',
-    title: 'Simulador MTC 2026: práctica gratis y simulacro de 40 preguntas',
-    description: 'Elige A1, A2A, A2B, A3 o B2. Practica 5 preguntas gratis o rinde un simulacro MTC de 40 preguntas y revisa tus errores por tema.',
+    title: 'Simulador MTC 2026 con entrenamiento inteligente por categoría',
+    description: 'Prepárate para el examen MTC con un método que combina errores, preguntas nuevas y repaso; luego mide tu nivel con un simulacro cronometrado.',
     h1: 'Simulador MTC 2026 por categoría de licencia',
-    intro: 'Elige la categoría exacta de tu licencia. Puedes aprender con 5 preguntas sin cronómetro o medir tu preparación con 40 preguntas en 40 minutos y un mínimo de referencia de 35 respuestas correctas.',
+    intro: 'Elige la categoría exacta de tu licencia. El entrenamiento inteligente prioriza lo que necesitas aprender y el simulacro cronometrado mide tu preparación con 40 preguntas en 40 minutos.',
     primaryCta: '/?auth=register',
     ctaText: 'Elegir categoría y practicar',
     keywords: ['simulador mtc', 'examen de conocimientos mtc', 'balotario mtc', 'licencia de conducir peru'],
     sections: [
-      ['Práctica corta para aprender', 'Responde 5 preguntas sin cronómetro, recibe la explicación completa y vuelve a practicar las preguntas que más fallas.'],
+      ['Entrenamiento inteligente 20/12/8', 'Cada práctica de aprendizaje busca combinar 20 preguntas por reforzar, 12 nuevas y 8 de repaso. La mezcla se ajusta cuando aún no existe suficiente historial.'],
+      ['Repaso espaciado, no repetición automática', 'Una pregunta fallada continúa en refuerzo hasta acertarla en dos prácticas distintas y no se repite inmediatamente, para comprobar que la respuesta fue comprendida.'],
       ['Simulacro cronometrado', 'Responde 40 preguntas en 40 minutos. Solo estos simulacros alimentan el promedio, la evolución y los temas débiles de Mi avance.'],
       ['Balotario por categoría', 'Cada licencia usa su propia selección de preguntas. La plataforma enlaza el PDF correspondiente y las fuentes oficiales del MTC.'],
     ],
@@ -161,21 +162,27 @@ const corePages = [
   },
   {
     slug: 'metodologia-simulador-mtc',
-    title: 'Metodología y fuentes de Simulador MTC',
-    description: 'Conoce cómo se organizan, revisan y explican las preguntas de Simulador MTC y qué fuentes oficiales se consultan.',
-    h1: 'Cómo revisamos el contenido de Simulador MTC',
-    intro: 'La plataforma transforma balotarios públicos en prácticas fáciles de usar. Conservamos el texto completo de las preguntas, separamos las categorías y enlazamos las fuentes para que cada dato importante pueda comprobarse.',
-    primaryCta: '/fuentes-mtc',
-    ctaText: 'Revisar fuentes oficiales',
-    keywords: ['metodologia simulador mtc', 'fuentes simulador mtc', 'preguntas oficiales mtc', 'revision balotario mtc'],
+    title: 'Método 20/12/8 para preparar el examen MTC',
+    description: 'Conoce el entrenamiento inteligente de Simulador MTC: errores, preguntas nuevas, repaso espaciado y simulacros que miden tu nivel real.',
+    h1: 'Un método para aprender, no solo memorizar respuestas',
+    intro: 'Simulador MTC separa el aprendizaje de la medición. Durante el entrenamiento combina tus errores, contenido nuevo y repaso; después usa un simulacro aleatorio y cronometrado para comprobar tu nivel real.',
+    primaryCta: '/?auth=register',
+    ctaText: 'Empezar entrenamiento inteligente',
+    secondaryCta: '/fuentes-mtc',
+    secondaryCtaText: 'Revisar fuentes oficiales',
+    keywords: ['metodo para aprobar examen mtc', 'metodologia simulador mtc', 'practica inteligente mtc', 'repaso examen mtc', 'preguntas oficiales mtc'],
     sections: [
-      ['Preguntas sin recortes', 'Cada página de categoría muestra cuarenta preguntas completas y las páginas temáticas publican hasta cuarenta preguntas. Cuando una pregunta depende de una imagen, no se publica sin ese recurso.'],
-      ['Separación por licencia', 'A1, A2A, A2B, A3 y las categorías B no comparten exactamente el mismo banco. Cada práctica se filtra por la licencia elegida por la persona.'],
-      ['Revisión y correcciones', 'Contrastamos formato, categorías y balotarios con publicaciones del MTC. Si una fuente cambia, se revisa el contenido afectado antes de modificar su fecha editorial.'],
+      ['20 para reforzar, 12 nuevas y 8 de repaso', 'La práctica de 40 preguntas intenta reservar la mitad para fallos aún no dominados, doce para avanzar por el banco y ocho para comprobar que lo aprendido no se olvida. Si un grupo no tiene suficientes preguntas, completa la práctica con los otros grupos.'],
+      ['Dos aciertos en prácticas distintas', 'Una pregunta fallada no desaparece del refuerzo por acertarla una sola vez. Se considera dominada después de dos aciertos posteriores en prácticas diferentes.'],
+      ['Repaso con separación', 'Las preguntas falladas no vuelven a aparecer de inmediato. El sistema espera al menos doce horas antes de priorizarlas otra vez y mezcla tanto las preguntas como sus alternativas.'],
+      ['Una medición cada cuatro entrenamientos', 'Después de cuatro entrenamientos inteligentes se recomienda un simulacro de 40 preguntas completamente aleatorio, con 40 minutos y sin ayudas durante la prueba.'],
+      ['Meta de preparación', 'El panel muestra cuántas preguntas distintas del banco ya viste y tu racha de simulacros aprobados. La referencia final es recorrer todo el banco de la categoría y aprobar tres simulacros consecutivos.'],
+      ['Preguntas completas y por licencia', 'No recortamos enunciados ni alternativas. A1, A2A, A2B, A3 y las categorías B usan bancos filtrados según la licencia elegida.'],
     ],
     faqs: [
       ['Simulador MTC pertenece al MTC?', disclaimer],
       ['Se modifican las preguntas para hacerlas más cortas?', 'No. La interfaz puede adaptar el tamaño visual, pero no debe recortar ni resumir el enunciado o las alternativas.'],
+      ['El entrenamiento cambia el promedio?', 'No. El entrenamiento sirve para aprender. El promedio y la evolución se calculan únicamente con simulacros cronometrados de 40 preguntas.'],
       ['Como puedo verificar una respuesta?', 'Cada guía enlaza sus fuentes y los balotarios descargables. Ante cualquier diferencia, prevalece la publicación oficial vigente.'],
     ],
   },
@@ -1600,17 +1607,17 @@ function renderHtml(page) {
 }
 
 function simulatorPageFor(category) {
-  const simulatorDestination = `/simulacro/${category.categoryId}?mode=quick&strategy=random`;
+  const simulatorDestination = `/simulacro/${category.categoryId}?mode=adaptive&strategy=adaptive`;
   const examDestination = `/simulacro/${category.categoryId}?mode=exam`;
   return {
     slug: `simulador-mtc-${category.slug}`,
     categorySlug: category.slug,
     title: `Simulador MTC ${category.common} 2026: 40 preguntas y balotario ${category.code}`,
-    description: `Practica 5 preguntas ${category.common} gratis o rinde 40 preguntas en 40 minutos. Revisa respuestas y abre el balotario MTC ${category.code}.`,
+    description: `Entrena para ${category.common} con errores, preguntas nuevas y repaso; luego mide tu nivel con 40 preguntas en 40 minutos.`,
     h1: `Simulador MTC ${category.common} para ${category.exam}`,
     intro: `Esta página corresponde únicamente a ${category.code}. Practica preguntas para ${category.vehicle}, revisa la explicación completa y usa el simulacro cronometrado para medir tu avance.`,
     primaryCta: `/?auth=register&category=${category.categoryId}&next=${encodeURIComponent(simulatorDestination)}`,
-    ctaText: `Practicar 5 preguntas ${category.common}`,
+    ctaText: `Entrenamiento inteligente ${category.common}`,
     secondaryCta: `/?auth=register&category=${category.categoryId}&next=${encodeURIComponent(examDestination)}`,
     secondaryCtaText: 'Rendir simulacro de 40',
     sampleSourceCode: category.code,
@@ -1619,10 +1626,10 @@ function simulatorPageFor(category) {
     sections: [
       [`Qué vehículos cubre ${category.code}`, category.scope],
       [`Qué conviene reforzar en ${category.common}`, category.focus],
-      [`Cómo estudiar para ${category.code}`, `${category.advice} La práctica corta tiene 5 preguntas sin tiempo; el simulacro de medición tiene 40 preguntas y 40 minutos.`],
+      [`Cómo estudiar para ${category.code}`, `${category.advice} El entrenamiento combina errores, preguntas nuevas y repaso; el simulacro de medición tiene 40 preguntas y 40 minutos.`],
     ],
     faqs: [
-      [`Que incluye el simulador MTC ${category.common}?`, `Incluye práctica exclusiva de ${category.code}, preguntas completas, explicaciones, simulacro de 40 preguntas y acceso al balotario correspondiente.`],
+      [`Que incluye el simulador MTC ${category.common}?`, `Incluye entrenamiento inteligente exclusivo de ${category.code}, preguntas completas, explicaciones, simulacro de 40 preguntas y acceso al balotario correspondiente.`],
       [`Donde descargo el balotario ${category.code}?`, `Usa el botón “Abrir balotario ${category.code}” de esta página y contrasta cualquier cambio con la publicación oficial del MTC.`],
       [`Qué vehículos corresponden a ${category.code}?`, category.scope],
       ['La plataforma es oficial?', disclaimer],
@@ -1640,7 +1647,7 @@ function balotarioPageFor(category) {
     intro: `Este es el acceso al balotario de ${category.code}, la categoría que corresponde a ${category.vehicle}. Descarga el PDF completo y úsalo junto con la práctica filtrada para esa misma licencia.`,
     primaryCta: `/mtc-official/${category.pdf}`,
     ctaText: `Descargar PDF ${category.code}`,
-    secondaryCta: `/?auth=register&category=${category.categoryId}&next=${encodeURIComponent(`/simulacro/${category.categoryId}?mode=quick&strategy=random`)}`,
+    secondaryCta: `/?auth=register&category=${category.categoryId}&next=${encodeURIComponent(`/simulacro/${category.categoryId}?mode=adaptive&strategy=adaptive`)}`,
     secondaryCtaText: `Practicar ${category.common}`,
     keywords: [`balotario mtc ${category.common}`, `balotario ${category.code}`, `preguntas mtc ${category.common}`, `pdf mtc ${category.common}`],
     sections: [
@@ -1829,6 +1836,10 @@ ${disclaimer}
 - El MTC informa que el examen de reglas tiene 40 preguntas y una duración máxima de 40 minutos.
 - La publicación del MTC indica que se requieren al menos 35 respuestas correctas para aprobar.
 - Las preguntas y balotarios se organizan según la categoría de licencia elegida.
+- El entrenamiento inteligente combina hasta 20 preguntas por reforzar, 12 nuevas y 8 de repaso en una práctica de 40.
+- Una pregunta fallada se considera dominada después de acertarla en dos prácticas distintas y no se prioriza otra vez antes de doce horas.
+- El progreso real se calcula con simulacros aleatorios de 40 preguntas y 40 minutos; se recomienda medir el nivel después de cuatro entrenamientos.
+- La referencia de preparación combina haber recorrido el banco de la categoría y aprobar tres simulacros consecutivos.
 - Las condiciones de acceso se muestran dentro de la plataforma antes de iniciar una práctica o contratación.
 - Cada página de categoría publica cuarenta preguntas completas, con cuatro alternativas, respuesta y referencia al balotario correspondiente.
 - Fuente del formato oficial: ${officialSources.find((source) => source.id === 'exam-format').url}
@@ -1842,7 +1853,7 @@ ${disclaimer}
 - ${siteUrl}/senales-de-transito: señales de tránsito para practicar.
 - ${siteUrl}/reglas-de-transito-peru: reglas de tránsito en Perú.
 - ${siteUrl}/fuentes-mtc: fuentes oficiales y balotarios de referencia.
-- ${siteUrl}/metodologia-simulador-mtc: metodología editorial, alcance y actualización del contenido.
+- ${siteUrl}/metodologia-simulador-mtc: método de entrenamiento 20/12/8, repaso espaciado, medición y fuentes editoriales.
 - ${siteUrl}/contacto: datos de ${legalName}, RUC ${taxId}, dirección, teléfono y correo.
 - ${siteUrl}/materiales: descarga pública de balotarios y normas oficiales del MTC.
 - ${siteUrl}/terminos-y-condiciones: condiciones de uso del servicio.

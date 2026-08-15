@@ -1,12 +1,12 @@
 import {
   ArrowRight,
+  BrainCircuit,
   BookOpen,
   CheckCircle2,
   CircleGauge,
   Clock3,
   LockKeyhole,
   Shuffle,
-  Sparkles,
   Target,
   TrendingUp,
 } from 'lucide-react';
@@ -46,6 +46,7 @@ export default function VehicleStartPanel({
   onCategoryChange,
   onStart,
   startTo,
+  adaptiveTo,
   fullExamTo,
   fullExamHasAccess = false,
   fullExamAccessLoading = false,
@@ -96,12 +97,13 @@ export default function VehicleStartPanel({
         </p>
         <div className="mx-auto mt-4 flex max-w-3xl items-start gap-3 border-y border-blue-200 bg-blue-50 px-4 py-3 text-left sm:items-center sm:px-5">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand text-white">
-            <Sparkles className="h-5 w-5" aria-hidden="true" />
+            <BrainCircuit className="h-5 w-5" aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <p className="font-display text-base font-black text-ink sm:text-lg">La IA aprende de tus resultados</p>
+            <p className="font-display text-base font-black text-ink sm:text-lg">Una práctica distinta para cada persona</p>
             <p className="mt-0.5 text-sm leading-5 text-slate-700 sm:text-base sm:leading-6">
-              Detecta las preguntas y temas que más fallas, los prioriza en tus prácticas y te muestra tu progreso para ayudarte a mejorar.
+              El sistema aprende de tus resultados y combina lo que fallas, preguntas nuevas y repaso para que avances sin memorizar por repetición.
+              {' '}<Link to="/metodologia-simulador-mtc" className="font-bold text-brand underline underline-offset-2">Conoce el método</Link>.
             </p>
           </div>
         </div>
@@ -180,6 +182,45 @@ export default function VehicleStartPanel({
             <p className="mt-1 text-sm leading-5 text-slate-600">{selectedCategory.description}</p>
           </div>
 
+          {adaptiveTo ? (
+            <section className="mx-auto mt-4 max-w-5xl rounded-lg border-2 border-brand bg-white p-5 sm:p-6" aria-labelledby="adaptive-practice-title">
+              <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_260px] md:items-center">
+                <div className="min-w-0">
+                  <p className="flex items-center gap-2 text-sm font-black uppercase text-brand">
+                    <BrainCircuit className="h-5 w-5" />
+                    Entrenamiento inteligente
+                  </p>
+                  <h2 id="adaptive-practice-title" className="mt-1 font-display text-2xl font-black text-ink sm:text-3xl">
+                    Practica lo que realmente necesitas
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-600 sm:text-base">
+                    Sin cronómetro y con cada respuesta explicada. Las preguntas falladas siguen en refuerzo hasta que las aciertes en dos prácticas distintas.
+                  </p>
+                  <div className="mt-4 grid grid-cols-3 divide-x divide-line border-y border-line py-3 text-center">
+                    <span className="px-1">
+                      <strong className="block font-display text-2xl font-black text-danger">20</strong>
+                      <span className="text-xs text-slate-600">por reforzar</span>
+                    </span>
+                    <span className="px-1">
+                      <strong className="block font-display text-2xl font-black text-brand">12</strong>
+                      <span className="text-xs text-slate-600">nuevas</span>
+                    </span>
+                    <span className="px-1">
+                      <strong className="block font-display text-2xl font-black text-success">8</strong>
+                      <span className="text-xs text-slate-600">de repaso</span>
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-slate-500">La mezcla se ajusta cuando todavía no existe suficiente historial.</p>
+                </div>
+                <Link to={adaptiveTo} className="inline-flex min-h-16 items-center justify-center gap-2 rounded-lg bg-brand px-5 text-center font-display text-lg font-black text-white shadow-[0_5px_0_#0d47a1] transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-brand">
+                  <BrainCircuit className="h-7 w-7" />
+                  Empezar entrenamiento
+                  <ArrowRight className="h-6 w-6" />
+                </Link>
+              </div>
+            </section>
+          ) : null}
+
           {fullExamTo ? (
             <section
               className="mx-auto mt-4 max-w-5xl overflow-hidden rounded-lg border-2 border-brand bg-brand-deep text-white"
@@ -189,7 +230,7 @@ export default function VehicleStartPanel({
                 <div className="min-w-0">
                   <p className="flex items-center gap-2 text-sm font-black uppercase text-traffic-yellow">
                     <Clock3 className="h-5 w-5" />
-                    Simulacro cronometrado
+                    {progress?.recommendTimedExam ? 'Es momento de medir tu nivel' : 'Simulacro cronometrado'}
                   </p>
                   <h2 id="official-exam-title" className="mt-1 font-display text-2xl font-black sm:text-3xl">
                     40 preguntas como en la evaluación

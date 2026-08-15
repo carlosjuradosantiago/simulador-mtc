@@ -56,7 +56,7 @@ function normalizeResult(result) {
     category: result.category ?? emptyResult.category,
     tiempoUsado: result.tiempoUsado ?? emptyResult.tiempoUsado,
     temas,
-    reviewQuestions: result.reviewQuestions?.slice(0, 12) ?? [],
+    reviewQuestions: result.reviewQuestions ?? [],
   };
 }
 
@@ -75,7 +75,14 @@ function mergeResultWithFallback(primary, fallback) {
 }
 
 function resultMessage(result) {
-  const quickPractice = result.total <= 5;
+  const adaptivePractice = result.sessionType === 'PRACTICA_ADAPTATIVA';
+  const quickPractice = result.total <= 5 && !adaptivePractice;
+  if (adaptivePractice) {
+    return {
+      title: 'Entrenamiento terminado',
+      text: 'Tu plan ya aprendió qué necesitas reforzar en la próxima práctica.',
+    };
+  }
   if (result.correctas === result.total && result.total > 0) {
     return { title: '¡Excelente!', text: 'Respondiste todo correctamente.' };
   }
@@ -161,7 +168,9 @@ export default function ResultsPage() {
 
   const message = resultMessage(result);
   const categoryId = resolveCategoryId(result.category);
-  const quickPractice = result.total <= 5;
+  const adaptivePractice = result.sessionType === 'PRACTICA_ADAPTATIVA';
+  const quickPractice = result.total <= 5 && !adaptivePractice;
+  const learningPractice = quickPractice || adaptivePractice;
   const weakTopics = [...result.temas]
     .filter((topic) => Number(topic.porcentaje ?? 0) < 100)
     .sort((left, right) => Number(left.porcentaje ?? 0) - Number(right.porcentaje ?? 0))
@@ -206,15 +215,17 @@ export default function ResultsPage() {
           <div className="h-full rounded-full bg-success" style={{ width: `${result.porcentaje}%` }} />
         </div>
         <p className="mt-2 text-right text-sm font-bold text-slate-600">{result.porcentaje}% correcto</p>
-        {quickPractice ? (
+        {learningPractice ? (
           <p className="mt-4 border-l-4 border-brand bg-blue-50 px-4 py-3 text-left text-sm leading-6 text-slate-700">
-            Esta práctica sirve para aprender y no cambia tus estadísticas. Tu avance se calcula solo con simulacros cronometrados de 40 preguntas.
+            {adaptivePractice
+              ? 'Tu siguiente entrenamiento priorizará lo que fallaste, añadirá preguntas nuevas y repasará lo aprendido. Tu nivel real se mide solo con simulacros cronometrados.'
+              : 'Esta práctica sirve para aprender y no cambia tus estadísticas. Tu avance se calcula solo con simulacros cronometrados de 40 preguntas.'}
           </p>
         ) : null}
       </section>
 
       <div className="mx-auto mt-6 flex max-w-3xl flex-col gap-3 sm:flex-row">
-        {quickPractice ? (
+        {learningPractice ? (
           <>
             <Button
               as={Link}
@@ -225,16 +236,16 @@ export default function ResultsPage() {
               <Clock3 className="h-6 w-6" />
               Iniciar simulacro
             </Button>
-            <Button as={Link} to={`/simulacro/${categoryId}?mode=quick&strategy=weak`} variant="secondary" size="lg" className="flex-1">
+            <Button as={Link} to={`/simulacro/${categoryId}?mode=adaptive&strategy=adaptive`} variant="secondary" size="lg" className="flex-1">
               <Target className="h-6 w-6" />
-              Practicar 5 otra vez
+              Entrenamiento inteligente
             </Button>
           </>
         ) : (
           <>
-            <Button as={Link} to={`/simulacro/${categoryId}?mode=quick&strategy=weak`} size="lg" className="flex-1">
+            <Button as={Link} to={`/simulacro/${categoryId}?mode=adaptive&strategy=adaptive`} size="lg" className="flex-1">
               <Target className="h-6 w-6" />
-              Reforzar mis errores
+              Entrenamiento inteligente
             </Button>
             <Button
               variant="secondary"

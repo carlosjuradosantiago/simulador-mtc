@@ -81,6 +81,7 @@ export default function DashboardPage() {
         progress={progress}
         onCategoryChange={selectCategory}
         startTo={`/simulacro/${selectedCategoryId}?mode=quick`}
+        adaptiveTo={`/simulacro/${selectedCategoryId}?mode=adaptive&strategy=adaptive`}
         fullExamTo={FULL_EXAM_IS_FREE || membership?.isActive
           ? `/simulacro/${selectedCategoryId}?mode=exam`
           : `/checkout?category=${selectedCategoryId}`}

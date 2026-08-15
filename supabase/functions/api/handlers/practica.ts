@@ -1,7 +1,7 @@
 import { getSupabaseClient } from '../_shared/supabase.ts';
 import { getUserFromToken } from '../_shared/auth.ts';
 import { jsonResponse, errorResponse, unauthorizedResponse } from '../_shared/response.ts';
-import { selectPracticeQuestionIds, type PracticeSelectionMode } from '../_shared/practice-selection.ts';
+import { selectPracticeQuestionIds, shuffled as shuffleItems, type PracticeSelectionMode } from '../_shared/practice-selection.ts';
 import { TIMED_SESSION_TYPE } from '../_shared/membership-access.ts';
 
 // Get category base - determines which questions to fetch
@@ -49,7 +49,10 @@ export async function handleIniciarPractica(req, idTipoExamen, idCategoria) {
     const categoriaId = parseInt(idCategoria || requestBody.categoriaId || requestBody.idCategoria);
     const cantidadSolicitada = Number(requestBody.cantidadPreguntas ?? requestBody.questionCount ?? 40);
     const cantidadPreguntas = Math.min(Math.max(Number.isFinite(cantidadSolicitada) ? Math.trunc(cantidadSolicitada) : 40, 5), 40);
-    const modoSeleccion: PracticeSelectionMode = requestBody.modoSeleccion === 'weak' ? 'weak' : 'random';
+    const requestedMode = String(requestBody.modoSeleccion || '');
+    const modoSeleccion: PracticeSelectionMode = requestedMode === 'weak' || requestedMode === 'adaptive'
+      ? requestedMode
+      : 'random';
     if (!tipoExamenId || !categoriaId) {
       return errorResponse('tipoExamenId y categoriaId son requeridos', 400);
     }
@@ -67,17 +70,24 @@ export async function handleIniciarPractica(req, idTipoExamen, idCategoria) {
     }
     const todosLosIds = [...new Set((todasLasPreguntas || []).map(q => q.id_pregunta))];
 
-    const { data: intentosPrevios } = modoSeleccion === 'weak'
+    const { data: intentosPrevios } = modoSeleccion !== 'random'
       ? await supabase
         .from('intento')
-        .select('respuestas_detalle')
+        .select('id, created_at, respuestas_detalle')
         .eq('id_usuario', usuarioId)
         .eq('id_categoria', categoriaId)
         .order('created_at', { ascending: false })
-        .limit(100)
+        // ponytail: 250 recent attempts bound payload size; move mastery to a summary table if users exceed this window.
+        .limit(250)
       : { data: [] };
     const respuestasPrevias = (intentosPrevios || []).flatMap((intento) => (
-      Array.isArray(intento.respuestas_detalle) ? intento.respuestas_detalle : []
+      Array.isArray(intento.respuestas_detalle)
+        ? intento.respuestas_detalle.map((respuesta) => ({
+          ...respuesta,
+          attemptId: intento.id,
+          attemptedAt: intento.created_at,
+        }))
+        : []
     ));
     const selection = selectPracticeQuestionIds(
       todosLosIds,
@@ -91,6 +101,7 @@ export async function handleIniciarPractica(req, idTipoExamen, idCategoria) {
       solicitado: modoSeleccion,
       aplicado: selection.appliedMode,
       falladasDisponibles: selection.failedAvailable,
+      composicion: selection.composition,
       total: shuffled.length,
     });
     if (shuffled.length === 0) {
@@ -108,19 +119,24 @@ export async function handleIniciarPractica(req, idTipoExamen, idCategoria) {
       console.error('Error fetching questions:', pError);
       return errorResponse('Error al obtener preguntas', 500);
     }
+    const tipoSesion = modoSeleccion === 'adaptive'
+      ? 'PRACTICA_ADAPTATIVA'
+      : cantidadPreguntas < 40
+        ? 'PRACTICA_CORTA'
+        : 'PRACTICA';
     // Create practice session
     const { data: session, error: sError } = await supabase.from('sesion_practica').insert({
       id_usuario: usuarioId, // Use numeric user ID from usuarios table
       id_tipo_examen: tipoExamenId,
       id_categoria: categoriaId,
-      modo_practica: 'PRACTICA',
+      modo_practica: modoSeleccion === 'adaptive' ? 'ADAPTATIVA' : 'PRACTICA',
       estado: 'COMENZADO',
       total_preguntas: shuffled.length,
       preguntas_respondidas: 0,
       respuestas_correctas: 0,
       respuestas_incorrectas: 0,
       ids_preguntas: shuffled,
-      tipo_sesion: cantidadPreguntas < 40 ? 'PRACTICA_CORTA' : 'PRACTICA',
+      tipo_sesion: tipoSesion,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }).select().single();
@@ -134,11 +150,11 @@ export async function handleIniciarPractica(req, idTipoExamen, idCategoria) {
         id: p.id,
         texto: p.texto,
         explicacion: p.explicacion,
-        opciones: (p.opcion_pregunta || []).map((o)=>({
+        opciones: shuffleItems(p.opcion_pregunta || []).map((o, optionIndex)=>({
             id: o.id,
             texto: o.texto,
             esCorrecta: o.es_correcta,
-            orden: o.orden,
+            orden: optionIndex + 1,
             mediaType: o.tipo_multimedia || 'Text',
             mediaData: o.datos_multimedia || null
           })),
@@ -156,7 +172,7 @@ export async function handleIniciarPractica(req, idTipoExamen, idCategoria) {
       }));
     return jsonResponse({
       practiceSessionId: session.id,
-      tipoSesion: cantidadPreguntas < 40 ? 'PRACTICA_CORTA' : 'PRACTICA',
+      tipoSesion,
       estado: 'EN_PROGRESO',
       totalPreguntas: shuffled.length,
       preguntasRespondidas: 0,
@@ -165,6 +181,10 @@ export async function handleIniciarPractica(req, idTipoExamen, idCategoria) {
       modoSeleccion,
       modoSeleccionAplicado: selection.appliedMode,
       preguntasFalladasDisponibles: selection.failedAvailable,
+      preguntasFalladasEnEspera: selection.deferredFailures,
+      preguntasDominadas: selection.retiredFailures,
+      preguntasVistas: selection.seenQuestions,
+      composicion: selection.composition,
       preguntas: preguntasDto
     });
   } catch (err) {

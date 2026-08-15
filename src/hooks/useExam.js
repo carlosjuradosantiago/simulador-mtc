@@ -3,6 +3,7 @@ import { OFFICIAL_EXAM_RULES } from '../data/examRules.js';
 import { api, resolveCategoryId, toQuestion, toResult } from '../services/api.js';
 
 const QUICK_PRACTICE_QUESTIONS = 5;
+const ADAPTIVE_PRACTICE_QUESTIONS = 40;
 const inFlightStarts = new Map();
 
 function getStartRequest(key, createRequest) {
@@ -29,7 +30,9 @@ function elapsedLabel(startedAt) {
 
 export function useExam(category, mode = 'quick', strategy = 'random') {
   const quickPractice = mode !== 'exam';
-  const practiceStrategy = strategy === 'weak' ? 'weak' : 'random';
+  const adaptivePractice = mode === 'adaptive';
+  const practiceStrategy = adaptivePractice ? 'adaptive' : strategy === 'weak' ? 'weak' : 'random';
+  const practiceQuestionCount = adaptivePractice ? ADAPTIVE_PRACTICE_QUESTIONS : QUICK_PRACTICE_QUESTIONS;
   const startedAtRef = useRef(Date.now());
   const [questions, setQuestions] = useState([]);
   const [sessionId, setSessionId] = useState(null);
@@ -62,10 +65,10 @@ export function useExam(category, mode = 'quick', strategy = 'random') {
 
     const categoryId = resolveCategoryId(category);
     const request = getStartRequest(
-      `${categoryId}:${quickPractice ? 'quick' : 'exam'}:${practiceStrategy}`,
+      `${categoryId}:${mode}:${practiceStrategy}`,
       () => (
         quickPractice
-          ? api.startPractice(categoryId, QUICK_PRACTICE_QUESTIONS, practiceStrategy)
+          ? api.startPractice(categoryId, practiceQuestionCount, practiceStrategy)
           : api.startTimedExam(categoryId)
       ),
     );
@@ -73,7 +76,7 @@ export function useExam(category, mode = 'quick', strategy = 'random') {
     request.then((response) => {
       if (cancelled) return;
       const rawQuestions = response.preguntas ?? response.questions ?? [];
-      const questionLimit = quickPractice ? QUICK_PRACTICE_QUESTIONS : rawQuestions.length;
+      const questionLimit = quickPractice ? practiceQuestionCount : rawQuestions.length;
       setSessionId(response.practiceSessionId ?? response.sessionId ?? response.idSesionPractica ?? response.id_sesion_practica ?? response.id);
       setQuestions(rawQuestions.slice(0, questionLimit).map((question) => toQuestion(question, category)));
       if (!quickPractice) {
@@ -91,7 +94,7 @@ export function useExam(category, mode = 'quick', strategy = 'random') {
     return () => {
       cancelled = true;
     };
-  }, [category, practiceStrategy, quickPractice]);
+  }, [category, mode, practiceQuestionCount, practiceStrategy, quickPractice]);
 
   useEffect(() => {
     if (quickPractice || !questions.length) return undefined;
@@ -214,6 +217,7 @@ export function useExam(category, mode = 'quick', strategy = 'random') {
     savingAnswer,
     sessionId,
     quickPractice,
+    adaptivePractice,
     practiceStrategy,
     selectAnswer,
     toggleMarked,

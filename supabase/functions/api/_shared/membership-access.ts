@@ -2,6 +2,7 @@ import { OFFICIAL_EXAM_QUESTION_COUNT } from './exam-rules.ts';
 
 export const TIMED_SESSION_TYPE = 'CRONOMETRADO';
 export const QUICK_SESSION_TYPE = 'PRACTICA_CORTA';
+export const ADAPTIVE_SESSION_TYPE = 'PRACTICA_ADAPTATIVA';
 export const SIMULATED_PAYMENT_METHOD = 'simulacion';
 
 export function isFullExamFree(value?: string | null) {
@@ -30,6 +31,7 @@ export function addCalendarMonths(value: Date | string, months: number) {
 export function partitionAttempts<T extends { tipo_intento?: string | null; total_preguntas?: number | null }>(attempts: T[]) {
   const timed: T[] = [];
   const quick: T[] = [];
+  const adaptive: T[] = [];
   const ignored: T[] = [];
 
   attempts.forEach((attempt) => {
@@ -40,12 +42,14 @@ export function partitionAttempts<T extends { tipo_intento?: string | null; tota
       timed.push(attempt);
     } else if (attempt.tipo_intento === QUICK_SESSION_TYPE) {
       quick.push(attempt);
+    } else if (attempt.tipo_intento === ADAPTIVE_SESSION_TYPE) {
+      adaptive.push(attempt);
     } else {
       ignored.push(attempt);
     }
   });
 
-  return { timed, quick, ignored };
+  return { timed, quick, adaptive, ignored };
 }
 
 export function isRealPayment(payment: {

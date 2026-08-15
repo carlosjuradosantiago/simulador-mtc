@@ -1,5 +1,6 @@
 import {
   ArrowRight,
+  BrainCircuit,
   CalendarDays,
   CheckCircle2,
   CircleGauge,
@@ -33,6 +34,13 @@ const EMPTY_STATS = {
   totalPreguntas: 0,
   respuestasCorrectas: 0,
   weakTopics: [],
+  adaptivePracticeCount: 0,
+  adaptiveSinceLastTimed: 0,
+  recommendTimedExam: false,
+  questionsSeen: 0,
+  questionGoal: 0,
+  passedStreak: 0,
+  readyForExam: false,
 };
 
 function formatAttemptDate(value, compact = false) {
@@ -69,6 +77,9 @@ export default function ProgressPage() {
     : null;
   const simulatorTo = categoryId
     ? `/simulacro/${categoryId}?mode=exam`
+    : '/dashboard?chooseCategory=1';
+  const adaptiveTo = categoryId
+    ? `/simulacro/${categoryId}?mode=adaptive&strategy=adaptive`
     : '/dashboard?chooseCategory=1';
 
   useEffect(() => {
@@ -114,12 +125,15 @@ export default function ProgressPage() {
   const totalAttempts = Number(stats?.totalIntentos) || 0;
   const average = Math.round(Number(stats?.promedioGeneral) || 0);
   const approved = Number(stats?.intentosAprobados) || 0;
-  const totalQuestions = Number(stats?.totalPreguntas) || 0;
-  const correctAnswers = Number(stats?.respuestasCorrectas) || 0;
   const weakTopics = stats?.weakTopics ?? [];
+  const questionsSeen = Number(stats?.questionsSeen) || 0;
+  const questionGoal = Number(stats?.questionGoal) || 0;
+  const passedStreak = Number(stats?.passedStreak) || 0;
   const hasAttempts = totalAttempts > 0;
   const statusTitle = !categoryId
     ? 'Primero elige tu licencia'
+    : stats?.recommendTimedExam
+      ? 'Ya toca medir tu nivel'
     : !hasAttempts
       ? 'Completa tu primer simulacro'
       : average >= PASSING_PERCENTAGE
@@ -143,6 +157,12 @@ export default function ProgressPage() {
             <CircleGauge className="h-6 w-6" />
             {category ? `Iniciar simulacro ${category.title}` : 'Elegir mi licencia'}
           </Button>
+          {category ? (
+            <Button as={Link} to={adaptiveTo} variant="secondary" size="lg">
+              <BrainCircuit className="h-6 w-6" />
+              Entrenamiento inteligente
+            </Button>
+          ) : null}
           {category ? (
             <Button as={Link} to="/dashboard?chooseCategory=1" variant="secondary" size="lg">
               Cambiar licencia
@@ -175,6 +195,8 @@ export default function ProgressPage() {
                 <p className="mt-2 text-base leading-6 text-slate-600">
                   {!categoryId
                     ? 'Con esa elección prepararemos las preguntas, prácticas y resultados de tu categoría.'
+                    : stats?.recommendTimedExam
+                      ? 'Ya completaste cuatro entrenamientos desde tu última medición. Haz un simulacro cronometrado para comprobar tu avance.'
                     : hasAttempts
                       ? `Tu promedio actual es ${average}%. La referencia para aprobar es 35 de 40 respuestas, aproximadamente ${PASSING_PERCENTAGE}%.`
                       : 'Al terminarlo verás aquí tu promedio, evolución y los temas que debes reforzar.'}
@@ -187,6 +209,18 @@ export default function ProgressPage() {
                   <span>{hasAttempts ? `${average}% actual` : 'Sin resultados todavía'}</span>
                   <span>Meta: {PASSING_PERCENTAGE}%</span>
                 </div>
+                {categoryId ? (
+                  <div className="mt-5 grid gap-3 border-t border-line pt-5 sm:grid-cols-2">
+                    <p className="flex items-center gap-3 text-sm text-slate-700">
+                      <CheckCircle2 className={`h-5 w-5 shrink-0 ${questionGoal > 0 && questionsSeen >= questionGoal ? 'text-success' : 'text-brand'}`} />
+                      <span><strong>Banco recorrido:</strong> {questionsSeen} de {questionGoal || 200}</span>
+                    </p>
+                    <p className="flex items-center gap-3 text-sm text-slate-700">
+                      <CheckCircle2 className={`h-5 w-5 shrink-0 ${passedStreak >= 3 ? 'text-success' : 'text-brand'}`} />
+                      <span><strong>Racha aprobada:</strong> {passedStreak} de 3</span>
+                    </p>
+                  </div>
+                ) : null}
               </div>
               <div className="grid place-items-center bg-brand-deep p-6 text-center text-white">
                 {hasAttempts ? (
@@ -211,8 +245,8 @@ export default function ProgressPage() {
           <section className="mt-6 grid divide-y divide-line border-y border-line sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4" aria-label="Resumen de avance">
             <Metric label="Simulacros" value={totalAttempts} detail="Completados con 40 preguntas" />
             <Metric label="Aprobados" value={approved} detail="Con 35 o más respuestas correctas" />
-            <Metric label="Respuestas correctas" value={hasAttempts ? correctAnswers : 'Sin datos'} detail={hasAttempts ? `De ${totalQuestions} preguntas evaluadas` : 'Aparecerán después del primer simulacro'} />
-            <Metric label="Prácticas cortas" value={Number(stats?.freePracticeCount) || 0} detail="Sirven para aprender, no cambian el promedio" />
+            <Metric label="Banco recorrido" value={questionGoal ? `${questionsSeen}/${questionGoal}` : questionsSeen} detail="Preguntas distintas que ya viste" />
+            <Metric label="Racha aprobada" value={`${passedStreak}/3`} detail="Simulacros aprobados consecutivos" />
           </section>
 
           <div className="mt-9 grid gap-8 lg:grid-cols-[minmax(0,1.7fr)_minmax(280px,1fr)]">
@@ -278,9 +312,9 @@ export default function ProgressPage() {
                 </div>
               )}
               {categoryId ? (
-                <Button as={Link} to={`/simulacro/${categoryId}?mode=quick&strategy=weak`} variant="secondary" className="mt-4 w-full">
-                  <Target className="h-5 w-5" />
-                  Practicar mis errores
+                <Button as={Link} to={adaptiveTo} variant="secondary" className="mt-4 w-full">
+                  <BrainCircuit className="h-5 w-5" />
+                  Entrenamiento inteligente
                 </Button>
               ) : null}
             </section>

@@ -391,7 +391,6 @@ export function toResult(result) {
   const totalQuestions = result.totalPreguntas ?? result.totalQuestions ?? result.total_preguntas ?? respuestasDetalle.length;
   const reviewQuestions = respuestasDetalle
     .filter((answer) => answer.sinResponder || answer.esCorrecta === false)
-    .slice(0, 12)
     .map((answer, index) => ({
       id: `${result.id}-${answer.idPregunta ?? index}`,
       numero: answer.numero ?? index + 1,
@@ -436,6 +435,7 @@ export function toResult(result) {
     precision: `${porcentaje}%`,
     temas,
     reviewQuestions,
+    sessionType: result.tipoSesion ?? result.tipoIntento ?? result.tipo_sesion ?? result.tipo_intento ?? null,
     createdAt: result.createdAt ?? result.fechaFin ?? result.endTime,
   };
 }
@@ -536,7 +536,7 @@ export const api = {
       tipoExamenId: 2,
       categoriaId: resolveCategoryId(category),
       cantidadPreguntas: Math.min(Math.max(Number(questionCount) || 5, 5), 40),
-      modoSeleccion: strategy === 'weak' ? 'weak' : 'random',
+      modoSeleccion: strategy === 'weak' || strategy === 'adaptive' ? strategy : 'random',
     },
     auth: true,
   }),
