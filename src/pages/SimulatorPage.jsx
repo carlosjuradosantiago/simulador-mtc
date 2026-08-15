@@ -86,6 +86,7 @@ export default function SimulatorPage() {
     : currentFeedback?.opcionCorrecta?.texto || currentQuestion?.respuestaCorrecta || 'No disponible';
   const isLastQuestion = currentIndex === questions.length - 1;
   const canContinue = quickPractice ? (isRevealed || hasAnswer(pendingAnswer)) : isRevealed;
+  const primaryActionDisabled = (!canContinue && !(isAnswered && !isRevealed)) || finishing || savingAnswer;
   const examLabel = normalizeCategoryName(categoria);
   const practiceLabel = strategy === 'weak' ? 'Refuerzo de errores' : 'Preguntas aleatorias';
 
@@ -226,6 +227,30 @@ export default function SimulatorPage() {
     }
     goToQuestion(currentIndex + 1);
   };
+
+  useEffect(() => {
+    const handleEnter = (event) => {
+      if (
+        event.key !== 'Enter'
+        || event.repeat
+        || event.isComposing
+        || event.altKey
+        || event.ctrlKey
+        || event.metaKey
+        || event.shiftKey
+        || primaryActionDisabled
+      ) return;
+
+      const target = event.target;
+      if (target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable="true"], a[href]')) return;
+
+      event.preventDefault();
+      handlePrimaryAction();
+    };
+
+    window.addEventListener('keydown', handleEnter);
+    return () => window.removeEventListener('keydown', handleEnter);
+  }, [handlePrimaryAction, primaryActionDisabled]);
 
   if (loading) {
     return (
@@ -492,7 +517,8 @@ export default function SimulatorPage() {
           <Button
             size="lg"
             onClick={handlePrimaryAction}
-            disabled={(!canContinue && !(isAnswered && !isRevealed)) || finishing || savingAnswer}
+            disabled={primaryActionDisabled}
+            data-primary-action="true"
             className="ml-auto w-full sm:w-auto sm:min-w-72"
           >
             {finishing

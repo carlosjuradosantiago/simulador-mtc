@@ -58,8 +58,8 @@ export default function Topbar() {
     <>
       <header className="sticky top-0 z-40 border-b border-line bg-white">
         <div className="mx-auto flex min-h-[72px] max-w-[1440px] items-center gap-4 px-4 sm:px-6 lg:px-8">
-          <BrandLogo compact to="/dashboard" className="md:hidden" />
-          <BrandLogo to="/dashboard" className="hidden md:inline-flex" />
+          <BrandLogo compact to="/" className="md:hidden" />
+          <BrandLogo to="/" className="hidden md:inline-flex" />
 
           <nav aria-label="Navegación principal" className="mx-auto hidden h-[72px] items-stretch gap-1 lg:flex">
             {navItems.map((item) => {
