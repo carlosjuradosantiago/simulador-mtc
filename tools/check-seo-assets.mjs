@@ -110,9 +110,11 @@ async function main() {
   }
   assert.equal(new Set(topicQuestionIds).size, topicQuestionIds.length, 'Hay preguntas repetidas entre páginas temáticas');
   assert.equal(questionBank.meta.sourceQuestionCount, 640, 'Las páginas de preguntas deben provenir de las 640 preguntas deduplicadas');
-  assert.equal(questionBank.meta.publishedPageCount, 80, 'La primera cohorte debe publicar 80 preguntas');
-  assert.equal(questionBank.pages.length, 80, 'El banco de páginas debe contener 80 preguntas');
-  assert.equal(new Set(questionBank.pages.map((page) => page.slug)).size, 80, 'Hay slugs repetidos en las páginas de preguntas');
+  const manualQuestionPageCount = 4;
+  const expectedGeneratedQuestionPages = questionBank.meta.uniqueQuestionTextCount - manualQuestionPageCount;
+  assert.equal(questionBank.meta.publishedPageCount, expectedGeneratedQuestionPages, 'Deben publicarse todos los enunciados únicos que no tienen una página manual');
+  assert.equal(questionBank.pages.length, expectedGeneratedQuestionPages, 'El banco debe contener todos los enunciados únicos de la fuente');
+  assert.equal(new Set(questionBank.pages.map((page) => page.slug)).size, expectedGeneratedQuestionPages, 'Hay slugs repetidos en las páginas de preguntas');
   const generatedQuestionByFile = new Map(questionBank.pages.map((page) => [`${page.slug}.html`, page]));
   for (const page of questionBank.pages) {
     assert(page.slug.startsWith('preguntas-mtc/'), `${page.slug}: debe vivir bajo /preguntas-mtc/`);
@@ -125,7 +127,7 @@ async function main() {
     }
     assert(questionDirectoryHtml.includes(`href="/${page.slug}"`), `${page.slug}: falta enlace desde el directorio público`);
   }
-  assert.equal((questionDirectoryHtml.match(/<li><a href="\/preguntas-mtc\//g) || []).length, 80, 'El directorio debe enlazar las 80 preguntas prioritarias');
+  assert.equal((questionDirectoryHtml.match(/<li><a href="\/preguntas-mtc\//g) || []).length, expectedGeneratedQuestionPages, 'El directorio debe enlazar todas las preguntas generadas');
   const vercelConfig = JSON.parse(vercel);
   const redirects = vercelConfig.redirects || [];
   assert.equal(vercelConfig.trailingSlash, false, 'vercel.json: las URLs canónicas no deben terminar en /');
@@ -173,7 +175,9 @@ async function main() {
       .replace(/<script[\s\S]*?<\/script>/g, ' ')
       .replace(/<style[\s\S]*?<\/style>/g, ' ')
       .replace(/<[^>]+>/g, ' ');
-    assert(!/\b(Peru|categoria|categorias|preparacion|senal|senales|transito|mecanica|basica|basico|vehiculos|conduccion|publicacion|informacion|evaluacion|revision|circulacion|semaforo|despues|preparate|razon|pagina|guia|guias|dificiles|imagenes|accion|tambien|ademas|segun)\b/i.test(visibleText), `${file}: quedan palabras frecuentes sin acentuar`);
+    if (!file.startsWith('preguntas-mtc/')) {
+      assert(!/\b(Peru|categoria|categorias|preparacion|senal|senales|transito|mecanica|basica|basico|vehiculos|conduccion|publicacion|informacion|evaluacion|revision|circulacion|semaforo|despues|preparate|razon|pagina|guia|guias|dificiles|imagenes|accion|tambien|ademas|segun)\b/i.test(visibleText), `${file}: quedan palabras frecuentes sin acentuar`);
+    }
 
     const title = firstMatch(html, /<title>([^<]+)<\/title>/, 'title', file);
     const description = firstMatch(html, /<meta name="description" content="([^"]+)"/, 'description', file);

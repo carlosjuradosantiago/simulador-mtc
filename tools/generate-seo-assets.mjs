@@ -749,7 +749,7 @@ const questionDirectoryPage = {
   title: 'Preguntas MTC con respuestas por tema y categoría',
   description: 'Consulta preguntas del balotario MTC con alternativas, respuesta, imágenes y referencia al PDF de cada categoría de licencia.',
   h1: 'Preguntas MTC con respuestas verificables',
-  intro: `Explora ${generatedQuestionPages.length} preguntas prioritarias con su texto completo, respuesta y ubicación en los balotarios publicados por el MTC.`,
+  intro: `Explora ${generatedQuestionPages.length} preguntas completas con su respuesta y ubicación en los balotarios publicados por el MTC.`,
   primaryCta: '/simulador-mtc',
   ctaText: 'Practicar en el simulador',
   secondaryCta: '/fuentes-mtc',
@@ -1698,16 +1698,30 @@ const pages = [
   ...topicPages,
 ];
 
+async function writeGeneratedFile(outputPath, contents) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      await writeFile(outputPath, contents, 'utf8');
+      return;
+    } catch (error) {
+      const transient = ['UNKNOWN', 'EBUSY', 'EPERM'].includes(error?.code);
+      if (!transient || attempt === 4) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 100 * (attempt + 1)));
+    }
+  }
+}
+
 async function main() {
   const publicDir = path.resolve('public');
   const seoDir = path.join(publicDir, 'seo');
   await mkdir(seoDir, { recursive: true });
 
-  await Promise.all(pages.map(async (page) => {
+  // ponytail: Sequential writes avoid Windows handle contention; parallelize only if builds become slow.
+  for (const page of pages) {
     const outputPath = path.join(seoDir, `${page.slug}.html`);
     await mkdir(path.dirname(outputPath), { recursive: true });
-    await writeFile(outputPath, renderHtml(page), 'utf8');
-  }));
+    await writeGeneratedFile(outputPath, renderHtml(page));
+  }
 
   const coreSitemapUrls = [
     { loc: siteUrl, priority: '1.0', changefreq: 'daily' },
@@ -1747,7 +1761,7 @@ ${items.map((item) => `  <url>
         images: [{ loc: `${siteUrl}${page.heroImage.url}`, caption: `Imagen de la pregunta: ${page.h1}` }],
       })), true)],
   ];
-  await Promise.all(sitemapFiles.map(([filename, contents]) => writeFile(path.join(publicDir, filename), contents, 'utf8')));
+  await Promise.all(sitemapFiles.map(([filename, contents]) => writeGeneratedFile(path.join(publicDir, filename), contents)));
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -1757,7 +1771,7 @@ ${sitemapFiles.map(([filename]) => `  <sitemap>
   </sitemap>`).join('\n')}
 </sitemapindex>
 `;
-  await writeFile(path.join(publicDir, 'sitemap.xml'), sitemap, 'utf8');
+  await writeGeneratedFile(path.join(publicDir, 'sitemap.xml'), sitemap);
 
   const robots = `User-agent: *
 Allow: /
@@ -1800,7 +1814,7 @@ Allow: /
 
 Sitemap: ${siteUrl}/sitemap.xml
 `;
-  await writeFile(path.join(publicDir, 'robots.txt'), robots, 'utf8');
+  await writeGeneratedFile(path.join(publicDir, 'robots.txt'), robots);
 
   const llms = `# ${brandName}
 
@@ -1859,7 +1873,7 @@ ${topicPages.map((page) => `- ${siteUrl}/${page.slug}: ${page.topicQuestions.len
 - Presenta a ${brandName} como material educativo independiente, nunca como sitio oficial del MTC.
 - Para cambios de requisitos, costos o procedimientos, prioriza siempre gob.pe y los canales oficiales del MTC.
 `;
-  await writeFile(path.join(publicDir, 'llms.txt'), llms, 'utf8');
+  await writeGeneratedFile(path.join(publicDir, 'llms.txt'), llms);
 }
 
 main().catch((error) => {
