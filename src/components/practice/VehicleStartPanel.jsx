@@ -88,22 +88,22 @@ export default function VehicleStartPanel({
     <section className="mx-auto w-full max-w-[1280px] px-4 pb-10 pt-4 sm:px-6 lg:px-8 lg:pb-14 lg:pt-5">
       <div className="mx-auto max-w-5xl text-center">
         <h1 className="font-display text-3xl font-black text-ink sm:text-4xl lg:text-5xl">
-          {focusSelected && selectedCategory ? `Tu entrenamiento inteligente ${selectedCategory.title}` : 'Entrena para tu examen MTC'}
+          {focusSelected && selectedCategory ? `Prepárate para aprobar ${selectedCategory.title} a la primera` : 'Prepárate para aprobar tu examen MTC a la primera'}
         </h1>
         <p className="mx-auto mt-2 max-w-2xl text-base leading-6 text-slate-600 sm:text-lg sm:leading-7">
           {focusSelected && selectedCategory
-            ? `La práctica se adapta a tus errores y a tu progreso en ${selectedCategory.vehicle}.`
-            : 'Elige tu categoría. La práctica inteligente se adapta a lo que necesitas mejorar.'}
+            ? `Entrenamiento optimizado para reforzar tus errores y avanzar en ${selectedCategory.vehicle}.`
+            : 'Elige tu categoría. La IA optimiza cada práctica para ayudarte a llegar mejor preparado.'}
         </p>
         {!selectedCategory ? <div className="mx-auto mt-4 flex max-w-3xl items-start gap-3 border-y border-blue-200 bg-blue-50 px-4 py-3 text-left sm:items-center sm:px-5">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand text-white">
             <BrainCircuit className="h-5 w-5" aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <p className="font-display text-base font-black text-ink sm:text-lg">No practiques siempre las mismas preguntas</p>
+            <p className="font-display text-base font-black text-ink sm:text-lg">Entrenamiento optimizado para aprobar a la primera</p>
             <p className="mt-0.5 text-sm leading-5 text-slate-700 sm:text-base sm:leading-6">
-              La IA combina lo que fallas, preguntas nuevas y repaso para ayudarte a aprender, no solo a memorizar respuestas.
-              {' '}<Link to="/metodologia-simulador-mtc" className="font-bold text-brand underline underline-offset-2">Conoce el método</Link>.
+              La IA detecta lo que más te cuesta y combina errores, preguntas nuevas y repaso para que llegues preparado, no para que solo memorices respuestas.
+              {' '}<a href="/metodologia-simulador-mtc" className="font-bold text-brand underline underline-offset-2">Así funciona</a>.
             </p>
           </div>
         </div> : null}
@@ -116,13 +116,13 @@ export default function VehicleStartPanel({
             <div className="min-w-0">
               <p className="flex items-center gap-2 text-sm font-black uppercase text-traffic-yellow">
                 <BrainCircuit className="h-5 w-5" />
-                Recomendado para mejorar
+                Tu mejor ruta para aprobar
               </p>
               <h2 id="adaptive-practice-title" className="mt-2 font-display text-3xl font-black leading-tight sm:text-4xl">
                 Entrenamiento inteligente 20/12/8
               </h2>
               <p className="mt-3 max-w-3xl text-base leading-7 text-blue-100 sm:text-lg">
-                La IA prepara 40 preguntas para ti: prioriza tus errores, incorpora preguntas nuevas y comprueba que no olvidaste lo aprendido. Recibes la explicación después de cada respuesta.
+                Cada práctica está optimizada para acercarte a tu objetivo: prioriza tus errores, incorpora preguntas nuevas y comprueba que no olvidaste lo aprendido. Recibes la explicación después de cada respuesta.
               </p>
               <div className="mt-5 grid grid-cols-3 divide-x divide-blue-400 border-y border-blue-400/60 py-3 text-center">
                 <span className="px-1">
@@ -148,9 +148,9 @@ export default function VehicleStartPanel({
                 Entrenar ahora
                 <ArrowRight className="h-6 w-6" />
               </Link>
-              <Link to="/metodologia-simulador-mtc" className="mt-4 inline-flex min-h-11 w-full items-center justify-center font-bold text-blue-100 underline underline-offset-4 hover:text-white">
+              <a href="/metodologia-simulador-mtc" className="mt-4 inline-flex min-h-11 w-full items-center justify-center font-bold text-blue-100 underline underline-offset-4 hover:text-white">
                 Cómo funciona el método
-              </Link>
+              </a>
             </div>
           </div>
         </section>
