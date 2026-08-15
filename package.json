@@ -20,6 +20,7 @@
     "check:commerce-compliance": "node tools/check-commerce-compliance.mjs",
     "check:sunat-documents": "node tools/check-sunat-documents.mjs",
     "check:navigation": "node tools/check-safe-navigation.mjs",
+    "check:google-oauth": "node tools/check-google-oauth.mjs",
     "check:seo-bank": "node tools/build-seo-topic-bank.mjs --check",
     "check:seo-category-bank": "node tools/build-seo-category-bank.mjs --check",
     "check:seo-question-pages": "node tools/build-seo-question-pages.mjs --check",
@@ -29,7 +30,7 @@
     "seo:indexnow": "node tools/submit-indexnow.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.106.2",
+    "@supabase/supabase-js": "2.112.3",
     "@tailwindcss/vite": "latest",
     "clsx": "latest",
     "lucide-react": "latest",

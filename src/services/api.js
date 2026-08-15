@@ -8,7 +8,7 @@ const PAYMENTS_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, '/payments');
 
 export const AUTH_TOKEN_KEY = 'simulamanejo:authToken';
 
-const SUPABASE_AUTH_CLIENT_VERSION = 'pkce-v1';
+const SUPABASE_AUTH_CLIENT_VERSION = 'pkce-v2';
 
 let supabaseAuthPromise;
 
@@ -23,6 +23,9 @@ export async function getSupabaseAuth() {
       auth: {
         autoRefreshToken: true,
         detectSessionInUrl: false,
+        experimental: {
+          appendPkceFlowIdToRedirects: true,
+        },
         flowType: 'pkce',
         persistSession: true,
         storageKey: 'simulamanejo:supabase-auth',
@@ -164,9 +167,9 @@ export async function apiTextRequest(path, { method = 'GET', token = getStoredTo
 }
 
 export async function getGoogleOAuthUrl({ redirectTo } = {}) {
-  window.localStorage.removeItem('simulamanejo:supabase-auth-code-verifier');
-
   const supabaseAuth = await getSupabaseAuth();
+  // Finish recovering any previous session before creating the new PKCE verifier.
+  await supabaseAuth.auth.initialize();
   const { data, error } = await supabaseAuth.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -186,9 +189,12 @@ export async function getGoogleOAuthUrl({ redirectTo } = {}) {
   return data.url;
 }
 
-export async function exchangeSupabaseOAuthCode(code) {
+export async function exchangeSupabaseOAuthCode(code, flowId = null) {
   const supabaseAuth = await getSupabaseAuth();
-  const { data, error } = await supabaseAuth.auth.exchangeCodeForSession(code);
+  const { data, error } = await supabaseAuth.auth.exchangeCodeForSession(
+    code,
+    flowId ? { flowId } : undefined,
+  );
   if (error) {
     if (/code verifier|flow state/i.test(error.message || '')) {
       throw new Error('La sesión de Google expiró o se inició en otra pestaña. Vuelve a intentarlo desde este navegador.');

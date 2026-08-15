@@ -23,6 +23,7 @@ export default function AuthCallbackPage() {
       const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
       const accessToken = hashParams.get('access_token');
       const authCode = searchParams.get('code');
+      const flowId = searchParams.get('sb_flow_id');
       const errorDescription = hashParams.get('error_description') || hashParams.get('error') || searchParams.get('error_description') || searchParams.get('error');
       const nextPath = safeInternalPath(searchParams.get('next'));
       const loginPopupPath = `/?auth=login&next=${encodeURIComponent(nextPath)}`;
@@ -30,6 +31,7 @@ export default function AuthCallbackPage() {
       cleanParams.delete('code');
       cleanParams.delete('error');
       cleanParams.delete('error_description');
+      cleanParams.delete('sb_flow_id');
       const cleanSearch = cleanParams.toString();
 
       window.history.replaceState(null, '', `${window.location.pathname}${cleanSearch ? `?${cleanSearch}` : ''}`);
@@ -50,7 +52,7 @@ export default function AuthCallbackPage() {
         if (!token && authCode) {
           let exchangePromise = oauthCodeExchangePromises.get(authCode);
           if (!exchangePromise) {
-            exchangePromise = exchangeSupabaseOAuthCode(authCode);
+            exchangePromise = exchangeSupabaseOAuthCode(authCode, flowId);
             oauthCodeExchangePromises.set(authCode, exchangePromise);
           }
           token = await exchangePromise;
