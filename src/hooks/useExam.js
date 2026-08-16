@@ -108,7 +108,6 @@ export function useExam(category, mode = 'quick', strategy = 'random') {
   const currentQuestion = questions[currentIndex];
 
   const selectAnswer = useCallback(async (questionId, optionId) => {
-    setAnswers((currentAnswers) => ({ ...currentAnswers, [questionId]: optionId }));
     if (!sessionId) return null;
 
     setFeedbackByQuestion((currentFeedback) => {
@@ -120,6 +119,7 @@ export function useExam(category, mode = 'quick', strategy = 'random') {
     setSavingAnswer(true);
     try {
       const feedback = await api.savePracticeAnswer(sessionId, questionId, optionId);
+      setAnswers((currentAnswers) => ({ ...currentAnswers, [questionId]: optionId }));
       setFeedbackByQuestion((current) => ({ ...current, [questionId]: feedback }));
       setSaveError('');
       return feedback;
