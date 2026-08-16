@@ -4,11 +4,9 @@ import {
   Check,
   CircleHelp,
   Clock3,
+  LayoutGrid,
   LockKeyhole,
   LogOut,
-  Pause,
-  Play,
-  Volume2,
   X,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -57,8 +55,8 @@ export default function SimulatorPage() {
   const [finishing, setFinishing] = useState(false);
   const [finishError, setFinishError] = useState('');
   const [pendingAnswers, setPendingAnswers] = useState({});
-  const [speechState, setSpeechState] = useState('idle');
-  const speechRef = useRef(null);
+  const [navigatorOpen, setNavigatorOpen] = useState(false);
+  const navigatorRef = useRef(null);
   const feedbackRef = useRef(null);
   const feedbackQuestionRef = useRef(null);
 
@@ -104,18 +102,25 @@ export default function SimulatorPage() {
     feedbackQuestionRef.current = null;
     setFinishError('');
     setPendingAnswers({});
+    setNavigatorOpen(false);
   }, [categoria, mode, strategy]);
 
   useEffect(() => {
-    speechRef.current = null;
-    window.speechSynthesis?.cancel();
-    setSpeechState('idle');
+    if (!navigatorOpen) return undefined;
 
-    return () => {
-      speechRef.current = null;
-      window.speechSynthesis?.cancel();
+    const closeNavigator = (event) => {
+      if (event.type === 'keydown' && event.key !== 'Escape') return;
+      if (event.type === 'pointerdown' && navigatorRef.current?.contains(event.target)) return;
+      setNavigatorOpen(false);
     };
-  }, [currentQuestion?.id]);
+
+    document.addEventListener('pointerdown', closeNavigator);
+    document.addEventListener('keydown', closeNavigator);
+    return () => {
+      document.removeEventListener('pointerdown', closeNavigator);
+      document.removeEventListener('keydown', closeNavigator);
+    };
+  }, [navigatorOpen]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0 });
@@ -162,42 +167,6 @@ export default function SimulatorPage() {
       void handleFinish();
     }
   }, [handleFinish, questions.length, timeRemaining, timedSession]);
-
-  const toggleSpeech = () => {
-    if (!currentQuestion || !('speechSynthesis' in window)) return;
-
-    if (speechState === 'speaking') {
-      window.speechSynthesis.pause();
-      setSpeechState('paused');
-      return;
-    }
-    if (speechState === 'paused') {
-      window.speechSynthesis.resume();
-      setSpeechState('speaking');
-      return;
-    }
-
-    window.speechSynthesis.cancel();
-    const options = currentQuestion.opciones
-      .map((option, index) => `${String.fromCharCode(65 + index)}. ${option.texto ?? ''}`)
-      .join('. ');
-    const message = new SpeechSynthesisUtterance(`${currentQuestion.texto}. ${options}`);
-    message.lang = 'es-PE';
-    message.rate = 0.88;
-    message.onstart = () => {
-      if (speechRef.current === message) setSpeechState('speaking');
-    };
-    message.onend = () => {
-      if (speechRef.current === message) {
-        speechRef.current = null;
-        setSpeechState('idle');
-      }
-    };
-    message.onerror = message.onend;
-    speechRef.current = message;
-    setSpeechState('speaking');
-    window.speechSynthesis.speak(message);
-  };
 
   const chooseAnswer = (optionId) => {
     if (savingAnswer || !currentQuestion) return;
@@ -379,43 +348,63 @@ export default function SimulatorPage() {
         )}
 
         {timedSession ? (
-          <section className="mt-4 rounded-lg border border-line bg-slate-50 p-3 sm:p-4" aria-labelledby="question-navigator-title">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h2 id="question-navigator-title" className="font-display text-base font-black text-ink">Navega y corrige tus respuestas</h2>
-                <p className="mt-0.5 text-sm text-slate-600">Puedes volver a cualquier pregunta antes de entregar.</p>
+          <div ref={navigatorRef} className="relative mt-2 flex min-h-9 items-center justify-between gap-3">
+            <p className="text-xs font-bold text-slate-500">{progress.answered} respondidas</p>
+            <button
+              type="button"
+              onClick={() => setNavigatorOpen((open) => !open)}
+              aria-expanded={navigatorOpen}
+              aria-controls="question-navigator"
+              className="inline-flex h-9 items-center gap-1.5 rounded-md px-2 text-xs font-black text-slate-600 hover:bg-slate-100 hover:text-brand focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            >
+              <LayoutGrid className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline">Preguntas</span>
+              <span>{currentIndex + 1}/{questions.length}</span>
+            </button>
+
+            {navigatorOpen ? (
+              <div
+                id="question-navigator"
+                className="absolute right-0 top-full z-30 mt-1.5 w-full max-w-[360px] rounded-lg border border-line bg-white p-3 shadow-xl"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-black text-ink">Ir a una pregunta</p>
+                  <p className="text-xs font-bold text-slate-500">{progress.answered}/{questions.length}</p>
+                </div>
+                <div className="mt-2 grid grid-cols-8 gap-1" aria-label="Preguntas del 1 al 40">
+                  {questions.map((question, index) => {
+                    const answered = hasAnswer(answers[question.id]);
+                    const current = index === currentIndex;
+                    return (
+                      <button
+                        key={question.id}
+                        type="button"
+                        onClick={() => {
+                          goToQuestion(index);
+                          setNavigatorOpen(false);
+                        }}
+                        aria-label={`Ir a la pregunta ${index + 1}${answered ? ', respondida' : ', pendiente'}`}
+                        aria-current={current ? 'step' : undefined}
+                        className={cn(
+                          'grid h-8 min-w-0 place-items-center rounded-md border text-xs font-black transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand',
+                          current && 'border-brand bg-brand text-white',
+                          !current && answered && 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100',
+                          !current && !answered && 'border-transparent bg-slate-50 text-slate-500 hover:bg-blue-50 hover:text-brand',
+                        )}
+                      >
+                        {index + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="mt-2 flex gap-3 text-[11px] font-bold text-slate-500" aria-hidden="true">
+                  <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-brand" /> Actual</span>
+                  <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-emerald-100" /> Respondida</span>
+                  <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-slate-100" /> Pendiente</span>
+                </div>
               </div>
-              <p className="text-sm font-black text-brand">{progress.answered}/{questions.length} respondidas</p>
-            </div>
-            <div className="mt-3 grid grid-cols-8 gap-1.5 sm:grid-cols-10" aria-label="Preguntas del 1 al 40">
-              {questions.map((question, index) => {
-                const answered = hasAnswer(answers[question.id]);
-                const current = index === currentIndex;
-                return (
-                  <button
-                    key={question.id}
-                    type="button"
-                    onClick={() => goToQuestion(index)}
-                    aria-label={`Ir a la pregunta ${index + 1}${answered ? ', respondida' : ', pendiente'}`}
-                    aria-current={current ? 'step' : undefined}
-                    className={cn(
-                      'grid h-10 min-w-0 place-items-center rounded-md border text-sm font-black transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand',
-                      current && 'border-brand bg-brand text-white',
-                      !current && answered && 'border-success bg-emerald-50 text-emerald-800 hover:bg-emerald-100',
-                      !current && !answered && 'border-line bg-white text-slate-600 hover:border-brand hover:text-brand',
-                    )}
-                  >
-                    {index + 1}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-bold text-slate-600" aria-hidden="true">
-              <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-brand" /> Actual</span>
-              <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm border border-success bg-emerald-50" /> Respondida</span>
-              <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm border border-line bg-white" /> Pendiente</span>
-            </div>
-          </section>
+            ) : null}
+          </div>
         ) : null}
 
         <section className="mt-4" aria-labelledby="question-title">
@@ -428,32 +417,9 @@ export default function SimulatorPage() {
             />
           ) : null}
 
-          <div className="flex items-start gap-3">
-            <h1 id="question-title" className="min-w-0 flex-1 whitespace-pre-wrap break-words font-display text-xl font-black leading-tight text-ink sm:text-2xl lg:text-[28px]">
-              {currentQuestion.texto}
-            </h1>
-            <button
-              type="button"
-              onClick={toggleSpeech}
-              className="inline-flex min-h-12 shrink-0 items-center gap-2 rounded-lg border border-line bg-white px-3 font-bold text-brand hover:border-brand hover:bg-blue-50"
-              aria-label={
-                speechState === 'speaking'
-                  ? 'Pausar audio'
-                  : speechState === 'paused'
-                    ? 'Continuar audio'
-                    : 'Escuchar pregunta y respuestas'
-              }
-            >
-              {speechState === 'speaking'
-                ? <Pause className="h-5 w-5" />
-                : speechState === 'paused'
-                  ? <Play className="h-5 w-5" />
-                  : <Volume2 className="h-5 w-5" />}
-              <span className="hidden sm:inline">
-                {speechState === 'speaking' ? 'Pausar' : speechState === 'paused' ? 'Continuar' : 'Escuchar'}
-              </span>
-            </button>
-          </div>
+          <h1 id="question-title" className="whitespace-pre-wrap break-words font-display text-xl font-black leading-tight text-ink sm:text-2xl lg:text-[28px]">
+            {currentQuestion.texto}
+          </h1>
 
           <div className="mt-4 grid gap-2.5">
             {currentQuestion.opciones.map((option, index) => {
