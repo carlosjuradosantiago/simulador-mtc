@@ -109,7 +109,13 @@ export function useExam(category, mode = 'quick', strategy = 'random') {
 
   const selectAnswer = useCallback(async (questionId, optionId) => {
     setAnswers((currentAnswers) => ({ ...currentAnswers, [questionId]: optionId }));
-    if (timedSession || !sessionId) return null;
+    if (!sessionId) return null;
+
+    setFeedbackByQuestion((currentFeedback) => {
+      const nextFeedback = { ...currentFeedback };
+      delete nextFeedback[questionId];
+      return nextFeedback;
+    });
 
     setSavingAnswer(true);
     try {
@@ -118,14 +124,14 @@ export function useExam(category, mode = 'quick', strategy = 'random') {
       setSaveError('');
       return feedback;
     } catch {
-      setSaveError(quickPractice
-        ? 'No pudimos guardar esta respuesta todavía. Puedes continuar con la práctica.'
-        : 'No pudimos revisar esta respuesta. Revisa tu conexión y vuelve a intentarlo.');
+      setSaveError(timedSession
+        ? 'No pudimos guardar ni revisar esta respuesta. Revisa tu conexión y vuelve a intentarlo.'
+        : 'No pudimos guardar esta respuesta todavía. Puedes continuar con la práctica.');
       return null;
     } finally {
       setSavingAnswer(false);
     }
-  }, [quickPractice, sessionId, timedSession]);
+  }, [sessionId, timedSession]);
 
   const toggleMarked = useCallback((questionId) => {
     setMarked((currentMarked) => (
