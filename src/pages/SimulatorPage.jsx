@@ -65,7 +65,7 @@ export default function SimulatorPage() {
   const currentFeedback = currentQuestion ? feedbackByQuestion[currentQuestion.id] : null;
   const isAnswered = hasAnswer(currentAnswer);
   const instantFeedbackPractice = quickPractice && !adaptivePractice;
-  const isRevealed = instantFeedbackPractice && isAnswered && Boolean(currentFeedback);
+  const isRevealed = isAnswered && Boolean(currentFeedback);
   const selectedAnswerId = isRevealed ? currentAnswer : (hasAnswer(pendingAnswer) ? pendingAnswer : currentAnswer);
   const selectedOption = currentQuestion?.opciones.find((option) => String(option.id) === String(currentAnswer));
   const correctOption = currentQuestion?.opciones.find((option) => (
@@ -438,7 +438,7 @@ export default function SimulatorPage() {
                   type="button"
                   aria-pressed={selected}
                   data-testid="answer-option"
-                  disabled={isRevealed || savingAnswer}
+                  disabled={(instantFeedbackPractice && isRevealed) || savingAnswer}
                   onClick={() => chooseAnswer(option.id)}
                   className={cn(
                     'flex min-h-14 w-full items-start gap-3 rounded-lg border-2 border-line bg-white px-3 py-3 text-left text-base leading-6 text-ink transition hover:border-blue-300 hover:bg-blue-50 disabled:cursor-default sm:min-h-16 sm:items-center sm:px-4 sm:text-lg',
