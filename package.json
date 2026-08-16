@@ -21,6 +21,7 @@
     "check:sunat-documents": "node tools/check-sunat-documents.mjs",
     "check:navigation": "node tools/check-safe-navigation.mjs",
     "check:google-oauth": "node tools/check-google-oauth.mjs",
+    "check:auth-session": "node tools/check-auth-session.mjs",
     "check:seo-bank": "node tools/build-seo-topic-bank.mjs --check",
     "check:seo-category-bank": "node tools/build-seo-category-bank.mjs --check",
     "check:seo-question-pages": "node tools/build-seo-question-pages.mjs --check",

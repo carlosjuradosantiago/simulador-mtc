@@ -1,5 +1,13 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { api, getStoredToken, setStoredToken, toFrontendUser } from '../services/api.js';
+import {
+  api,
+  AUTH_SESSION_EXPIRED_EVENT,
+  getStoredToken,
+  getSupabaseAuth,
+  isSupabaseAccessToken,
+  setStoredToken,
+  toFrontendUser,
+} from '../services/api.js';
 import { safeInternalPath } from '../utils/navigation.js';
 import { useLocalStorage } from './useLocalStorage.js';
 
@@ -10,6 +18,12 @@ export function AuthProvider({ children }) {
   const [user, setUser, removeUser] = useLocalStorage(USER_KEY, null);
   const [loading, setLoading] = useState(Boolean(getStoredToken()));
   const [authModal, setAuthModal] = useState({ open: false, mode: 'login', redirectTo: '/dashboard', category: null });
+
+  const clearAuthentication = useCallback(() => {
+    setStoredToken(null);
+    removeUser();
+    setLoading(false);
+  }, [removeUser]);
 
   const hydrateUser = useCallback(async (baseUser = user) => {
     const token = getStoredToken();
@@ -60,16 +74,40 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     let cancelled = false;
+    let subscription;
+    const handleExpiredSession = () => clearAuthentication();
+
+    window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, handleExpiredSession);
+    getSupabaseAuth().then((supabaseAuth) => {
+      if (cancelled) return;
+      const { data } = supabaseAuth.auth.onAuthStateChange((event, session) => {
+        const currentToken = getStoredToken();
+        if (session?.access_token && isSupabaseAccessToken(currentToken)) {
+          setStoredToken(session.access_token);
+        }
+        if (event === 'SIGNED_OUT' && isSupabaseAccessToken(currentToken)) {
+          clearAuthentication();
+        }
+      });
+      subscription = data.subscription;
+    }).catch(() => null);
+
+    return () => {
+      cancelled = true;
+      subscription?.unsubscribe();
+      window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, handleExpiredSession);
+    };
+  }, [clearAuthentication]);
+
+  useEffect(() => {
+    let cancelled = false;
     if (!getStoredToken()) {
       setLoading(false);
       return undefined;
     }
 
-    hydrateUser().catch(() => {
-      if (!cancelled) {
-        setStoredToken(null);
-        removeUser();
-      }
+    hydrateUser().catch((error) => {
+      if (!cancelled && error.status === 401) clearAuthentication();
     }).finally(() => {
       if (!cancelled) setLoading(false);
     });
@@ -166,19 +204,21 @@ export function AuthProvider({ children }) {
           }
           return { ok: true };
         } catch (error) {
-          setStoredToken(null);
-          removeUser();
+          clearAuthentication();
           return { ok: false, message: error.message };
         }
       },
       updateUser: (updates) => setUser((currentUser) => ({ ...currentUser, ...updates })),
       refreshUser: hydrateUser,
       logout: () => {
-        setStoredToken(null);
-        removeUser();
+        const token = getStoredToken();
+        if (isSupabaseAccessToken(token)) {
+          getSupabaseAuth().then((supabaseAuth) => supabaseAuth.auth.signOut({ scope: 'local' })).catch(() => null);
+        }
+        clearAuthentication();
       },
     }),
-    [authModal, closeAuthModal, hydrateUser, loading, openAuthModal, removeUser, setUser, storeAuthenticatedUser, user],
+    [authModal, clearAuthentication, closeAuthModal, hydrateUser, loading, openAuthModal, setUser, storeAuthenticatedUser, user],
   );
 
   return createElement(AuthContext.Provider, { value }, children);

@@ -7,6 +7,7 @@ export const SUPABASE_ANON_KEY = __SIMULADOR_SUPABASE_PUBLISHABLE_KEY__;
 const PAYMENTS_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, '/payments');
 
 export const AUTH_TOKEN_KEY = 'simulamanejo:authToken';
+export const AUTH_SESSION_EXPIRED_EVENT = 'simulamanejo:auth-session-expired';
 
 const SUPABASE_AUTH_CLIENT_VERSION = 'pkce-v2';
 
@@ -97,6 +98,54 @@ export function setStoredToken(token) {
   }
 }
 
+function readJwtPayload(token) {
+  try {
+    const encodedPayload = String(token || '').split('.')[1];
+    if (!encodedPayload) return null;
+    const base64 = encodedPayload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(encodedPayload.length / 4) * 4, '=');
+    return JSON.parse(window.atob(base64));
+  } catch {
+    return null;
+  }
+}
+
+export function isSupabaseAccessToken(token) {
+  const issuer = readJwtPayload(token)?.iss;
+  return typeof issuer === 'string' && /\.supabase\.co\/auth\/v1\/?$/i.test(issuer);
+}
+
+function expireStoredSession() {
+  setStoredToken(null);
+  window.dispatchEvent(new Event(AUTH_SESSION_EXPIRED_EVENT));
+}
+
+async function refreshApiToken(token, forceRefresh = false) {
+  if (!isSupabaseAccessToken(token)) return token;
+
+  try {
+    const supabaseAuth = await getSupabaseAuth();
+    const { data, error } = forceRefresh
+      ? await supabaseAuth.auth.refreshSession()
+      : await supabaseAuth.auth.getSession();
+    const freshToken = data?.session?.access_token ?? null;
+
+    if (error || !freshToken) return forceRefresh ? null : token;
+    setStoredToken(freshToken);
+    return freshToken;
+  } catch {
+    return forceRefresh ? null : token;
+  }
+}
+
+function headersWithToken(headers, token) {
+  const requestHeaders = { ...headers };
+  if (token) {
+    requestHeaders.Authorization = `Bearer ${token}`;
+    requestHeaders['X-Auth-Token'] = token;
+  }
+  return requestHeaders;
+}
+
 export async function apiRequest(path, {
   method = 'GET',
   body,
@@ -111,21 +160,29 @@ export async function apiRequest(path, {
     requestHeaders['Content-Type'] = 'application/json';
   }
 
-  if ((auth || token) && token) {
-    requestHeaders.Authorization = `Bearer ${token}`;
-    requestHeaders['X-Auth-Token'] = token;
-  }
-
-  const response = await fetch(`${baseUrl}${path}`, {
+  let requestToken = auth ? await refreshApiToken(token) : token;
+  const requestBody = body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body);
+  const fetchRequest = (activeToken) => fetch(`${baseUrl}${path}`, {
     method,
-    headers: requestHeaders,
-    body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
+    headers: headersWithToken(requestHeaders, (auth || activeToken) ? activeToken : null),
+    body: requestBody,
   });
 
-  const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  let response = await fetchRequest(requestToken);
+  let text = await response.text();
+  let data = text ? JSON.parse(text) : null;
+
+  if (auth && response.status === 401 && isSupabaseAccessToken(requestToken)) {
+    requestToken = await refreshApiToken(requestToken, true);
+    if (requestToken) {
+      response = await fetchRequest(requestToken);
+      text = await response.text();
+      data = text ? JSON.parse(text) : null;
+    }
+  }
 
   if (!response.ok) {
+    if (auth && response.status === 401) expireStoredSession();
     const requestError = new Error(data?.error || data?.message || `Error HTTP ${response.status}`);
     requestError.status = response.status;
     requestError.data = data;
@@ -136,21 +193,25 @@ export async function apiRequest(path, {
 }
 
 export async function apiTextRequest(path, { method = 'GET', token = getStoredToken(), auth = false, headers = {} } = {}) {
-  const requestHeaders = { ...headers };
-
-  if ((auth || token) && token) {
-    requestHeaders.Authorization = `Bearer ${token}`;
-    requestHeaders['X-Auth-Token'] = token;
-  }
-
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  let requestToken = auth ? await refreshApiToken(token) : token;
+  const fetchRequest = (activeToken) => fetch(`${API_BASE_URL}${path}`, {
     method,
-    headers: requestHeaders,
+    headers: headersWithToken(headers, (auth || activeToken) ? activeToken : null),
   });
 
-  const text = await response.text();
+  let response = await fetchRequest(requestToken);
+  let text = await response.text();
+
+  if (auth && response.status === 401 && isSupabaseAccessToken(requestToken)) {
+    requestToken = await refreshApiToken(requestToken, true);
+    if (requestToken) {
+      response = await fetchRequest(requestToken);
+      text = await response.text();
+    }
+  }
 
   if (!response.ok) {
+    if (auth && response.status === 401) expireStoredSession();
     let message = `Error HTTP ${response.status}`;
     try {
       const data = JSON.parse(text);
