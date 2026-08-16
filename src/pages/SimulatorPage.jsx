@@ -64,7 +64,6 @@ export default function SimulatorPage() {
   const pendingAnswer = currentQuestion ? pendingAnswers[currentQuestion.id] : null;
   const currentFeedback = currentQuestion ? feedbackByQuestion[currentQuestion.id] : null;
   const isAnswered = hasAnswer(currentAnswer);
-  const instantFeedbackPractice = quickPractice && !adaptivePractice;
   const isRevealed = isAnswered && Boolean(currentFeedback);
   const selectedAnswerId = isRevealed ? currentAnswer : (hasAnswer(pendingAnswer) ? pendingAnswer : currentAnswer);
   const selectedOption = currentQuestion?.opciones.find((option) => String(option.id) === String(currentAnswer));
@@ -88,7 +87,7 @@ export default function SimulatorPage() {
     ? `${String.fromCharCode(65 + correctOptionIndex)}. ${correctOption.texto || 'Respuesta con imagen'}`
     : currentFeedback?.opcionCorrecta?.texto || currentQuestion?.respuestaCorrecta || 'No disponible';
   const isLastQuestion = currentIndex === questions.length - 1;
-  const canContinue = instantFeedbackPractice ? (isRevealed || hasAnswer(pendingAnswer)) : isAnswered;
+  const canContinue = isRevealed || hasAnswer(pendingAnswer);
   const primaryActionDisabled = !canContinue || finishing || savingAnswer;
   const examLabel = normalizeCategoryName(categoria);
   const practiceLabel = adaptivePractice
@@ -169,20 +168,15 @@ export default function SimulatorPage() {
   }, [handleFinish, questions.length, timeRemaining, timedSession]);
 
   const chooseAnswer = (optionId) => {
-    if (savingAnswer || !currentQuestion) return;
-    if (instantFeedbackPractice) {
-      if (isAnswered) return;
-      setPendingAnswers((current) => ({ ...current, [currentQuestion.id]: optionId }));
-      return;
-    }
-    feedbackQuestionRef.current = currentQuestion.id;
-    selectAnswer(currentQuestion.id, optionId);
+    if (savingAnswer || !currentQuestion || isRevealed) return;
+    setPendingAnswers((current) => ({ ...current, [currentQuestion.id]: optionId }));
   };
 
-  const revealAnswer = () => {
+  const revealAnswer = async () => {
     if (!currentQuestion || !hasAnswer(pendingAnswer)) return;
     feedbackQuestionRef.current = currentQuestion.id;
-    selectAnswer(currentQuestion.id, pendingAnswer);
+    const feedback = await selectAnswer(currentQuestion.id, pendingAnswer);
+    if (!feedback) return;
     setPendingAnswers((current) => {
       const next = { ...current };
       delete next[currentQuestion.id];
@@ -191,8 +185,8 @@ export default function SimulatorPage() {
   };
 
   const handlePrimaryAction = () => {
-    if (instantFeedbackPractice && !isRevealed) {
-      revealAnswer();
+    if (!isRevealed) {
+      void revealAnswer();
       return;
     }
     if (isLastQuestion) {
@@ -438,7 +432,7 @@ export default function SimulatorPage() {
                   type="button"
                   aria-pressed={selected}
                   data-testid="answer-option"
-                  disabled={(instantFeedbackPractice && isRevealed) || savingAnswer}
+                  disabled={isRevealed || savingAnswer}
                   onClick={() => chooseAnswer(option.id)}
                   className={cn(
                     'flex min-h-14 w-full items-start gap-3 rounded-lg border-2 border-line bg-white px-3 py-3 text-left text-base leading-6 text-ink transition hover:border-blue-300 hover:bg-blue-50 disabled:cursor-default sm:min-h-16 sm:items-center sm:px-4 sm:text-lg',
@@ -538,12 +532,14 @@ export default function SimulatorPage() {
               ? 'Guardando resultado...'
               : savingAnswer
                 ? 'Revisando respuesta...'
-                : instantFeedbackPractice && !isRevealed
-                ? 'Responder'
+                : !isRevealed
+                ? 'Confirmar respuesta'
                 : isLastQuestion
                   ? 'Ver mi resultado'
                   : 'Siguiente pregunta'}
-            <ArrowRight className="h-6 w-6" />
+            {!isRevealed && !finishing
+              ? <Check className="h-6 w-6" />
+              : <ArrowRight className="h-6 w-6" />}
           </Button>
         </div>
       </footer>
