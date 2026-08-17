@@ -366,7 +366,7 @@ export default function PlansPage() {
         <aside className="border-t border-line pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0" aria-label="Resumen de compra">
           <p className="text-sm font-bold text-slate-500">{plan.name} mensual</p>
           <p className="mt-1 font-display text-5xl font-black text-ink">{priceLabel(plan.price)}<span className="ml-1 text-base font-bold text-slate-500">/mes</span></p>
-          <p className="mt-1 text-sm text-slate-600">Culqi procesa el pago. Nosotros nunca recibimos el numero completo de tu tarjeta.</p>
+          <p className="mt-1 text-sm font-semibold text-slate-600">Pago seguro con Culqi.</p>
 
           {!hasAccess ? <>
             <h2 className="mt-6 font-display text-xl font-black text-ink">Elige como pagar</h2>
@@ -413,7 +413,7 @@ export default function PlansPage() {
             <ArrowRight className="h-5 w-5" />
           </Button>
           {hasAccess && autoRenew ? <Button variant="secondary" className="mt-3 w-full" onClick={() => setShowCancelDialog(true)} disabled={cancelling}>Cancelar renovacion automatica</Button> : null}
-          <p className="mt-4 flex items-start gap-2 text-xs leading-5 text-slate-500"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" />Culqi procesa la tarjeta dentro de su formulario protegido y aplica autenticacion 3DS cuando el banco la solicita.</p>
+          <p className="mt-4 flex items-start gap-2 text-xs leading-5 text-slate-500"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" />La suscripcion se activa cuando el pago queda confirmado.</p>
         </aside>
       </div>
 

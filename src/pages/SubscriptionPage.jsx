@@ -68,7 +68,7 @@ export default function SubscriptionPage() {
           <div>
             <h2 className="font-display text-2xl font-black text-ink">Compra clara y protegida</h2>
             <ul className="mt-5 grid gap-3 text-slate-700">
-              <li className="flex gap-3"><ShieldCheck className="h-5 w-5 shrink-0 text-success" aria-hidden="true" />Culqi procesa el pago dentro de su formulario seguro.</li>
+              <li className="flex gap-3"><ShieldCheck className="h-5 w-5 shrink-0 text-success" aria-hidden="true" />Pago seguro con Culqi.</li>
               <li className="flex gap-3"><CheckCircle2 className="h-5 w-5 shrink-0 text-success" aria-hidden="true" />El precio y el tipo de renovación se muestran antes de confirmar.</li>
               <li className="flex gap-3"><CheckCircle2 className="h-5 w-5 shrink-0 text-success" aria-hidden="true" />Puedes solicitar boleta o factura durante la compra.</li>
             </ul>
