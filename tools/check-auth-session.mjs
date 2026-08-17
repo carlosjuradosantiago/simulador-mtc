@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const [apiSource, authSource] = await Promise.all([
+const [apiSource, authSource, authModalSource] = await Promise.all([
   readFile(new URL('../src/services/api.js', import.meta.url), 'utf8'),
   readFile(new URL('../src/hooks/useAuth.js', import.meta.url), 'utf8'),
+  readFile(new URL('../src/components/auth/AuthModal.jsx', import.meta.url), 'utf8'),
 ]);
 
 assert.match(apiSource, /AUTH_SESSION_EXPIRED_EVENT/);
@@ -16,6 +17,10 @@ assert.match(authSource, /auth\.onAuthStateChange/);
 assert.match(authSource, /event === 'SIGNED_OUT'/);
 assert.match(authSource, /AUTH_SESSION_EXPIRED_EVENT/);
 assert.match(authSource, /auth\.signOut\(\{ scope: 'local' \}\)/);
+assert.match(authModalSource, /backdropPointerDownRef\.current = event\.target === event\.currentTarget/);
+assert.match(authModalSource, /backdropPointerDownRef\.current && event\.target === event\.currentTarget/);
+assert.match(authModalSource, /aria-label=\{visible \? 'Ocultar contraseña' : 'Mostrar contraseña'\}/);
+assert.equal((authModalSource.match(/<PasswordInput /g) || []).length, 4);
 
 globalThis.__SIMULADOR_API_BASE_URL__ = 'https://api.example.test/api';
 globalThis.__SIMULADOR_SUPABASE_URL__ = 'https://example.supabase.co';
