@@ -77,10 +77,11 @@ const attempts = partitionAttempts([
   { id: 3, tipo_intento: null, total_preguntas: 5 },
   { id: 4, tipo_intento: 'CRONOMETRADO', total_preguntas: 31 },
   { id: 5, tipo_intento: 'PRACTICA_ADAPTATIVA', total_preguntas: 40 },
+  { id: 6, tipo_intento: 'PRACTICA_ADAPTATIVA', total_preguntas: 40, preguntas_respondidas: 2 },
 ]);
 assert.deepEqual(attempts.timed.map(({ id }) => id), [2]);
 assert.deepEqual(attempts.quick.map(({ id }) => id), [1]);
-assert.deepEqual(attempts.adaptive.map(({ id }) => id), [5]);
+assert.deepEqual(attempts.adaptive.map(({ id }) => id), [5, 6]);
 assert.deepEqual(attempts.ignored.map(({ id }) => id), [3, 4]);
 
 assert.equal(isRealPayment({ estado: 'exitoso', metodo_pago: 'tarjeta', culqi_charge_id: 'chr_live_verified', verificado_proveedor_en: '2026-08-14T00:00:00.000Z' }), true);
