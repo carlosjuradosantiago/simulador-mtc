@@ -1,4 +1,4 @@
-import { ArrowRight, KeyRound, Mail, RefreshCw, ShieldCheck, User, X } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, KeyRound, Mail, RefreshCw, ShieldCheck, User, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BRAND_NAME } from '../../data/brand.js';
@@ -38,8 +38,36 @@ function Feedback({ error, notice }) {
   );
 }
 
+function PasswordInput({ label, ...props }) {
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <label className="grid min-w-0 gap-2 text-sm font-semibold text-ink">
+      <span>{label}</span>
+      <span className="relative">
+        <input
+          {...props}
+          type={visible ? 'text' : 'password'}
+          className="min-h-12 w-full min-w-0 rounded-lg border border-line bg-white px-4 pr-12 text-base text-ink outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-4 focus:ring-blue-100"
+        />
+        <button
+          type="button"
+          aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+          aria-pressed={visible}
+          title={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+          onClick={() => setVisible((current) => !current)}
+          className="absolute right-1 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-brand focus:outline-none focus:ring-2 focus:ring-brand"
+        >
+          {visible ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
+        </button>
+      </span>
+    </label>
+  );
+}
+
 export default function AuthModal() {
   const dialogRef = useRef(null);
+  const backdropPointerDownRef = useRef(false);
   const navigate = useNavigate();
   const {
     authModal,
@@ -254,8 +282,16 @@ export default function AuthModal() {
         event.preventDefault();
         closeAuthModal();
       }}
+      onPointerDown={(event) => {
+        backdropPointerDownRef.current = event.target === event.currentTarget;
+      }}
+      onPointerCancel={() => {
+        backdropPointerDownRef.current = false;
+      }}
       onClick={(event) => {
-        if (event.target === event.currentTarget) closeAuthModal();
+        const clickedBackdrop = backdropPointerDownRef.current && event.target === event.currentTarget;
+        backdropPointerDownRef.current = false;
+        if (clickedBackdrop) closeAuthModal();
       }}
       className="m-auto max-h-[94vh] w-[min(94vw,540px)] overflow-y-auto rounded-lg border border-line bg-white p-0 text-ink shadow-2xl"
     >
@@ -278,7 +314,7 @@ export default function AuthModal() {
         {mode === 'login' ? (
           <form className="grid gap-4" onSubmit={handleLogin}>
             <Input label="Correo" type="email" autoComplete="email" value={loginForm.email} onChange={(event) => setLoginForm({ ...loginForm, email: event.target.value })} required autoFocus />
-            <Input label="Contraseña" type="password" autoComplete="current-password" value={loginForm.password} onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })} required />
+            <PasswordInput label="Contraseña" autoComplete="current-password" value={loginForm.password} onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })} required />
             <Feedback error={error} notice={notice} />
             <Button type="submit" size="lg" className="w-full" disabled={busy}>
               {loading ? 'Ingresando...' : 'Entrar'}
@@ -319,7 +355,7 @@ export default function AuthModal() {
             </label>
             <Input label="Tu nombre" autoComplete="name" value={registerForm.name} onChange={(event) => setRegisterForm({ ...registerForm, name: event.target.value })} required />
             <Input label="Tu correo" type="email" autoComplete="email" value={registerForm.email} onChange={(event) => setRegisterForm({ ...registerForm, email: event.target.value })} required />
-            <Input label="Crea una contraseña" type="password" autoComplete="new-password" minLength={8} value={registerForm.password} onChange={(event) => setRegisterForm({ ...registerForm, password: event.target.value })} required />
+            <PasswordInput label="Crea una contraseña" autoComplete="new-password" minLength={8} value={registerForm.password} onChange={(event) => setRegisterForm({ ...registerForm, password: event.target.value })} required />
             <p className="text-sm leading-6 text-slate-600">
               Al crear tu cuenta, aceptas los <Link className="font-bold text-brand hover:underline" to="/terminos-y-condiciones" target="_blank" rel="noopener noreferrer">Términos y condiciones</Link> y confirmas que leíste la <Link className="font-bold text-brand hover:underline" to="/politica-de-privacidad" target="_blank" rel="noopener noreferrer">Política de privacidad</Link>.
             </p>
@@ -375,8 +411,8 @@ export default function AuthModal() {
           <form className="grid gap-4" onSubmit={handleResetConfirm}>
             <Input label="Correo" type="email" autoComplete="email" value={resetForm.email} onChange={(event) => setResetForm({ ...resetForm, email: event.target.value })} required />
             <Input label="Código" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={resetForm.code} onChange={(event) => setResetForm({ ...resetForm, code: event.target.value.replace(/\D/g, '').slice(0, 6) })} required />
-            <Input label="Nueva contraseña" type="password" autoComplete="new-password" minLength={8} value={resetForm.password} onChange={(event) => setResetForm({ ...resetForm, password: event.target.value })} required />
-            <Input label="Repite la contraseña" type="password" autoComplete="new-password" minLength={8} value={resetForm.confirmPassword} onChange={(event) => setResetForm({ ...resetForm, confirmPassword: event.target.value })} required />
+            <PasswordInput label="Nueva contraseña" autoComplete="new-password" minLength={8} value={resetForm.password} onChange={(event) => setResetForm({ ...resetForm, password: event.target.value })} required />
+            <PasswordInput label="Repite la contraseña" autoComplete="new-password" minLength={8} value={resetForm.confirmPassword} onChange={(event) => setResetForm({ ...resetForm, confirmPassword: event.target.value })} required />
             <Feedback error={error} notice={notice} />
             <Button type="submit" size="lg" className="w-full" disabled={loading}>
               {loading ? 'Actualizando...' : 'Guardar contraseña'}
