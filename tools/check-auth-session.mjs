@@ -43,6 +43,7 @@ globalThis.fetch = async () => new Response(JSON.stringify({ error: 'No autoriza
 });
 
 const {
+  api,
   apiRequest,
   AUTH_SESSION_EXPIRED_EVENT,
   AUTH_TOKEN_KEY,
@@ -60,5 +61,21 @@ setStoredToken(customToken);
 await assert.rejects(apiRequest('/protected', { auth: true }), (error) => error.status === 401);
 assert.equal(values.has(AUTH_TOKEN_KEY), false);
 assert.deepEqual(dispatchedEvents, [AUTH_SESSION_EXPIRED_EVENT]);
+
+let loginAttempts = 0;
+globalThis.fetch = async () => {
+  loginAttempts += 1;
+  if (loginAttempts === 1) throw new TypeError('Failed to fetch');
+  return new Response(JSON.stringify({ error: 'Usuario o contrasena incorrectos' }), {
+    headers: { 'Content-Type': 'application/json' },
+    status: 401,
+  });
+};
+
+await assert.rejects(
+  api.login({ email: 'retry@example.test', password: 'not-a-real-password' }),
+  (error) => error.status === 401,
+);
+assert.equal(loginAttempts, 2, 'Traditional login should recover from one transient network failure.');
 
 console.log('Auth session recovery checks passed.');
