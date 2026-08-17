@@ -2,7 +2,11 @@ import { getSupabaseClient } from '../_shared/supabase.ts';
 import { getUserFromToken } from '../_shared/auth.ts';
 import { jsonResponse, errorResponse, unauthorizedResponse } from '../_shared/response.ts';
 import { selectPracticeQuestionIds, shuffled as shuffleItems, type PracticeSelectionMode } from '../_shared/practice-selection.ts';
-import { TIMED_SESSION_TYPE } from '../_shared/membership-access.ts';
+import {
+  FREE_FULL_EXAM_ATTEMPTS,
+  getFullPracticeAccess,
+  TIMED_SESSION_TYPE,
+} from '../_shared/membership-access.ts';
 
 // Get category base - determines which questions to fetch
 async function getCategoriaBase(supabase, idCategoria) {
@@ -56,6 +60,20 @@ export async function handleIniciarPractica(req, idTipoExamen, idCategoria) {
     if (!tipoExamenId || !categoriaId) {
       return errorResponse('tipoExamenId y categoriaId son requeridos', 400);
     }
+
+    if (cantidadPreguntas === 40) {
+      const access = await getFullPracticeAccess(supabase, usuarioId, Deno.env.get('FULL_EXAM_FREE_ACCESS'));
+      if (!access.allowed) {
+        return jsonResponse({
+          code: 'MEMBERSHIP_REQUIRED',
+          message: `Ya utilizaste tus ${FREE_FULL_EXAM_ATTEMPTS} prácticas completas gratuitas. Suscríbete por 1 mes para continuar.`,
+          checkoutPath: `/checkout?category=${categoriaId}`,
+          freeAttemptsUsed: access.completedAttempts,
+          freeAttemptLimit: FREE_FULL_EXAM_ATTEMPTS,
+        }, 402);
+      }
+    }
+
     // Get category base IDs
     const categoriaIds = await getCategoriaBase(supabase, categoriaId);
 

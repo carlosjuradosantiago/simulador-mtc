@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   addCalendarMonths,
+  filterFullPracticeAttempts,
   filterOfficialExamAttempts,
   FREE_FULL_EXAM_ATTEMPTS as API_FREE_FULL_EXAM_ATTEMPTS,
   hasFreeFullExamAttempt,
@@ -49,6 +50,24 @@ assert.deepEqual(historyFilters, [
   ['total_preguntas', 40],
 ]);
 
+const fullPracticeFilters = [];
+const fullPracticeQuery = {
+  eq(column, value) {
+    fullPracticeFilters.push(['eq', column, value]);
+    return this;
+  },
+  in(column, values) {
+    fullPracticeFilters.push(['in', column, values]);
+    return this;
+  },
+};
+assert.equal(filterFullPracticeAttempts(fullPracticeQuery, 42), fullPracticeQuery);
+assert.deepEqual(fullPracticeFilters, [
+  ['eq', 'id_usuario', 42],
+  ['in', 'tipo_intento', ['CRONOMETRADO', 'PRACTICA_ADAPTATIVA', 'PRACTICA']],
+  ['eq', 'total_preguntas', 40],
+]);
+
 assert.equal(addCalendarMonths('2026-01-31T12:00:00.000Z', 1).toISOString(), '2026-02-28T12:00:00.000Z');
 assert.equal(addCalendarMonths('2026-07-25T12:00:00.000Z', 1).toISOString(), '2026-08-25T12:00:00.000Z');
 
@@ -85,6 +104,7 @@ const routes = readFileSync(new URL('../src/routes/AppRoutes.jsx', import.meta.u
 const seoGenerator = readFileSync(new URL('./generate-seo-assets.mjs', import.meta.url), 'utf8');
 const apiRouter = readFileSync(new URL('../supabase/functions/api/index.ts', import.meta.url), 'utf8');
 const timedExamHandler = readFileSync(new URL('../supabase/functions/api/handlers/preguntas.ts', import.meta.url), 'utf8');
+const adaptivePracticeHandler = readFileSync(new URL('../supabase/functions/api/handlers/practica.ts', import.meta.url), 'utf8');
 const dashboardPage = readFileSync(new URL('../src/pages/DashboardPage.jsx', import.meta.url), 'utf8');
 const landingPage = readFileSync(new URL('../src/pages/LandingPage.jsx', import.meta.url), 'utf8');
 assert.match(plansPage, /Suscribete nuevamente para volver a rendir simulacros completos/);
@@ -99,9 +119,11 @@ assert.match(vehicleStartPanel, /Simulacro completo disponible/);
 assert.match(vehicleStartPanel, /Pruebas 1 y 2 sin costo; la 3\.ª requiere suscripción/);
 assert.doesNotMatch(seoGenerator, /suscripción mensual por S\/ 12/);
 assert.match(apiRouter, /path\.startsWith\('\/pagos\/'\) && isFullExamFree/);
-assert.match(timedExamHandler, /filterOfficialExamAttempts/);
-assert.match(timedExamHandler, /hasFreeFullExamAttempt\(completedAttempts \|\| 0\)/);
+assert.match(timedExamHandler, /getFullPracticeAccess/);
 assert.match(timedExamHandler, /freeAttemptLimit: FREE_FULL_EXAM_ATTEMPTS/);
+assert.match(adaptivePracticeHandler, /cantidadPreguntas === 40/);
+assert.match(adaptivePracticeHandler, /getFullPracticeAccess/);
+assert.match(adaptivePracticeHandler, /freeAttemptLimit: FREE_FULL_EXAM_ATTEMPTS/);
 assert.match(dashboardPage, /freeFullExamAttemptsRemaining/);
 assert.match(landingPage, /FREE_FULL_EXAM_ATTEMPTS/);
 assert.match(simulatorPage, /<Navigate to=\{`\/checkout\?category=\$\{categoria\}`\} replace \/>/);

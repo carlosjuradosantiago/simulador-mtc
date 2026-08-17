@@ -1,8 +1,11 @@
 import { getSupabaseClient } from '../_shared/supabase.ts';
 import { getUserFromToken } from '../_shared/auth.ts';
 import { jsonResponse, errorResponse, unauthorizedResponse } from '../_shared/response.ts';
-import { TIMED_SESSION_TYPE } from '../_shared/membership-access.ts';
-import { OFFICIAL_EXAM_QUESTION_COUNT } from '../_shared/exam-rules.ts';
+import {
+  FREE_FULL_EXAM_ATTEMPTS,
+  getFullPracticeAccess,
+  isFullExamFree,
+} from '../_shared/membership-access.ts';
 
 // Helper to parse features from DB (can be JSON array, string, or comma-separated)
 function parseFeatures(features: any): string[] {
@@ -227,50 +230,20 @@ export async function handleGetUserExamCount(req: Request) {
     }
     const supabase = getSupabaseClient();
 
-    // Count exam sessions (sesion_practica - se crea uno cada vez que inicia un examen)
-    const { count, error } = await supabase
-      .from('sesion_practica')
-      .select('*', { count: 'exact', head: true })
-      .eq('id_usuario', user.userId)
-      .eq('tipo_sesion', TIMED_SESSION_TYPE)
-      .eq('total_preguntas', OFFICIAL_EXAM_QUESTION_COUNT)
-      .eq('estado', 'FINALIZADO');
-
-    if (error) {
-      console.error('Error counting exams:', error.message);
-      return errorResponse('Error al contar exámenes: ' + error.message, 500);
-    }
-
-    const examCount = count || 0;
-    const hasActiveMembership = await checkUserHasActiveMembership(supabase, user.userId);
+    const freeAccess = Deno.env.get('FULL_EXAM_FREE_ACCESS');
+    const access = await getFullPracticeAccess(supabase, user.userId, freeAccess);
+    const remainingFreeExams = Math.max(FREE_FULL_EXAM_ATTEMPTS - access.completedAttempts, 0);
 
     return jsonResponse({
-      examCount,
-      freeExamLimit: 0,
-      remainingFreeExams: 0,
-      canTakeExam: hasActiveMembership,
-      hasActiveMembership,
-      requiresPayment: !hasActiveMembership
+      examCount: access.completedAttempts,
+      freeExamLimit: FREE_FULL_EXAM_ATTEMPTS,
+      remainingFreeExams,
+      canTakeExam: access.allowed,
+      hasActiveMembership: access.hasActiveMembership,
+      requiresPayment: !isFullExamFree(freeAccess) && !access.allowed,
     });
   } catch (err) {
     console.error('Get user exam count error:', err);
     return errorResponse('Error interno del servidor', 500);
   }
-}
-
-/**
- * Helper to check if user has an active membership
- */
-async function checkUserHasActiveMembership(supabase: any, userId: number): Promise<boolean> {
-  const now = new Date().toISOString();
-  const { data } = await supabase
-    .from('membresias_usuario')
-    .select('id')
-    .eq('id_usuario', userId)
-    .eq('esta_activa', true)
-    .gte('fecha_fin', now)
-    .limit(1)
-    .maybeSingle();
-  
-  return !!data;
 }

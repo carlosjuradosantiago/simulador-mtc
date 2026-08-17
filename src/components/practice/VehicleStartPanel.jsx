@@ -148,11 +148,17 @@ export default function VehicleStartPanel({
               </p>
             </div>
             <div>
-              <Link to={adaptiveTo} className="inline-flex min-h-16 w-full items-center justify-center gap-2 rounded-lg bg-traffic-yellow px-5 text-center font-display text-xl font-black text-ink shadow-[0_5px_0_#d99b19] transition hover:bg-[#ffc94f] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-white">
-                <BrainCircuit className="h-7 w-7" />
-                Entrenar ahora
-                <ArrowRight className="h-6 w-6" />
-              </Link>
+              {isCheckingFullExamAccess ? (
+                <button type="button" disabled className="inline-flex min-h-16 w-full items-center justify-center rounded-lg bg-slate-200 px-5 font-bold text-slate-500">
+                  Revisando acceso...
+                </button>
+              ) : (
+                <Link to={adaptiveTo} className="inline-flex min-h-16 w-full items-center justify-center gap-2 rounded-lg bg-traffic-yellow px-5 text-center font-display text-xl font-black text-ink shadow-[0_5px_0_#d99b19] transition hover:bg-[#ffc94f] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-white">
+                  {canStartFullExam ? <BrainCircuit className="h-7 w-7" /> : <LockKeyhole className="h-6 w-6" />}
+                  {canStartFullExam ? 'Entrenar ahora' : 'Suscribirme'}
+                  <ArrowRight className="h-6 w-6" />
+                </Link>
+              )}
               <a href="/metodologia-simulador-mtc" className="mt-4 inline-flex min-h-11 w-full items-center justify-center font-bold text-blue-100 underline underline-offset-4 hover:text-white">
                 Cómo funciona el método
               </a>

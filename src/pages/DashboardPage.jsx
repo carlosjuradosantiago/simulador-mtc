@@ -34,10 +34,10 @@ export default function DashboardPage() {
       return;
     }
     api.getPlans().then((items) => setPlan(items?.[0] ?? null)).catch(() => null);
-    Promise.all([api.getActiveMembership(), api.getStats()])
+    Promise.all([api.getActiveMembership(), api.getExamCount()])
       .then(([nextMembership, accessStats]) => {
         setMembership(nextMembership);
-        setCompletedOfficialExams(Number(accessStats?.totalIntentos) || 0);
+        setCompletedOfficialExams(Number(accessStats?.examCount) || 0);
       })
       .catch(() => {
         setMembership(null);
@@ -83,7 +83,7 @@ export default function DashboardPage() {
     }
   };
 
-  const freeFullExamAttemptsRemaining = membership?.isActive
+  const freeFullExamAttemptsRemaining = completedOfficialExams === null || membership?.isActive
     ? 0
     : remainingFreeFullExamAttempts(completedOfficialExams);
   const fullExamHasAccess = FULL_EXAM_IS_FREE
@@ -99,7 +99,9 @@ export default function DashboardPage() {
         progress={progress}
         onCategoryChange={selectCategory}
         startTo={`/simulacro/${selectedCategoryId}?mode=quick`}
-        adaptiveTo={`/simulacro/${selectedCategoryId}?mode=adaptive&strategy=adaptive`}
+        adaptiveTo={fullExamHasAccess
+          ? `/simulacro/${selectedCategoryId}?mode=adaptive&strategy=adaptive`
+          : `/checkout?category=${selectedCategoryId}`}
         fullExamTo={fullExamHasAccess
           ? `/simulacro/${selectedCategoryId}?mode=exam`
           : `/checkout?category=${selectedCategoryId}`}

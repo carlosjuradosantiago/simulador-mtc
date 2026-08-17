@@ -7,9 +7,8 @@ import {
   OFFICIAL_EXAM_QUESTION_COUNT,
 } from '../_shared/exam-rules.ts';
 import {
-  filterOfficialExamAttempts,
   FREE_FULL_EXAM_ATTEMPTS,
-  hasFreeFullExamAttempt,
+  getFullPracticeAccess,
   isFullExamFree,
   TIMED_SESSION_TYPE,
 } from '../_shared/membership-access.ts';
@@ -136,41 +135,20 @@ function jsonResponse(data: unknown, status = 200) {
     console.log('\n✅ PASO 3: Acceso gratuito temporal al simulacro completo');
   } else {
     console.log('\n💳 PASO 3: Verificando membresía para el simulacro completo...');
-    const { data: activeMembership, error: membershipError } = await supabase
-      .from('membresias_usuario')
-      .select('id, fecha_fin')
-      .eq('id_usuario', userId)
-      .eq('esta_activa', true)
-      .gte('fecha_fin', new Date().toISOString())
-      .order('fecha_fin', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (membershipError) {
-      throw new Error(`[PASO 3] Error al verificar membresía: ${membershipError.message}`);
-    }
-    if (!activeMembership) {
-      const { count: completedAttempts, error: attemptsError } = await filterOfficialExamAttempts(
-        supabase.from('intento').select('id', { count: 'exact', head: true }),
-        userId,
-      );
-      if (attemptsError) {
-        throw new Error(`[PASO 3] Error al contar simulacros gratuitos: ${attemptsError.message}`);
-      }
-      if (!hasFreeFullExamAttempt(completedAttempts || 0)) {
+    const access = await getFullPracticeAccess(supabase, userId, Deno.env.get('FULL_EXAM_FREE_ACCESS'));
+    if (!access.allowed) {
         console.log('❌ Acceso denegado: el usuario ya utilizó sus simulacros gratuitos');
         return jsonResponse({
           code: 'MEMBERSHIP_REQUIRED',
           message: `Ya utilizaste tus ${FREE_FULL_EXAM_ATTEMPTS} simulacros gratuitos. Suscríbete por 1 mes para continuar.`,
           checkoutPath: `/checkout?category=${categoryIdNum}`,
-          freeAttemptsUsed: completedAttempts || 0,
+          freeAttemptsUsed: access.completedAttempts,
           freeAttemptLimit: FREE_FULL_EXAM_ATTEMPTS,
         }, 402);
-      }
-      console.log(`✅ Simulacro gratuito ${(completedAttempts || 0) + 1} de ${FREE_FULL_EXAM_ATTEMPTS}`);
-    } else {
-      console.log('✅ Membresía activa hasta:', activeMembership.fecha_fin);
     }
+    console.log(access.hasActiveMembership
+      ? '✅ Membresía activa'
+      : `✅ Simulacro gratuito ${access.completedAttempts + 1} de ${FREE_FULL_EXAM_ATTEMPTS}`);
   }
 
   // ============ PASO 4: OBTENER PREGUNTAS ============
