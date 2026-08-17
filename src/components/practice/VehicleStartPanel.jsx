@@ -12,10 +12,16 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { OFFICIAL_EXAM_RULES } from '../../data/examRules.js';
+import { FREE_FULL_EXAM_ATTEMPTS, OFFICIAL_EXAM_RULES } from '../../data/examRules.js';
 import { fallbackLicenseCategories, getCategoryById, getVehicleChoice, vehicleChoices } from '../../data/vehicleChoices.js';
 import { cn } from '../../utils/cn.js';
 import Modal from '../ui/Modal.jsx';
+
+const adaptiveHighlights = [
+  [Target, 'Refuerza tus errores', 'Prioriza lo que más te cuesta.'],
+  [Shuffle, 'Incorpora preguntas nuevas', 'Amplía lo que ya dominas.'],
+  [BookOpen, 'Repasa lo aprendido', 'Comprueba que aún lo recuerdas.'],
+];
 
 function CategoryButton({ category, selected, onClick, showDescription = false }) {
   return (
@@ -53,6 +59,7 @@ export default function VehicleStartPanel({
   fullExamPrice = 1200,
   membershipEndDate = null,
   fullExamIsFree = false,
+  freeFullExamAttemptsRemaining = 0,
   focusSelected = false,
 }) {
   const [practiceMode, setPracticeMode] = useState('random');
@@ -66,6 +73,10 @@ export default function VehicleStartPanel({
   const isCheckingFullExamAccess = !fullExamIsFree && fullExamAccessLoading;
   const fullExamAccessLabel = fullExamIsFree
     ? 'Simulacro completo disponible'
+    : freeFullExamAttemptsRemaining > 0
+      ? freeFullExamAttemptsRemaining === FREE_FULL_EXAM_ATTEMPTS
+        ? 'Pruebas 1 y 2 sin costo; la 3.ª requiere suscripción'
+        : 'Te queda 1 simulacro sin costo; después necesitas suscripción'
     : fullExamHasAccess
       ? `Acceso activo${membershipEndDate ? ` hasta ${new Date(membershipEndDate).toLocaleDateString('es-PE')}` : ''}`
       : `Suscripcion mensual ${priceLabel}`;
@@ -119,37 +130,40 @@ export default function VehicleStartPanel({
                 Tu mejor ruta para aprobar
               </p>
               <h2 id="adaptive-practice-title" className="mt-2 font-display text-3xl font-black leading-tight sm:text-4xl">
-                Entrenamiento inteligente 20/12/8
+                Entrenamiento inteligente
               </h2>
               <p className="mt-3 max-w-3xl text-base leading-7 text-blue-100 sm:text-lg">
-                Cada práctica está optimizada para acercarte a tu objetivo: 40 preguntas en 40 minutos, con libertad para revisar y corregir antes de entregar. Al finalizar verás cada respuesta explicada.
+                La práctica prioriza lo que necesitas reforzar, incorpora preguntas nuevas y recupera temas anteriores. Puedes revisar y corregir antes de entregar; al finalizar verás cada respuesta explicada.
               </p>
-              <div className="mt-5 grid grid-cols-3 divide-x divide-blue-400 border-y border-blue-400/60 py-3 text-center">
-                <span className="px-1">
-                  <strong className="block font-display text-3xl font-black text-traffic-yellow">20</strong>
-                  <span className="text-xs text-blue-100 sm:text-sm">por reforzar</span>
-                </span>
-                <span className="px-1">
-                  <strong className="block font-display text-3xl font-black text-white">12</strong>
-                  <span className="text-xs text-blue-100 sm:text-sm">nuevas</span>
-                </span>
-                <span className="px-1">
-                  <strong className="block font-display text-3xl font-black text-emerald-300">8</strong>
-                  <span className="text-xs text-blue-100 sm:text-sm">de repaso</span>
-                </span>
+              <div className="mt-5 grid border-y border-blue-400/60 sm:grid-cols-3">
+                {adaptiveHighlights.map(([Icon, title, description], index) => (
+                  <div key={title} className={`flex gap-3 py-3 sm:px-4 ${index > 0 ? 'border-t border-blue-400/60 sm:border-l sm:border-t-0' : ''}`}>
+                    <Icon className="mt-0.5 h-5 w-5 shrink-0 text-traffic-yellow" aria-hidden="true" />
+                    <span className="text-left">
+                      <strong className="block font-display text-sm font-black text-white">{title}</strong>
+                      <span className="mt-1 block text-xs leading-5 text-blue-100">{description}</span>
+                    </span>
+                  </div>
+                ))}
               </div>
               <p className="mt-3 text-xs leading-5 text-blue-200">
                 Categoría {selectedCategory.title} · {selectedCategory.vehicle}. La mezcla se ajusta a tu historial.
               </p>
             </div>
             <div>
-              <Link to={adaptiveTo} className="inline-flex min-h-16 w-full items-center justify-center gap-2 rounded-lg bg-traffic-yellow px-5 text-center font-display text-xl font-black text-ink shadow-[0_5px_0_#d99b19] transition hover:bg-[#ffc94f] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-white">
-                <BrainCircuit className="h-7 w-7" />
-                Entrenar ahora
-                <ArrowRight className="h-6 w-6" />
-              </Link>
+              {isCheckingFullExamAccess ? (
+                <button type="button" disabled className="inline-flex min-h-16 w-full items-center justify-center rounded-lg bg-slate-200 px-5 font-bold text-slate-500">
+                  Revisando acceso...
+                </button>
+              ) : (
+                <Link to={adaptiveTo} className="inline-flex min-h-16 w-full items-center justify-center gap-2 rounded-lg bg-traffic-yellow px-5 text-center font-display text-xl font-black text-ink shadow-[0_5px_0_#d99b19] transition hover:bg-[#ffc94f] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-white">
+                  {canStartFullExam ? <BrainCircuit className="h-7 w-7" /> : <LockKeyhole className="h-6 w-6" />}
+                  {canStartFullExam ? 'Entrenar ahora' : 'Suscribirme'}
+                  <ArrowRight className="h-6 w-6" />
+                </Link>
+              )}
               <a href="/metodologia-simulador-mtc" className="mt-4 inline-flex min-h-11 w-full items-center justify-center font-bold text-blue-100 underline underline-offset-4 hover:text-white">
-                Cómo funciona el método
+                Conoce cómo se adapta
               </a>
             </div>
           </div>

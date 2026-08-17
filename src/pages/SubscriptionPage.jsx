@@ -1,13 +1,92 @@
-import { ArrowRight, BarChart3, CheckCircle2, Clock3, CreditCard, ShieldCheck, Smartphone, Target } from 'lucide-react';
+import {
+  ArrowRight,
+  BarChart3,
+  BrainCircuit,
+  CheckCircle2,
+  Clock3,
+  CreditCard,
+  Images,
+  ListChecks,
+  MessageSquareText,
+  RefreshCw,
+  Route,
+  ShieldCheck,
+  Sparkles,
+  Smartphone,
+  Target,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { MONTHLY_PLAN } from '../data/legal.js';
 import { vehicleChoices } from '../data/vehicleChoices.js';
 import { useAuth } from '../hooks/useAuth.js';
 
+const adaptiveBenefits = [
+  {
+    title: 'Refuerza tus errores',
+    description: 'Da prioridad a los temas que más te cuestan.',
+    icon: Target,
+  },
+  {
+    title: 'Avanza con preguntas nuevas',
+    description: 'Amplía lo que ya dominas sin repetir siempre lo mismo.',
+    icon: Sparkles,
+  },
+  {
+    title: 'Repasa lo aprendido',
+    description: 'Recupera temas anteriores para comprobar que aún los recuerdas.',
+    icon: RefreshCw,
+  },
+];
+
 const benefits = [
-  ['Simulacros cronometrados', 'Rinde prácticas completas de 40 preguntas en 40 minutos según la categoría de tu licencia.', Clock3],
-  ['Resultados que sí cuentan', 'Tu avance se calcula con los simulacros completos para mostrar una medida útil de preparación.', Target],
-  ['Refuerzo de errores', 'Revisa las respuestas que fallaste y practica primero los temas que necesitas mejorar.', BarChart3],
+  {
+    title: 'Simulacro cronometrado',
+    description: 'Responde 40 preguntas en 40 minutos con la selección correspondiente a tu licencia.',
+    icon: Clock3,
+    tone: 'text-brand',
+  },
+  {
+    title: 'Aprende de cada respuesta',
+    description: 'Al confirmar verás qué marcaste, cuál era la respuesta correcta y la explicación completa.',
+    icon: MessageSquareText,
+    tone: 'text-success',
+  },
+  {
+    title: 'Revisa antes de finalizar',
+    description: 'Vuelve a cualquier pregunta y cambia tu elección antes de confirmar la entrega.',
+    icon: ListChecks,
+    tone: 'text-amber-600',
+  },
+  {
+    title: 'Conoce qué necesitas reforzar',
+    description: 'Mi avance identifica los temas con menor acierto y muestra tu evolución en simulacros cronometrados.',
+    icon: BarChart3,
+    tone: 'text-cyan-600',
+  },
+  {
+    title: 'Preguntas claras y visuales',
+    description: 'Lee cada enunciado y todas sus alternativas; cuando una pregunta incluye una señal o gráfico, lo verás completo.',
+    icon: Images,
+    tone: 'text-violet-600',
+  },
+  {
+    title: 'Preparación según tu licencia',
+    description: 'La práctica se orienta a A-I, A-IIA, A-IIB, A-IIIA, A-IIIB, A-IIIC, B-IIA, B-IIB o B-IIC.',
+    icon: Route,
+    tone: 'text-slate-700',
+  },
+  {
+    title: 'Practica desde cualquier equipo',
+    description: 'Continúa tu preparación desde celular o computadora con la misma cuenta y el mismo avance.',
+    icon: Smartphone,
+    tone: 'text-brand',
+  },
+  {
+    title: 'Entrenamiento que cambia contigo',
+    description: 'Las siguientes prácticas priorizan lo que más fallas y vuelven a comprobar lo que ya aprendiste.',
+    icon: BrainCircuit,
+    tone: 'text-success',
+  },
 ];
 
 export default function SubscriptionPage() {
@@ -43,16 +122,53 @@ export default function SubscriptionPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8" aria-labelledby="included-title">
-        <h2 id="included-title" className="font-display text-3xl font-black text-ink">Qué incluye tu suscripción</h2>
-        <div className="mt-7 grid gap-0 border-y border-line md:grid-cols-3">
-          {benefits.map(([title, description, Icon], index) => (
-            <div key={title} className={`py-6 md:px-6 ${index > 0 ? 'border-t border-line md:border-l md:border-t-0' : ''}`}>
-              <Icon className="h-8 w-8 text-brand" aria-hidden="true" />
-              <h3 className="mt-4 font-display text-xl font-black text-ink">{title}</h3>
-              <p className="mt-2 leading-7 text-slate-600">{description}</p>
+      <section className="border-b border-line bg-white" aria-labelledby="included-title">
+        <div className="mx-auto max-w-6xl px-4 pb-8 pt-10 sm:px-6 sm:pb-10 sm:pt-14 lg:px-8">
+          <p className="font-bold text-brand">Mucho más que un banco de preguntas</p>
+          <h2 id="included-title" className="mt-2 max-w-3xl font-display text-3xl font-black leading-tight text-ink sm:text-4xl">Todo lo que necesitas para entrenar, corregir y medir tu nivel</h2>
+          <p className="mt-3 max-w-3xl text-lg leading-8 text-slate-600">La plataforma organiza tu preparación, explica cada respuesta y usa tus resultados para decidir qué conviene reforzar después.</p>
+        </div>
+
+        <div className="border-y border-blue-200 bg-blue-50">
+          <div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[0.9fr_1.35fr] lg:items-center lg:px-8">
+            <div className="flex items-start gap-4">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-brand text-white shadow-[0_3px_0_#0f4eae]">
+                <BrainCircuit className="h-7 w-7" aria-hidden="true" />
+              </span>
+              <div>
+                <p className="font-bold text-brand">Entrenamiento inteligente</p>
+                <h3 className="mt-1 font-display text-2xl font-black leading-tight text-ink sm:text-3xl">Una práctica que se adapta a ti</h3>
+                <p className="mt-3 max-w-xl leading-7 text-slate-700">Usa tus resultados para decidir qué conviene reforzar, cuándo avanzar y qué necesitas volver a repasar.</p>
+              </div>
             </div>
-          ))}
+
+            <div className="grid border-t border-blue-200 sm:grid-cols-3 sm:border-t-0">
+              {adaptiveBenefits.map(({ title, description, icon: Icon }, index) => (
+                <article key={title} className={`min-w-0 py-5 sm:px-5 sm:py-2 ${index > 0 ? 'border-t border-blue-200 sm:border-l sm:border-t-0' : ''}`}>
+                  <Icon className="h-6 w-6 text-brand" aria-hidden="true" />
+                  <h4 className="mt-3 font-display text-lg font-black leading-6 text-ink">{title}</h4>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+          <h3 className="font-display text-2xl font-black text-ink sm:text-3xl">Incluido en tu preparación</h3>
+          <div className="mt-6 grid border-t border-line sm:grid-cols-2">
+            {benefits.map(({ title, description, icon: Icon, tone }, index) => (
+              <article key={title} className={`border-b border-line py-6 sm:px-6 ${index % 2 === 0 ? 'sm:border-r' : ''}`}>
+                <div className="flex items-start gap-4">
+                  <Icon className={`mt-0.5 h-7 w-7 shrink-0 ${tone}`} aria-hidden="true" />
+                  <div>
+                    <h4 className="font-display text-xl font-black text-ink">{title}</h4>
+                    <p className="mt-2 leading-7 text-slate-600">{description}</p>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -68,7 +184,7 @@ export default function SubscriptionPage() {
           <div>
             <h2 className="font-display text-2xl font-black text-ink">Compra clara y protegida</h2>
             <ul className="mt-5 grid gap-3 text-slate-700">
-              <li className="flex gap-3"><ShieldCheck className="h-5 w-5 shrink-0 text-success" aria-hidden="true" />Culqi procesa el pago dentro de su formulario seguro.</li>
+              <li className="flex gap-3"><ShieldCheck className="h-5 w-5 shrink-0 text-success" aria-hidden="true" />Pago seguro con Culqi.</li>
               <li className="flex gap-3"><CheckCircle2 className="h-5 w-5 shrink-0 text-success" aria-hidden="true" />El precio y el tipo de renovación se muestran antes de confirmar.</li>
               <li className="flex gap-3"><CheckCircle2 className="h-5 w-5 shrink-0 text-success" aria-hidden="true" />Puedes solicitar boleta o factura durante la compra.</li>
             </ul>

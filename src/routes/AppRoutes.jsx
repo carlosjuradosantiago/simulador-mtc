@@ -18,7 +18,6 @@ const DashboardPage = lazy(() => import('../pages/DashboardPage.jsx'));
 const LandingPage = lazy(() => import('../pages/LandingPage.jsx'));
 const LegalPage = lazy(() => import('../pages/LegalPage.jsx'));
 const OfficialMaterialsPage = lazy(() => import('../pages/OfficialMaterialsPage.jsx'));
-const PlansPage = lazy(() => import('../pages/PlansPage.jsx'));
 const ProfilePage = lazy(() => import('../pages/ProfilePage.jsx'));
 const ProgressPage = lazy(() => import('../pages/ProgressPage.jsx'));
 const ResultsPage = lazy(() => import('../pages/ResultsPage.jsx'));
@@ -62,7 +61,8 @@ export default function AppRoutes() {
       <Routes>
         <Route element={<PublicLayout />}>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/suscripcion" element={FULL_EXAM_IS_FREE ? <Navigate to="/" replace /> : <SubscriptionPage />} />
+          <Route path="/planes" element={FULL_EXAM_IS_FREE ? <Navigate to="/" replace /> : <SubscriptionPage />} />
+          <Route path="/suscripcion" element={FULL_EXAM_IS_FREE ? <Navigate to="/" replace /> : <Navigate to="/planes" replace />} />
           <Route path="/contacto" element={<LegalPage page="contact" />} />
           <Route path="/terminos-y-condiciones" element={<LegalPage page="terms" />} />
           <Route path="/terminos" element={<Navigate to="/terminos-y-condiciones" replace />} />
@@ -91,7 +91,6 @@ export default function AppRoutes() {
             <Route path="/ranking" element={<Navigate to="/dashboard" replace />} />
             <Route path="/perfil" element={<ProfilePage />} />
             <Route path="/configuracion" element={<Navigate to="/perfil" replace />} />
-            <Route path="/planes" element={FULL_EXAM_IS_FREE ? <Navigate to="/dashboard" replace /> : <PlansPage />} />
             <Route path="/checkout" element={FULL_EXAM_IS_FREE ? <Navigate to="/dashboard" replace /> : <CheckoutPage />} />
           </Route>
         </Route>

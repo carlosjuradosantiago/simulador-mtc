@@ -30,16 +30,24 @@ assert.match(files.legal, /\+51 987 617 635/);
 assert.match(files.legal, /admin@simuladormtc\.com/);
 assert.match(files.legal, /price:\s*12/);
 
-for (const route of ['/suscripcion', '/contacto', '/terminos-y-condiciones', '/politica-de-cambios-y-devoluciones', '/politica-de-privacidad', '/libro-reclamaciones']) {
+for (const route of ['/planes', '/suscripcion', '/contacto', '/terminos-y-condiciones', '/politica-de-cambios-y-devoluciones', '/politica-de-privacidad', '/libro-reclamaciones']) {
   assert.match(files.routes, new RegExp(`path="${route}"`), `${route} debe ser una ruta pública.`);
 }
 const publicRoutes = files.routes.split('<Route element={<ProtectedRoute />}>')[0];
 const protectedRoutes = files.routes.split('<Route element={<ProtectedRoute />}>')[1] || '';
 assert.match(publicRoutes, /path="\/libro-reclamaciones"/);
+assert.match(publicRoutes, /path="\/planes"/);
 assert.doesNotMatch(protectedRoutes, /path="\/libro-reclamaciones"/);
+assert.doesNotMatch(protectedRoutes, /path="\/planes"/);
 
 assert.match(files.subscription, /S\/ \{MONTHLY_PLAN\.price\}/);
 assert.match(files.subscription, /Prácticas cortas son gratuitas|prácticas cortas para conocer el servicio/i);
+assert.match(files.subscription, /Una práctica que se adapta a ti/);
+assert.match(files.subscription, /Revisa antes de finalizar/);
+assert.match(files.subscription, /Preguntas claras y visuales/);
+assert.doesNotMatch(files.subscription, /20\/12\/8|preguntas compactadas|Control de las 40 preguntas/i);
+const subscriptionBenefits = files.subscription.match(/const benefits = \[([\s\S]*?)\n\];/)?.[1] || '';
+assert.equal((subscriptionBenefits.match(/title:/g) || []).length, 8);
 assert.match(files.legalPage, /Crear una cuenta no autoriza ningún cobro/);
 assert.match(files.legalPage, /15 días hábiles/);
 assert.match(files.legalPage, /no excluye nuestra responsabilidad por dolo, culpa, falta de idoneidad/);

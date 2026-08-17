@@ -17,7 +17,7 @@ const licenseGuides = [
 ];
 
 const publicLinks = [
-  ...(!FULL_EXAM_IS_FREE ? [['Suscripción', '/suscripcion']] : []),
+  ...(!FULL_EXAM_IS_FREE ? [['Planes', '/planes']] : []),
   ['PDF oficiales del MTC', '/materiales'],
   ['Contacto', '/contacto'],
   ['Términos y condiciones', '/terminos-y-condiciones'],
@@ -58,7 +58,7 @@ export default function PublicFooter() {
           <div className="mt-3 grid gap-2">
             <a className="w-fit font-semibold text-brand hover:underline" href="/simulador-mtc">Cómo funciona</a>
             <a className="w-fit font-semibold text-brand hover:underline" href="/fuentes-mtc">Fuentes oficiales</a>
-            <a className="w-fit font-semibold text-brand hover:underline" href="/metodologia-simulador-mtc">Metodología</a>
+            <a className="w-fit font-semibold text-brand hover:underline" href="/metodologia-simulador-mtc">Cómo funciona el entrenamiento</a>
           </div>
         </nav>
       </div>

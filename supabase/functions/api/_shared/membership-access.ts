@@ -3,7 +3,9 @@ import { OFFICIAL_EXAM_QUESTION_COUNT } from './exam-rules.ts';
 export const TIMED_SESSION_TYPE = 'CRONOMETRADO';
 export const QUICK_SESSION_TYPE = 'PRACTICA_CORTA';
 export const ADAPTIVE_SESSION_TYPE = 'PRACTICA_ADAPTATIVA';
+export const FULL_PRACTICE_SESSION_TYPES = [TIMED_SESSION_TYPE, ADAPTIVE_SESSION_TYPE, 'PRACTICA'];
 export const SIMULATED_PAYMENT_METHOD = 'simulacion';
+export const FREE_FULL_EXAM_ATTEMPTS = 2;
 
 export function isFullExamFree(value?: string | null) {
   return String(value ?? '').trim().toLowerCase() !== 'false';
@@ -50,6 +52,50 @@ export function partitionAttempts<T extends { tipo_intento?: string | null; tota
   });
 
   return { timed, quick, adaptive, ignored };
+}
+
+export function filterFullPracticeAttempts(query: any, userId: number) {
+  return query
+    .eq('id_usuario', userId)
+    .in('tipo_intento', FULL_PRACTICE_SESSION_TYPES)
+    .eq('total_preguntas', OFFICIAL_EXAM_QUESTION_COUNT);
+}
+
+export async function getFullPracticeAccess(supabase: any, userId: number, freeAccessValue?: string | null) {
+  if (isFullExamFree(freeAccessValue)) {
+    return { allowed: true, completedAttempts: 0, hasActiveMembership: false };
+  }
+
+  const { data: activeMembership, error: membershipError } = await supabase
+    .from('membresias_usuario')
+    .select('id')
+    .eq('id_usuario', userId)
+    .eq('esta_activa', true)
+    .gte('fecha_fin', new Date().toISOString())
+    .limit(1)
+    .maybeSingle();
+
+  if (membershipError) throw membershipError;
+  if (activeMembership) {
+    return { allowed: true, completedAttempts: 0, hasActiveMembership: true };
+  }
+
+  const { count, error: attemptsError } = await filterFullPracticeAttempts(
+    supabase.from('intento').select('id', { count: 'exact', head: true }),
+    userId,
+  );
+  if (attemptsError) throw attemptsError;
+
+  const completedAttempts = count || 0;
+  return {
+    allowed: hasFreeFullExamAttempt(completedAttempts),
+    completedAttempts,
+    hasActiveMembership: false,
+  };
+}
+
+export function hasFreeFullExamAttempt(completedAttempts: number) {
+  return Math.max(Number(completedAttempts) || 0, 0) < FREE_FULL_EXAM_ATTEMPTS;
 }
 
 export function isRealPayment(payment: {

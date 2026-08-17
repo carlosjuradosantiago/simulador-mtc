@@ -11,10 +11,8 @@ Plataforma educativa independiente. No afiliada al Ministerio de Transportes y C
 - El MTC informa que el examen de reglas tiene 40 preguntas y una duración máxima de 40 minutos.
 - La publicación del MTC indica que se requieren al menos 35 respuestas correctas para aprobar.
 - Las preguntas y balotarios se organizan según la categoría de licencia elegida.
-- El entrenamiento inteligente combina hasta 20 preguntas por reforzar, 12 nuevas y 8 de repaso en una práctica de 40.
-- Una pregunta fallada se considera dominada después de acertarla en dos prácticas distintas y no se prioriza otra vez antes de doce horas.
-- El progreso real se calcula con simulacros aleatorios de 40 preguntas y 40 minutos; se recomienda medir el nivel después de cuatro entrenamientos.
-- La referencia de preparación combina haber recorrido el banco de la categoría y aprobar tres simulacros consecutivos.
+- El entrenamiento inteligente usa los resultados para reforzar errores, incorporar preguntas nuevas y recuperar temas ya estudiados.
+- El progreso se calcula con simulacros aleatorios de 40 preguntas y 40 minutos.
 - Las condiciones de acceso se muestran dentro de la plataforma antes de iniciar una práctica o contratación.
 - Cada página de categoría publica cuarenta preguntas completas, con cuatro alternativas, respuesta y referencia al balotario correspondiente.
 - Fuente del formato oficial: https://www.gob.pe/institucion/mtc/noticias/1100676-el-mtc-brinda-un-simulador-gratuito-para-practicar-el-examen-de-reglas-de-transito-para-obtener-el-brevete
@@ -28,7 +26,7 @@ Plataforma educativa independiente. No afiliada al Ministerio de Transportes y C
 - https://www.simuladormtc.com/senales-de-transito: señales de tránsito para practicar.
 - https://www.simuladormtc.com/reglas-de-transito-peru: reglas de tránsito en Perú.
 - https://www.simuladormtc.com/fuentes-mtc: fuentes oficiales y balotarios de referencia.
-- https://www.simuladormtc.com/metodologia-simulador-mtc: método de entrenamiento 20/12/8, repaso espaciado, medición y fuentes editoriales.
+- https://www.simuladormtc.com/metodologia-simulador-mtc: entrenamiento adaptado, repaso, medición y fuentes editoriales.
 - https://www.simuladormtc.com/contacto: datos de CJ VERTEXLABS GROUP EIRL, RUC 20614965836, dirección, teléfono y correo.
 - https://www.simuladormtc.com/materiales: descarga pública de balotarios y normas oficiales del MTC.
 - https://www.simuladormtc.com/terminos-y-condiciones: condiciones de uso del servicio.

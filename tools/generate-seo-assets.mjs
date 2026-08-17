@@ -142,15 +142,15 @@ const corePages = [
   {
     slug: 'simulador-mtc',
     title: 'Simulador MTC 2026 con entrenamiento inteligente por categoría',
-    description: 'Prepárate para el examen MTC con un método que combina errores, preguntas nuevas y repaso; luego mide tu nivel con un simulacro cronometrado.',
+    description: 'Prepárate para el examen MTC con un entrenamiento que refuerza tus errores, incorpora preguntas nuevas y repasa lo aprendido.',
     h1: 'Entrena para aprobar tu examen MTC a la primera',
     intro: 'Elige la categoría exacta de tu licencia. La IA optimiza cada práctica según tus errores y tu progreso; después, el simulacro cronometrado comprueba cuánto avanzaste.',
     primaryCta: '/?auth=register',
     ctaText: 'Elegir categoría y practicar',
     keywords: ['simulador mtc', 'examen de conocimientos mtc', 'balotario mtc', 'licencia de conducir peru'],
     sections: [
-      ['Entrenamiento inteligente 20/12/8', 'Cada práctica cronometrada combina hasta 20 preguntas por reforzar, 12 nuevas y 8 de repaso. Tienes 40 minutos y puedes revisar o corregir tus respuestas antes de entregar.'],
-      ['Repaso espaciado, no repetición automática', 'Una pregunta fallada continúa en refuerzo hasta acertarla en dos prácticas distintas y no se repite inmediatamente, para comprobar que la respuesta fue comprendida.'],
+      ['Entrenamiento que se adapta a ti', 'La práctica usa tus resultados para reforzar lo que más te cuesta, incorporar preguntas nuevas y recuperar temas que ya estudiaste.'],
+      ['Repaso útil, no repetición automática', 'Las preguntas que necesitas reforzar vuelven a aparecer en el momento adecuado para comprobar que comprendiste la respuesta.'],
       ['Simulacro cronometrado', 'Responde 40 preguntas en 40 minutos. Solo estos simulacros alimentan el promedio, la evolución y los temas débiles de Mi avance.'],
       ['Balotario por categoría', 'Cada licencia usa su propia selección de preguntas. La plataforma enlaza el PDF correspondiente y las fuentes oficiales del MTC.'],
     ],
@@ -162,26 +162,26 @@ const corePages = [
   },
   {
     slug: 'metodologia-simulador-mtc',
-    title: 'Método 20/12/8 para aprobar el examen MTC a la primera',
+    title: 'Entrenamiento inteligente para aprobar el examen MTC',
     description: 'Entrenamiento inteligente optimizado para ayudarte a aprobar el examen MTC a la primera: errores, preguntas nuevas, repaso y medición real.',
     h1: 'Prepárate para aprobar tu examen MTC a la primera',
-    intro: 'El método 20/12/8 optimiza cada práctica para que llegues mejor preparado: combina tus errores, contenido nuevo y repaso; después usa un simulacro aleatorio y cronometrado para comprobar tu nivel real.',
+    intro: 'El entrenamiento se adapta a tus resultados: refuerza tus errores, incorpora contenido nuevo y recupera lo aprendido; después usa un simulacro aleatorio y cronometrado para comprobar tu nivel real.',
     primaryCta: '/?auth=register',
     ctaText: 'Empezar entrenamiento inteligente',
     secondaryCta: '/fuentes-mtc',
     secondaryCtaText: 'Revisar fuentes oficiales',
     keywords: ['metodo para aprobar examen mtc', 'metodologia simulador mtc', 'practica inteligente mtc', 'repaso examen mtc', 'preguntas oficiales mtc'],
     sections: [
-      ['20 para reforzar, 12 nuevas y 8 de repaso', 'La práctica cronometrada de 40 preguntas intenta reservar la mitad para fallos aún no dominados, doce para avanzar por el banco y ocho para comprobar que lo aprendido no se olvida. Tienes 40 minutos y puedes revisar o corregir antes de entregar.'],
-      ['Dos aciertos en prácticas distintas', 'Una pregunta fallada no desaparece del refuerzo por acertarla una sola vez. Se considera dominada después de dos aciertos posteriores en prácticas diferentes.'],
-      ['Repaso con separación', 'Las preguntas falladas no vuelven a aparecer de inmediato. El sistema espera al menos doce horas antes de priorizarlas otra vez y mezcla tanto las preguntas como sus alternativas.'],
-      ['Una medición cada cuatro entrenamientos', 'Después de cuatro entrenamientos inteligentes se recomienda un simulacro de 40 preguntas completamente aleatorio, con 40 minutos y sin ayudas durante la prueba.'],
-      ['Meta de preparación', 'El panel muestra cuántas preguntas distintas del banco ya viste y tu racha de simulacros aprobados. La referencia final es recorrer todo el banco de la categoría y aprobar tres simulacros consecutivos.'],
-      ['Preguntas completas y por licencia', 'No recortamos enunciados ni alternativas. A1, A2A, A2B, A3 y las categorías B usan bancos filtrados según la licencia elegida.'],
+      ['Una práctica que se adapta a tus resultados', 'El entrenamiento prioriza lo que más te cuesta, incorpora preguntas nuevas y recupera temas anteriores para que avances sin repetir siempre lo mismo.'],
+      ['Aprende de cada error', 'Después de confirmar una respuesta verás qué marcaste, cuál era la opción correcta y una explicación que te ayuda a comprenderla.'],
+      ['Repasa con intención', 'Los temas que necesitas reforzar vuelven a aparecer de forma ordenada para comprobar que los aprendiste y no solo memorizaste una alternativa.'],
+      ['Comprueba tu nivel con simulacros', 'El simulacro cronometrado y aleatorio te permite revisar tus respuestas antes de entregar y muestra una medida comparable de tu preparación.'],
+      ['Sigue tu progreso', 'Mi avance identifica los temas con menor acierto y muestra cómo evolucionan tus resultados a medida que completas simulacros.'],
+      ['Contenido completo y por licencia', 'Los enunciados, alternativas e imágenes se muestran completos y el banco se filtra según la categoría de licencia elegida.'],
     ],
     faqs: [
       ['Simulador MTC pertenece al MTC?', disclaimer],
-      ['Se modifican las preguntas para hacerlas más cortas?', 'No. La interfaz puede adaptar el tamaño visual, pero no debe recortar ni resumir el enunciado o las alternativas.'],
+      ['Las preguntas se muestran completas?', 'Sí. La interfaz adapta el contenido a tu pantalla y mantiene completos el enunciado, las alternativas y las imágenes.'],
       ['El entrenamiento cambia el promedio?', 'No. El entrenamiento sirve para aprender. El promedio y la evolución se calculan únicamente con simulacros cronometrados de 40 preguntas.'],
       ['Como puedo verificar una respuesta?', 'Cada guía enlaza sus fuentes y los balotarios descargables. Ante cualquier diferencia, prevalece la publicación oficial vigente.'],
     ],
@@ -1487,7 +1487,7 @@ function renderHtml(page) {
           <a href="/preguntas-mtc">Preguntas</a>
           <a href="/senales-de-transito">Señales</a>
           <a href="/reglas-de-transito-peru">Reglas</a>
-          <a href="/metodologia-simulador-mtc">Metodología</a>
+          <a href="/metodologia-simulador-mtc">Cómo funciona</a>
         </nav>
       </div>
     </header>
@@ -1597,7 +1597,7 @@ function renderHtml(page) {
         <p><strong>${brandName}</strong></p>
         <p>${disclaimer}</p>
         <p>Fuente oficial de referencia: <a href="${officialMtcSource}" rel="noopener noreferrer" style="color:#fff;">MTC en gob.pe</a>.</p>
-        <p><a href="/metodologia-simulador-mtc" style="color:#fff;">Metodología editorial y criterios de revisión</a></p>
+        <p><a href="/metodologia-simulador-mtc" style="color:#fff;">Cómo se prepara y revisa el contenido</a></p>
         <p><a href="${repositoryUrl}" rel="noopener noreferrer" style="color:#fff;">Código y documentación del proyecto en GitHub</a></p>
         <p>Revisión editorial: ${contentLastReviewedLabel}. Verifica siempre la información vigente antes de rendir tu examen.</p>
       </div>
@@ -1836,10 +1836,8 @@ ${disclaimer}
 - El MTC informa que el examen de reglas tiene 40 preguntas y una duración máxima de 40 minutos.
 - La publicación del MTC indica que se requieren al menos 35 respuestas correctas para aprobar.
 - Las preguntas y balotarios se organizan según la categoría de licencia elegida.
-- El entrenamiento inteligente combina hasta 20 preguntas por reforzar, 12 nuevas y 8 de repaso en una práctica de 40.
-- Una pregunta fallada se considera dominada después de acertarla en dos prácticas distintas y no se prioriza otra vez antes de doce horas.
-- El progreso real se calcula con simulacros aleatorios de 40 preguntas y 40 minutos; se recomienda medir el nivel después de cuatro entrenamientos.
-- La referencia de preparación combina haber recorrido el banco de la categoría y aprobar tres simulacros consecutivos.
+- El entrenamiento inteligente usa los resultados para reforzar errores, incorporar preguntas nuevas y recuperar temas ya estudiados.
+- El progreso se calcula con simulacros aleatorios de 40 preguntas y 40 minutos.
 - Las condiciones de acceso se muestran dentro de la plataforma antes de iniciar una práctica o contratación.
 - Cada página de categoría publica cuarenta preguntas completas, con cuatro alternativas, respuesta y referencia al balotario correspondiente.
 - Fuente del formato oficial: ${officialSources.find((source) => source.id === 'exam-format').url}
@@ -1853,7 +1851,7 @@ ${disclaimer}
 - ${siteUrl}/senales-de-transito: señales de tránsito para practicar.
 - ${siteUrl}/reglas-de-transito-peru: reglas de tránsito en Perú.
 - ${siteUrl}/fuentes-mtc: fuentes oficiales y balotarios de referencia.
-- ${siteUrl}/metodologia-simulador-mtc: método de entrenamiento 20/12/8, repaso espaciado, medición y fuentes editoriales.
+- ${siteUrl}/metodologia-simulador-mtc: entrenamiento adaptado, repaso, medición y fuentes editoriales.
 - ${siteUrl}/contacto: datos de ${legalName}, RUC ${taxId}, dirección, teléfono y correo.
 - ${siteUrl}/materiales: descarga pública de balotarios y normas oficiales del MTC.
 - ${siteUrl}/terminos-y-condiciones: condiciones de uso del servicio.

@@ -10,6 +10,7 @@ export const AUTH_TOKEN_KEY = 'simulamanejo:authToken';
 export const AUTH_SESSION_EXPIRED_EVENT = 'simulamanejo:auth-session-expired';
 
 const SUPABASE_AUTH_CLIENT_VERSION = 'pkce-v2';
+const TRANSIENT_GATEWAY_STATUSES = new Set([502, 503, 504]);
 
 let supabaseAuthPromise;
 
@@ -146,6 +147,21 @@ function headersWithToken(headers, token) {
   return requestHeaders;
 }
 
+async function fetchWithRetry(fetchRequest, retries) {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      const response = await fetchRequest();
+      if (!TRANSIENT_GATEWAY_STATUSES.has(response.status) || attempt >= retries) return response;
+    } catch (error) {
+      if (attempt >= retries) {
+        throw new Error('No pudimos conectar con el servicio. Intenta nuevamente.', { cause: error });
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+  }
+}
+
 export async function apiRequest(path, {
   method = 'GET',
   body,
@@ -153,6 +169,7 @@ export async function apiRequest(path, {
   auth = false,
   headers = {},
   baseUrl = API_BASE_URL,
+  retries = 0,
 } = {}) {
   const requestHeaders = { ...headers };
 
@@ -168,16 +185,25 @@ export async function apiRequest(path, {
     body: requestBody,
   });
 
-  let response = await fetchRequest(requestToken);
+  let response = await fetchWithRetry(() => fetchRequest(requestToken), retries);
   let text = await response.text();
-  let data = text ? JSON.parse(text) : null;
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = null;
+  }
 
   if (auth && response.status === 401 && isSupabaseAccessToken(requestToken)) {
     requestToken = await refreshApiToken(requestToken, true);
     if (requestToken) {
-      response = await fetchRequest(requestToken);
+      response = await fetchWithRetry(() => fetchRequest(requestToken), retries);
       text = await response.text();
-      data = text ? JSON.parse(text) : null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        data = null;
+      }
     }
   }
 
@@ -513,6 +539,7 @@ export const api = {
     method: 'POST',
     body: { loginType: 'TRADITIONAL', username: username || email, password },
     token: null,
+    retries: 2,
   }),
   register: ({ name, email, password, category }) => {
     const [firstName, ...rest] = name.trim().split(/\s+/);
