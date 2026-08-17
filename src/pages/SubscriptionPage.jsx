@@ -16,6 +16,7 @@ import {
   Target,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { FULL_EXAM_IS_FREE } from '../data/examRules.js';
 import { MONTHLY_PLAN } from '../data/legal.js';
 import { vehicleChoices } from '../data/vehicleChoices.js';
 import { useAuth } from '../hooks/useAuth.js';
@@ -92,6 +93,9 @@ const benefits = [
 export default function SubscriptionPage() {
   const { isAuthenticated } = useAuth();
   const checkoutTo = isAuthenticated ? '/checkout' : '/?auth=register&next=%2Fcheckout';
+  const practiceTo = isAuthenticated ? '/dashboard' : '/?auth=register&next=%2Fdashboard';
+  const actionTo = FULL_EXAM_IS_FREE ? practiceTo : checkoutTo;
+  const actionLabel = FULL_EXAM_IS_FREE ? 'Empezar a practicar' : `Suscribirme por S/ ${MONTHLY_PLAN.price}`;
 
   return (
     <div>
@@ -106,8 +110,8 @@ export default function SubscriptionPage() {
               <span className="pb-1 text-lg font-bold text-slate-500">por mes</span>
             </div>
             <p className="mt-2 text-sm leading-6 text-slate-600">Precio final en soles. Antes de suscribirte puedes usar gratuitamente las prácticas cortas para conocer el servicio.</p>
-            <Link to={checkoutTo} className="mt-6 inline-flex min-h-14 items-center justify-center gap-2 rounded-lg bg-brand px-6 text-lg font-black text-white shadow-[0_4px_0_#0f4eae] hover:bg-blue-700">
-              Suscribirme por S/ {MONTHLY_PLAN.price} <ArrowRight className="h-5 w-5" aria-hidden="true" />
+            <Link to={actionTo} className="mt-6 inline-flex min-h-14 items-center justify-center gap-2 rounded-lg bg-brand px-6 text-lg font-black text-white shadow-[0_4px_0_#0f4eae] hover:bg-blue-700">
+              {actionLabel} <ArrowRight className="h-5 w-5" aria-hidden="true" />
             </Link>
           </div>
 
@@ -195,7 +199,7 @@ export default function SubscriptionPage() {
       <section className="mx-auto max-w-4xl px-4 py-10 text-center sm:px-6 sm:py-14">
         <h2 className="font-display text-3xl font-black text-ink">Empieza con tu categoría correcta</h2>
         <p className="mx-auto mt-3 max-w-2xl text-lg leading-8 text-slate-600">Al crear tu cuenta elegirás la licencia que vas a rendir. La plataforma orientará las prácticas, simulacros y resultados a esa categoría.</p>
-        <Link to={checkoutTo} className="mt-6 inline-flex min-h-14 items-center justify-center gap-2 rounded-lg bg-brand px-6 text-lg font-black text-white hover:bg-blue-700">Continuar <ArrowRight className="h-5 w-5" aria-hidden="true" /></Link>
+        <Link to={actionTo} className="mt-6 inline-flex min-h-14 items-center justify-center gap-2 rounded-lg bg-brand px-6 text-lg font-black text-white hover:bg-blue-700">Continuar <ArrowRight className="h-5 w-5" aria-hidden="true" /></Link>
         <p className="mt-5 text-sm leading-6 text-slate-500">Al continuar podrás revisar y aceptar los <Link className="font-bold text-brand hover:underline" to="/terminos-y-condiciones">Términos y condiciones</Link> y la <Link className="font-bold text-brand hover:underline" to="/politica-de-cambios-y-devoluciones">Política de cambios y devoluciones</Link>.</p>
       </section>
     </div>

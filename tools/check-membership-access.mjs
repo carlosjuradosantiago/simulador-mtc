@@ -113,12 +113,14 @@ assert.match(plansPage, /Con Yape, tu suscripcion mensual queda activa durante u
 assert.doesNotMatch(plansPage, /Un mes, sin renovacion|no realiza cobros futuros|Pagar \$\{priceLabel\(plan\.price\)\} con Yape/);
 assert.match(simulatorPage, /Necesitas una suscripcion activa/);
 assert.match(simulatorPage, /Suscribete para volver a rendir simulacros completos/);
-assert.match(publicHeader, /!FULL_EXAM_IS_FREE/);
 assert.match(publicHeader, /to="\/planes"[\s\S]*Planes/);
+assert.doesNotMatch(publicHeader, /FULL_EXAM_IS_FREE/);
 assert.match(publicHeader, /Cómo funciona/);
-assert.match(publicFooter, /!FULL_EXAM_IS_FREE/);
-assert.match(routes, /path="\/planes" element=\{FULL_EXAM_IS_FREE \? <Navigate to="\/" replace \/> : <SubscriptionPage \/>/);
-assert.match(routes, /path="\/suscripcion" element=\{FULL_EXAM_IS_FREE \? <Navigate to="\/" replace \/> : <Navigate to="\/planes" replace \/>/);
+assert.match(publicFooter, /\['Planes', '\/planes'\]/);
+assert.doesNotMatch(publicFooter, /FULL_EXAM_IS_FREE/);
+assert.match(routes, /path="\/planes" element=\{<SubscriptionPage \/>\}/);
+assert.match(routes, /path="\/suscripcion" element=\{<Navigate to="\/planes" replace \/>\}/);
+assert.match(routes, /path="\/checkout" element=\{FULL_EXAM_IS_FREE/);
 assert.doesNotMatch(routes.split('<Route element={<ProtectedRoute />}>')[1] || '', /path="\/planes"/);
 assert.doesNotMatch(plansPage, /nunca recibimos|numero completo de tu tarjeta|formulario protegido/i);
 assert.match(vehicleStartPanel, /Simulacro completo disponible/);

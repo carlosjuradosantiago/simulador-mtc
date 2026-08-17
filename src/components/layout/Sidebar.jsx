@@ -2,7 +2,6 @@ import { BarChart3, BookOpenCheck, Car, Home, User, FileDown, CreditCard, FileTe
 import { NavLink } from 'react-router-dom';
 import BrandLogo from './BrandLogo.jsx';
 import SidebarPromo from './SidebarPromo.jsx';
-import { FULL_EXAM_IS_FREE } from '../../data/examRules.js';
 import { cn } from '../../utils/cn.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { isAdminUser } from '../../utils/admin.js';
@@ -14,7 +13,7 @@ const navItems = [
   { label: 'Clases', to: '/clases', icon: BookOpenCheck },
   { label: 'Resultados', to: '/resultados', icon: BarChart3 },
   { label: 'Perfil', to: '/perfil', icon: User },
-  ...(!FULL_EXAM_IS_FREE ? [{ label: 'Planes', to: '/planes', icon: CreditCard }] : []),
+  { label: 'Planes', to: '/planes', icon: CreditCard },
   { label: 'Libro de Reclamaciones', to: '/libro-reclamaciones', icon: FileText },
 ];
 
