@@ -114,6 +114,7 @@ assert.match(simulatorPage, /Necesitas una suscripcion activa/);
 assert.match(simulatorPage, /Suscribete para volver a rendir simulacros completos/);
 assert.match(publicHeader, /!FULL_EXAM_IS_FREE/);
 assert.match(publicHeader, /to="\/planes"[\s\S]*Planes/);
+assert.match(publicHeader, /Cómo funciona/);
 assert.match(publicFooter, /!FULL_EXAM_IS_FREE/);
 assert.match(routes, /path="\/planes" element=\{FULL_EXAM_IS_FREE \? <Navigate to="\/" replace \/> : <SubscriptionPage \/>/);
 assert.match(routes, /path="\/suscripcion" element=\{FULL_EXAM_IS_FREE \? <Navigate to="\/" replace \/> : <Navigate to="\/planes" replace \/>/);
@@ -122,6 +123,9 @@ assert.doesNotMatch(plansPage, /nunca recibimos|numero completo de tu tarjeta|fo
 assert.match(vehicleStartPanel, /Simulacro completo disponible/);
 assert.match(vehicleStartPanel, /Pruebas 1 y 2 sin costo; la 3\.ª requiere suscripción/);
 assert.doesNotMatch(seoGenerator, /suscripción mensual por S\/ 12/);
+for (const source of [publicHeader, publicFooter, vehicleStartPanel, seoGenerator]) {
+  assert.doesNotMatch(source, /20\/12\/8/);
+}
 assert.match(apiRouter, /path\.startsWith\('\/pagos\/'\) && isFullExamFree/);
 assert.match(timedExamHandler, /getFullPracticeAccess/);
 assert.match(timedExamHandler, /freeAttemptLimit: FREE_FULL_EXAM_ATTEMPTS/);

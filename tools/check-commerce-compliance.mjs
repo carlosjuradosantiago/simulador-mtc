@@ -42,10 +42,12 @@ assert.doesNotMatch(protectedRoutes, /path="\/planes"/);
 
 assert.match(files.subscription, /S\/ \{MONTHLY_PLAN\.price\}/);
 assert.match(files.subscription, /Prácticas cortas son gratuitas|prácticas cortas para conocer el servicio/i);
-assert.match(files.subscription, /Entrenamiento inteligente 20\/12\/8/);
-assert.match(files.subscription, /Navega antes de entregar/);
-assert.match(files.subscription, /Preguntas completas e imágenes/);
-assert.equal((files.subscription.match(/title:/g) || []).length, 8);
+assert.match(files.subscription, /Una práctica que se adapta a ti/);
+assert.match(files.subscription, /Revisa antes de finalizar/);
+assert.match(files.subscription, /Preguntas claras y visuales/);
+assert.doesNotMatch(files.subscription, /20\/12\/8|preguntas compactadas|Control de las 40 preguntas/i);
+const subscriptionBenefits = files.subscription.match(/const benefits = \[([\s\S]*?)\n\];/)?.[1] || '';
+assert.equal((subscriptionBenefits.match(/title:/g) || []).length, 8);
 assert.match(files.legalPage, /Crear una cuenta no autoriza ningún cobro/);
 assert.match(files.legalPage, /15 días hábiles/);
 assert.match(files.legalPage, /no excluye nuestra responsabilidad por dolo, culpa, falta de idoneidad/);

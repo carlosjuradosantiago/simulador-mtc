@@ -8,75 +8,82 @@ import {
   Images,
   ListChecks,
   MessageSquareText,
+  RefreshCw,
   Route,
   ShieldCheck,
+  Sparkles,
   Smartphone,
+  Target,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { MONTHLY_PLAN } from '../data/legal.js';
 import { vehicleChoices } from '../data/vehicleChoices.js';
 import { useAuth } from '../hooks/useAuth.js';
 
-const trainingMix = [
-  ['20', 'para reforzar', 'Errores y preguntas difíciles'],
-  ['12', 'nuevas', 'Amplían lo que ya dominas'],
-  ['8', 'de repaso', 'Comprueban que no olvidaste'],
+const adaptiveBenefits = [
+  {
+    title: 'Refuerza tus errores',
+    description: 'Da prioridad a los temas que más te cuestan.',
+    icon: Target,
+  },
+  {
+    title: 'Avanza con preguntas nuevas',
+    description: 'Amplía lo que ya dominas sin repetir siempre lo mismo.',
+    icon: Sparkles,
+  },
+  {
+    title: 'Repasa lo aprendido',
+    description: 'Recupera temas anteriores para comprobar que aún los recuerdas.',
+    icon: RefreshCw,
+  },
 ];
 
 const benefits = [
   {
     title: 'Simulacro cronometrado',
     description: 'Responde 40 preguntas en 40 minutos con la selección correspondiente a tu licencia.',
-    detail: 'Formato 40/40',
     icon: Clock3,
     tone: 'text-brand',
   },
   {
-    title: 'Respuesta explicada',
+    title: 'Aprende de cada respuesta',
     description: 'Al confirmar verás qué marcaste, cuál era la respuesta correcta y la explicación completa.',
-    detail: 'Aprende de cada error',
     icon: MessageSquareText,
     tone: 'text-success',
   },
   {
-    title: 'Navega antes de entregar',
-    description: 'Muévete entre las preguntas 1 a 40, vuelve atrás y corrige tus respuestas mientras continúa el tiempo.',
-    detail: 'Control de las 40 preguntas',
+    title: 'Revisa antes de finalizar',
+    description: 'Vuelve a cualquier pregunta y cambia tu elección antes de confirmar la entrega.',
     icon: ListChecks,
     tone: 'text-amber-600',
   },
   {
-    title: 'Análisis de puntos débiles',
+    title: 'Conoce qué necesitas reforzar',
     description: 'Mi avance identifica los temas con menor acierto y muestra tu evolución en simulacros cronometrados.',
-    detail: 'Progreso basado en resultados',
     icon: BarChart3,
     tone: 'text-cyan-600',
   },
   {
-    title: 'Preguntas completas e imágenes',
-    description: 'Lee el texto y todas las alternativas sin recortes; las señales y gráficos aparecen cuando corresponden.',
-    detail: 'Sin preguntas compactadas',
+    title: 'Preguntas claras y visuales',
+    description: 'Lee cada enunciado y todas sus alternativas; cuando una pregunta incluye una señal o gráfico, lo verás completo.',
     icon: Images,
     tone: 'text-violet-600',
   },
   {
-    title: 'Preparación para tu licencia',
+    title: 'Preparación según tu licencia',
     description: 'La práctica se orienta a A-I, A-IIA, A-IIB, A-IIIA, A-IIIB, A-IIIC, B-IIA, B-IIB o B-IIC.',
-    detail: '9 categorías disponibles',
     icon: Route,
     tone: 'text-slate-700',
   },
   {
     title: 'Practica desde cualquier equipo',
     description: 'Continúa tu preparación desde celular o computadora con la misma cuenta y el mismo avance.',
-    detail: 'Diseñado también para celular',
     icon: Smartphone,
     tone: 'text-brand',
   },
   {
-    title: 'Refuerzo que cambia contigo',
+    title: 'Entrenamiento que cambia contigo',
     description: 'Las siguientes prácticas priorizan lo que más fallas y vuelven a comprobar lo que ya aprendiste.',
-    detail: 'Entrenamiento adaptado a tus resultados',
     icon: BrainCircuit,
     tone: 'text-success',
   },
@@ -122,40 +129,40 @@ export default function SubscriptionPage() {
           <p className="mt-3 max-w-3xl text-lg leading-8 text-slate-600">La plataforma organiza tu preparación, explica cada respuesta y usa tus resultados para decidir qué conviene reforzar después.</p>
         </div>
 
-        <div className="bg-ink text-white">
-          <div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:px-8">
+        <div className="border-y border-blue-200 bg-blue-50">
+          <div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[0.9fr_1.35fr] lg:items-center lg:px-8">
             <div className="flex items-start gap-4">
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-brand text-white">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-brand text-white shadow-[0_3px_0_#0f4eae]">
                 <BrainCircuit className="h-7 w-7" aria-hidden="true" />
               </span>
               <div>
-                <p className="font-bold text-traffic-yellow">Entrenamiento inteligente 20/12/8</p>
-                <h3 className="mt-1 font-display text-2xl font-black leading-tight sm:text-3xl">Cada práctica aprovecha mejor tus 40 preguntas</h3>
-                <p className="mt-3 max-w-xl leading-7 text-blue-100">Combina hasta 20 preguntas que necesitas reforzar, 12 nuevas y 8 de repaso para aprender sin repetir siempre lo mismo.</p>
+                <p className="font-bold text-brand">Entrenamiento inteligente</p>
+                <h3 className="mt-1 font-display text-2xl font-black leading-tight text-ink sm:text-3xl">Una práctica que se adapta a ti</h3>
+                <p className="mt-3 max-w-xl leading-7 text-slate-700">Usa tus resultados para decidir qué conviene reforzar, cuándo avanzar y qué necesitas volver a repasar.</p>
               </div>
             </div>
 
-            <dl className="grid grid-cols-3 border-y border-blue-300/30 lg:border-y-0">
-              {trainingMix.map(([value, label, description], index) => (
-                <div key={label} className={`min-w-0 px-3 py-4 sm:px-5 lg:py-2 ${index > 0 ? 'border-l border-blue-300/30' : ''}`}>
-                  <dt><strong className="block font-display text-3xl font-black text-traffic-yellow sm:text-4xl">{value}</strong><span className="mt-1 block text-sm font-bold text-white">{label}</span></dt>
-                  <dd className="mt-2 text-xs leading-5 text-blue-100 sm:text-sm">{description}</dd>
-                </div>
+            <div className="grid border-t border-blue-200 sm:grid-cols-3 sm:border-t-0">
+              {adaptiveBenefits.map(({ title, description, icon: Icon }, index) => (
+                <article key={title} className={`min-w-0 py-5 sm:px-5 sm:py-2 ${index > 0 ? 'border-t border-blue-200 sm:border-l sm:border-t-0' : ''}`}>
+                  <Icon className="h-6 w-6 text-brand" aria-hidden="true" />
+                  <h4 className="mt-3 font-display text-lg font-black leading-6 text-ink">{title}</h4>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
+                </article>
               ))}
-            </dl>
+            </div>
           </div>
         </div>
 
         <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
           <h3 className="font-display text-2xl font-black text-ink sm:text-3xl">Incluido en tu preparación</h3>
           <div className="mt-6 grid border-t border-line sm:grid-cols-2">
-            {benefits.map(({ title, description, detail, icon: Icon, tone }, index) => (
+            {benefits.map(({ title, description, icon: Icon, tone }, index) => (
               <article key={title} className={`border-b border-line py-6 sm:px-6 ${index % 2 === 0 ? 'sm:border-r' : ''}`}>
                 <div className="flex items-start gap-4">
                   <Icon className={`mt-0.5 h-7 w-7 shrink-0 ${tone}`} aria-hidden="true" />
                   <div>
-                    <p className="text-xs font-black uppercase text-slate-500">{detail}</p>
-                    <h4 className="mt-1 font-display text-xl font-black text-ink">{title}</h4>
+                    <h4 className="font-display text-xl font-black text-ink">{title}</h4>
                     <p className="mt-2 leading-7 text-slate-600">{description}</p>
                   </div>
                 </div>
