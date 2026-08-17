@@ -34,7 +34,7 @@ export default function PublicHeader() {
               className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line bg-white px-3 font-bold text-brand hover:border-brand hover:bg-blue-50 lg:hidden"
             >
               <CreditCard className="h-5 w-5" aria-hidden="true" />
-              <span className="hidden min-[520px]:inline">Planes</span>
+              <span className="sm:hidden min-[760px]:inline">Planes</span>
             </Link>
           ) : null}
           {isAuthenticated ? (
