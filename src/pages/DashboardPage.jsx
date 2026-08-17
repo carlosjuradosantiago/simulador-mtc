@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import VehicleStartPanel from '../components/practice/VehicleStartPanel.jsx';
 import { BRAND_DISCLAIMER } from '../data/brand.js';
-import { FULL_EXAM_IS_FREE } from '../data/examRules.js';
+import {
+  FREE_FULL_EXAM_ATTEMPTS,
+  FULL_EXAM_IS_FREE,
+  remainingFreeFullExamAttempts,
+} from '../data/examRules.js';
 import { fallbackLicenseCategories } from '../data/vehicleChoices.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { api, resolveCategoryId } from '../services/api.js';
@@ -19,6 +23,7 @@ export default function DashboardPage() {
   const [membership, setMembership] = useState(null);
   const [membershipLoading, setMembershipLoading] = useState(true);
   const [plan, setPlan] = useState(null);
+  const [completedOfficialExams, setCompletedOfficialExams] = useState(null);
 
   useEffect(() => {
     api.getCategories().then((items) => {
@@ -29,9 +34,15 @@ export default function DashboardPage() {
       return;
     }
     api.getPlans().then((items) => setPlan(items?.[0] ?? null)).catch(() => null);
-    api.getActiveMembership()
-      .then(setMembership)
-      .catch(() => setMembership(null))
+    Promise.all([api.getActiveMembership(), api.getStats()])
+      .then(([nextMembership, accessStats]) => {
+        setMembership(nextMembership);
+        setCompletedOfficialExams(Number(accessStats?.totalIntentos) || 0);
+      })
+      .catch(() => {
+        setMembership(null);
+        setCompletedOfficialExams(FREE_FULL_EXAM_ATTEMPTS);
+      })
       .finally(() => setMembershipLoading(false));
   }, []);
 
@@ -72,6 +83,13 @@ export default function DashboardPage() {
     }
   };
 
+  const freeFullExamAttemptsRemaining = membership?.isActive
+    ? 0
+    : remainingFreeFullExamAttempts(completedOfficialExams);
+  const fullExamHasAccess = FULL_EXAM_IS_FREE
+    || Boolean(membership?.isActive)
+    || freeFullExamAttemptsRemaining > 0;
+
   return (
     <div className="min-h-[calc(100vh-73px)] bg-white">
       <VehicleStartPanel
@@ -82,14 +100,15 @@ export default function DashboardPage() {
         onCategoryChange={selectCategory}
         startTo={`/simulacro/${selectedCategoryId}?mode=quick`}
         adaptiveTo={`/simulacro/${selectedCategoryId}?mode=adaptive&strategy=adaptive`}
-        fullExamTo={FULL_EXAM_IS_FREE || membership?.isActive
+        fullExamTo={fullExamHasAccess
           ? `/simulacro/${selectedCategoryId}?mode=exam`
           : `/checkout?category=${selectedCategoryId}`}
-        fullExamHasAccess={FULL_EXAM_IS_FREE || Boolean(membership?.isActive)}
+        fullExamHasAccess={fullExamHasAccess}
         fullExamAccessLoading={membershipLoading}
         fullExamPrice={plan?.price ?? 1200}
         membershipEndDate={membership?.endDate}
         fullExamIsFree={FULL_EXAM_IS_FREE}
+        freeFullExamAttemptsRemaining={freeFullExamAttemptsRemaining}
       />
       <p className="border-t border-line px-4 py-5 text-center text-sm text-slate-500">{BRAND_DISCLAIMER}</p>
     </div>

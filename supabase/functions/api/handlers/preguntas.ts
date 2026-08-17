@@ -6,7 +6,13 @@ import {
   OFFICIAL_EXAM_MIN_CORRECT,
   OFFICIAL_EXAM_QUESTION_COUNT,
 } from '../_shared/exam-rules.ts';
-import { isFullExamFree, TIMED_SESSION_TYPE } from '../_shared/membership-access.ts';
+import {
+  filterOfficialExamAttempts,
+  FREE_FULL_EXAM_ATTEMPTS,
+  hasFreeFullExamAttempt,
+  isFullExamFree,
+  TIMED_SESSION_TYPE,
+} from '../_shared/membership-access.ts';
 import { shuffled as shuffleItems } from '../_shared/practice-selection.ts';
 
 // Headers CORS para todas las respuestas
@@ -144,14 +150,27 @@ function jsonResponse(data: unknown, status = 200) {
       throw new Error(`[PASO 3] Error al verificar membresía: ${membershipError.message}`);
     }
     if (!activeMembership) {
-      console.log('❌ Acceso denegado: el simulacro completo requiere membresía');
-      return jsonResponse({
-        code: 'MEMBERSHIP_REQUIRED',
-        message: 'Activa tu acceso de 1 mes para rendir el simulacro completo de 40 preguntas.',
-        checkoutPath: `/checkout?category=${categoryIdNum}`,
-      }, 402);
+      const { count: completedAttempts, error: attemptsError } = await filterOfficialExamAttempts(
+        supabase.from('intento').select('id', { count: 'exact', head: true }),
+        userId,
+      );
+      if (attemptsError) {
+        throw new Error(`[PASO 3] Error al contar simulacros gratuitos: ${attemptsError.message}`);
+      }
+      if (!hasFreeFullExamAttempt(completedAttempts || 0)) {
+        console.log('❌ Acceso denegado: el usuario ya utilizó sus simulacros gratuitos');
+        return jsonResponse({
+          code: 'MEMBERSHIP_REQUIRED',
+          message: `Ya utilizaste tus ${FREE_FULL_EXAM_ATTEMPTS} simulacros gratuitos. Suscríbete por 1 mes para continuar.`,
+          checkoutPath: `/checkout?category=${categoryIdNum}`,
+          freeAttemptsUsed: completedAttempts || 0,
+          freeAttemptLimit: FREE_FULL_EXAM_ATTEMPTS,
+        }, 402);
+      }
+      console.log(`✅ Simulacro gratuito ${(completedAttempts || 0) + 1} de ${FREE_FULL_EXAM_ATTEMPTS}`);
+    } else {
+      console.log('✅ Membresía activa hasta:', activeMembership.fecha_fin);
     }
-    console.log('✅ Membresía activa hasta:', activeMembership.fecha_fin);
   }
 
   // ============ PASO 4: OBTENER PREGUNTAS ============

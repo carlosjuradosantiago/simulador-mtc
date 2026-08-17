@@ -10,7 +10,6 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Button from '../components/ui/Button.jsx';
-import { FULL_EXAM_IS_FREE } from '../data/examRules.js';
 import { api, resolveCategoryId, toResult } from '../services/api.js';
 
 const emptyResult = {
@@ -229,7 +228,7 @@ export default function ResultsPage() {
           <>
             <Button
               as={Link}
-              to={FULL_EXAM_IS_FREE ? `/simulacro/${categoryId}?mode=exam` : `/checkout?category=${categoryId}`}
+              to={`/simulacro/${categoryId}?mode=exam`}
               size="lg"
               className="flex-1"
             >

@@ -10,7 +10,7 @@ import {
   X,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import BrandLogo from '../components/layout/BrandLogo.jsx';
 import Button from '../components/ui/Button.jsx';
 import { OptionContent, QuestionImage } from '../components/ui/QuestionMedia.jsx';
@@ -229,6 +229,10 @@ export default function SimulatorPage() {
         </div>
       </div>
     );
+  }
+
+  if (!FULL_EXAM_IS_FREE && errorStatus === 402) {
+    return <Navigate to={`/checkout?category=${categoria}`} replace />;
   }
 
   if (error || !currentQuestion) {

@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import {
   addCalendarMonths,
   filterOfficialExamAttempts,
+  FREE_FULL_EXAM_ATTEMPTS as API_FREE_FULL_EXAM_ATTEMPTS,
+  hasFreeFullExamAttempt,
   isFullExamFree,
   isRealPayment,
   partitionAttempts,
@@ -13,12 +15,25 @@ import {
   OFFICIAL_EXAM_QUESTION_COUNT,
   passesOfficialExam,
 } from '../supabase/functions/api/_shared/exam-rules.ts';
-import { FULL_EXAM_IS_FREE, OFFICIAL_EXAM_RULES } from '../src/data/examRules.js';
+import {
+  FREE_FULL_EXAM_ATTEMPTS,
+  FULL_EXAM_IS_FREE,
+  OFFICIAL_EXAM_RULES,
+  remainingFreeFullExamAttempts,
+} from '../src/data/examRules.js';
 
 assert.equal(isFullExamFree(undefined), true);
 assert.equal(isFullExamFree('true'), true);
 assert.equal(isFullExamFree('FALSE'), false);
 assert.equal(FULL_EXAM_IS_FREE, true);
+assert.equal(API_FREE_FULL_EXAM_ATTEMPTS, 2);
+assert.equal(FREE_FULL_EXAM_ATTEMPTS, 2);
+assert.equal(hasFreeFullExamAttempt(0), true);
+assert.equal(hasFreeFullExamAttempt(1), true);
+assert.equal(hasFreeFullExamAttempt(2), false);
+assert.equal(remainingFreeFullExamAttempts(0), 2);
+assert.equal(remainingFreeFullExamAttempts(1), 1);
+assert.equal(remainingFreeFullExamAttempts(2), 0);
 
 const historyFilters = [];
 const fakeQuery = {
@@ -69,6 +84,9 @@ const vehicleStartPanel = readFileSync(new URL('../src/components/practice/Vehic
 const routes = readFileSync(new URL('../src/routes/AppRoutes.jsx', import.meta.url), 'utf8');
 const seoGenerator = readFileSync(new URL('./generate-seo-assets.mjs', import.meta.url), 'utf8');
 const apiRouter = readFileSync(new URL('../supabase/functions/api/index.ts', import.meta.url), 'utf8');
+const timedExamHandler = readFileSync(new URL('../supabase/functions/api/handlers/preguntas.ts', import.meta.url), 'utf8');
+const dashboardPage = readFileSync(new URL('../src/pages/DashboardPage.jsx', import.meta.url), 'utf8');
+const landingPage = readFileSync(new URL('../src/pages/LandingPage.jsx', import.meta.url), 'utf8');
 assert.match(plansPage, /Suscribete nuevamente para volver a rendir simulacros completos/);
 assert.match(plansPage, /Con Yape, tu suscripcion mensual queda activa durante un mes/);
 assert.doesNotMatch(plansPage, /Un mes, sin renovacion|no realiza cobros futuros|Pagar \$\{priceLabel\(plan\.price\)\} con Yape/);
@@ -78,7 +96,14 @@ assert.match(publicHeader, /!FULL_EXAM_IS_FREE/);
 assert.match(publicFooter, /!FULL_EXAM_IS_FREE/);
 assert.match(routes, /path="\/suscripcion" element=\{FULL_EXAM_IS_FREE \? <Navigate to="\/" replace \/>/);
 assert.match(vehicleStartPanel, /Simulacro completo disponible/);
+assert.match(vehicleStartPanel, /Pruebas 1 y 2 sin costo; la 3\.ª requiere suscripción/);
 assert.doesNotMatch(seoGenerator, /suscripción mensual por S\/ 12/);
 assert.match(apiRouter, /path\.startsWith\('\/pagos\/'\) && isFullExamFree/);
+assert.match(timedExamHandler, /filterOfficialExamAttempts/);
+assert.match(timedExamHandler, /hasFreeFullExamAttempt\(completedAttempts \|\| 0\)/);
+assert.match(timedExamHandler, /freeAttemptLimit: FREE_FULL_EXAM_ATTEMPTS/);
+assert.match(dashboardPage, /freeFullExamAttemptsRemaining/);
+assert.match(landingPage, /FREE_FULL_EXAM_ATTEMPTS/);
+assert.match(simulatorPage, /<Navigate to=\{`\/checkout\?category=\$\{categoria\}`\} replace \/>/);
 
 console.log('membership access checks passed');

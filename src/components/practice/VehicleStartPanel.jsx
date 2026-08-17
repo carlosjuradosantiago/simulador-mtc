@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { OFFICIAL_EXAM_RULES } from '../../data/examRules.js';
+import { FREE_FULL_EXAM_ATTEMPTS, OFFICIAL_EXAM_RULES } from '../../data/examRules.js';
 import { fallbackLicenseCategories, getCategoryById, getVehicleChoice, vehicleChoices } from '../../data/vehicleChoices.js';
 import { cn } from '../../utils/cn.js';
 import Modal from '../ui/Modal.jsx';
@@ -53,6 +53,7 @@ export default function VehicleStartPanel({
   fullExamPrice = 1200,
   membershipEndDate = null,
   fullExamIsFree = false,
+  freeFullExamAttemptsRemaining = 0,
   focusSelected = false,
 }) {
   const [practiceMode, setPracticeMode] = useState('random');
@@ -66,6 +67,10 @@ export default function VehicleStartPanel({
   const isCheckingFullExamAccess = !fullExamIsFree && fullExamAccessLoading;
   const fullExamAccessLabel = fullExamIsFree
     ? 'Simulacro completo disponible'
+    : freeFullExamAttemptsRemaining > 0
+      ? freeFullExamAttemptsRemaining === FREE_FULL_EXAM_ATTEMPTS
+        ? 'Pruebas 1 y 2 sin costo; la 3.ª requiere suscripción'
+        : 'Te queda 1 simulacro sin costo; después necesitas suscripción'
     : fullExamHasAccess
       ? `Acceso activo${membershipEndDate ? ` hasta ${new Date(membershipEndDate).toLocaleDateString('es-PE')}` : ''}`
       : `Suscripcion mensual ${priceLabel}`;

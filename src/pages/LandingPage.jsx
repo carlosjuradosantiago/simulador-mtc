@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import VehicleStartPanel from '../components/practice/VehicleStartPanel.jsx';
-import { FULL_EXAM_IS_FREE } from '../data/examRules.js';
+import { FREE_FULL_EXAM_ATTEMPTS, FULL_EXAM_IS_FREE } from '../data/examRules.js';
 import { fallbackLicenseCategories } from '../data/vehicleChoices.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { api } from '../services/api.js';
@@ -48,9 +48,7 @@ export default function LandingPage() {
   };
 
   const fullExamDestination = selectedCategoryId
-    ? FULL_EXAM_IS_FREE
-      ? `/simulacro/${selectedCategoryId}?mode=exam`
-      : `/checkout?category=${selectedCategoryId}`
+    ? `/simulacro/${selectedCategoryId}?mode=exam`
     : null;
   const fullExamTo = fullExamDestination
     ? `/?auth=register&category=${selectedCategoryId}&next=${encodeURIComponent(fullExamDestination)}`
@@ -70,8 +68,10 @@ export default function LandingPage() {
       onStart={startPractice}
       adaptiveTo={adaptiveTo}
       fullExamTo={fullExamTo}
+      fullExamHasAccess
       fullExamIsFree={FULL_EXAM_IS_FREE}
       fullExamPrice={planPrice}
+      freeFullExamAttemptsRemaining={FULL_EXAM_IS_FREE ? 0 : FREE_FULL_EXAM_ATTEMPTS}
     />
   );
 }

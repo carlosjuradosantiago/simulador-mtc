@@ -4,6 +4,7 @@ export const TIMED_SESSION_TYPE = 'CRONOMETRADO';
 export const QUICK_SESSION_TYPE = 'PRACTICA_CORTA';
 export const ADAPTIVE_SESSION_TYPE = 'PRACTICA_ADAPTATIVA';
 export const SIMULATED_PAYMENT_METHOD = 'simulacion';
+export const FREE_FULL_EXAM_ATTEMPTS = 2;
 
 export function isFullExamFree(value?: string | null) {
   return String(value ?? '').trim().toLowerCase() !== 'false';
@@ -50,6 +51,10 @@ export function partitionAttempts<T extends { tipo_intento?: string | null; tota
   });
 
   return { timed, quick, adaptive, ignored };
+}
+
+export function hasFreeFullExamAttempt(completedAttempts: number) {
+  return Math.max(Number(completedAttempts) || 0, 0) < FREE_FULL_EXAM_ATTEMPTS;
 }
 
 export function isRealPayment(payment: {
