@@ -1,7 +1,6 @@
 import { BookOpen, Mail, MapPin, Phone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { BRAND_DISCLAIMER, BRAND_NAME } from '../../data/brand.js';
-import { FULL_EXAM_IS_FREE } from '../../data/examRules.js';
 import { BUSINESS } from '../../data/legal.js';
 
 const licenseGuides = [
@@ -17,7 +16,7 @@ const licenseGuides = [
 ];
 
 const publicLinks = [
-  ...(!FULL_EXAM_IS_FREE ? [['Planes', '/planes']] : []),
+  ['Planes', '/planes'],
   ['PDF oficiales del MTC', '/materiales'],
   ['Contacto', '/contacto'],
   ['Términos y condiciones', '/terminos-y-condiciones'],

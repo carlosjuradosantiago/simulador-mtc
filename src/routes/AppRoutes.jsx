@@ -61,8 +61,8 @@ export default function AppRoutes() {
       <Routes>
         <Route element={<PublicLayout />}>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/planes" element={FULL_EXAM_IS_FREE ? <Navigate to="/" replace /> : <SubscriptionPage />} />
-          <Route path="/suscripcion" element={FULL_EXAM_IS_FREE ? <Navigate to="/" replace /> : <Navigate to="/planes" replace />} />
+          <Route path="/planes" element={<SubscriptionPage />} />
+          <Route path="/suscripcion" element={<Navigate to="/planes" replace />} />
           <Route path="/contacto" element={<LegalPage page="contact" />} />
           <Route path="/terminos-y-condiciones" element={<LegalPage page="terms" />} />
           <Route path="/terminos" element={<Navigate to="/terminos-y-condiciones" replace />} />

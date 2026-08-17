@@ -1,6 +1,5 @@
 import { CircleUserRound, CreditCard, LogIn, UserPlus } from 'lucide-react';
 import { Link, NavLink } from 'react-router-dom';
-import { FULL_EXAM_IS_FREE } from '../../data/examRules.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import BrandLogo from './BrandLogo.jsx';
 
@@ -22,21 +21,19 @@ export default function PublicHeader() {
           <NavLink to="/" end className={navLinkClass}>Entrenar</NavLink>
           <a href="/metodologia-simulador-mtc" className="inline-flex min-h-11 items-center border-b-2 border-transparent px-1 text-sm font-bold text-slate-600 transition hover:text-ink">Cómo funciona</a>
           <NavLink to="/materiales" className={navLinkClass}>PDF oficiales</NavLink>
-          {!FULL_EXAM_IS_FREE ? <NavLink to="/planes" className={navLinkClass}>Planes</NavLink> : null}
+          <NavLink to="/planes" className={navLinkClass}>Planes</NavLink>
           <NavLink to="/contacto" className={navLinkClass}>Contacto</NavLink>
         </nav>
 
         <div className="ml-auto flex items-center gap-2 lg:ml-3">
-          {!FULL_EXAM_IS_FREE ? (
-            <Link
-              to="/planes"
-              aria-label="Ver planes"
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line bg-white px-3 font-bold text-brand hover:border-brand hover:bg-blue-50 lg:hidden"
-            >
-              <CreditCard className="h-5 w-5" aria-hidden="true" />
-              <span className="sm:hidden min-[760px]:inline">Planes</span>
-            </Link>
-          ) : null}
+          <Link
+            to="/planes"
+            aria-label="Ver planes"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line bg-white px-3 font-bold text-brand hover:border-brand hover:bg-blue-50 lg:hidden"
+          >
+            <CreditCard className="h-5 w-5" aria-hidden="true" />
+            <span className="sm:hidden min-[760px]:inline">Planes</span>
+          </Link>
           {isAuthenticated ? (
             <Link
               to="/dashboard"

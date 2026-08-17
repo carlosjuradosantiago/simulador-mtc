@@ -13,6 +13,9 @@ const paths = {
   plansData: '../src/data/mockPlans.js',
   seoGenerator: './generate-seo-assets.mjs',
   subscription: '../src/pages/SubscriptionPage.jsx',
+  publicHeader: '../src/components/layout/PublicHeader.jsx',
+  publicFooter: '../src/components/layout/PublicFooter.jsx',
+  sidebar: '../src/components/layout/Sidebar.jsx',
   complaint: '../src/pages/ComplaintBookPage.jsx',
   plans: '../src/pages/PlansPage.jsx',
   handler: '../supabase/functions/api/handlers/libro_reclamaciones.ts',
@@ -37,14 +40,23 @@ const publicRoutes = files.routes.split('<Route element={<ProtectedRoute />}>')[
 const protectedRoutes = files.routes.split('<Route element={<ProtectedRoute />}>')[1] || '';
 assert.match(publicRoutes, /path="\/libro-reclamaciones"/);
 assert.match(publicRoutes, /path="\/planes"/);
+assert.match(publicRoutes, /path="\/planes" element={<SubscriptionPage \/>}/);
 assert.doesNotMatch(protectedRoutes, /path="\/libro-reclamaciones"/);
 assert.doesNotMatch(protectedRoutes, /path="\/planes"/);
+assert.match(protectedRoutes, /path="\/checkout" element={FULL_EXAM_IS_FREE/);
+
+for (const navigation of [files.publicHeader, files.publicFooter, files.sidebar]) {
+  assert.match(navigation, /['"]\/planes['"]/);
+  assert.doesNotMatch(navigation, /FULL_EXAM_IS_FREE/);
+}
 
 assert.match(files.subscription, /S\/ \{MONTHLY_PLAN\.price\}/);
 assert.match(files.subscription, /Prácticas cortas son gratuitas|prácticas cortas para conocer el servicio/i);
 assert.match(files.subscription, /Una práctica que se adapta a ti/);
 assert.match(files.subscription, /Revisa antes de finalizar/);
 assert.match(files.subscription, /Preguntas claras y visuales/);
+assert.match(files.subscription, /FULL_EXAM_IS_FREE \? practiceTo : checkoutTo/);
+assert.match(files.subscription, /Empezar a practicar/);
 assert.doesNotMatch(files.subscription, /20\/12\/8|preguntas compactadas|Control de las 40 preguntas/i);
 const subscriptionBenefits = files.subscription.match(/const benefits = \[([\s\S]*?)\n\];/)?.[1] || '';
 assert.equal((subscriptionBenefits.match(/title:/g) || []).length, 8);
