@@ -42,6 +42,10 @@ assert.doesNotMatch(protectedRoutes, /path="\/planes"/);
 
 assert.match(files.subscription, /S\/ \{MONTHLY_PLAN\.price\}/);
 assert.match(files.subscription, /Prácticas cortas son gratuitas|prácticas cortas para conocer el servicio/i);
+assert.match(files.subscription, /Entrenamiento inteligente 20\/12\/8/);
+assert.match(files.subscription, /Navega antes de entregar/);
+assert.match(files.subscription, /Preguntas completas e imágenes/);
+assert.equal((files.subscription.match(/title:/g) || []).length, 8);
 assert.match(files.legalPage, /Crear una cuenta no autoriza ningún cobro/);
 assert.match(files.legalPage, /15 días hábiles/);
 assert.match(files.legalPage, /no excluye nuestra responsabilidad por dolo, culpa, falta de idoneidad/);
