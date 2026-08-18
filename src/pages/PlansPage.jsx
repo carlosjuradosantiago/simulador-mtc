@@ -5,6 +5,7 @@ import {
   Clock3,
   CreditCard,
   FileCheck2,
+  LoaderCircle,
   LockKeyhole,
   ShieldCheck,
   Smartphone,
@@ -22,6 +23,8 @@ import { api, normalizeCategoryName, resolveCategoryId } from '../services/api.j
 
 const CULQI_CHECKOUT_SRC = 'https://js.culqi.com/checkout-js';
 const CULQI_3DS_SRC = 'https://3ds.culqi.com';
+const PAYMENT_POLL_INTERVAL_MS = 1500;
+const PAYMENT_POLL_ATTEMPTS = 40;
 const fallbackPlan = { id: 1, name: 'Premium', price: 1200, durationMonths: 1 };
 
 const benefits = [
@@ -33,6 +36,11 @@ const benefits = [
 
 function priceLabel(priceInCents) {
   return `S/ ${Math.round(Number(priceInCents || 0) / 100)}`;
+}
+
+function confirmedMembership(result) {
+  const endDate = result?.membership?.membership_end || result?.membership?.endDate;
+  return endDate ? { isActive: true, endDate } : null;
 }
 
 function loadScript(src, globalName) {
@@ -119,6 +127,11 @@ export default function PlansPage() {
       setHadMembership(memberships.length > 0);
       setSubscription(activeSubscription);
       setConfig(paymentConfig);
+      if (!activeMembership && activeSubscription?.paymentStatus === 'procesando') {
+        setSuccess({ pending: true, transactionId: activeSubscription.transactionId });
+      } else if (!activeMembership && activeSubscription?.paymentStatus === 'fallido') {
+        setError(activeSubscription.paymentError || 'Culqi no aprobo el pago. Tu suscripcion no fue activada.');
+      }
       setForm((current) => ({
         ...current,
         receiptType: billing?.tipoComprobante === 'factura' ? 'factura' : 'boleta',
@@ -155,9 +168,57 @@ export default function PlansPage() {
     return () => window.removeEventListener('message', handle3dsMessage);
   });
 
+  useEffect(() => {
+    if (!processing) return undefined;
+    const preventClosing = (event) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', preventClosing);
+    return () => window.removeEventListener('beforeunload', preventClosing);
+  }, [processing]);
+
   const updateForm = (field) => (event) => {
     const value = event.target.value;
     setForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const waitForPaymentConfirmation = async (transactionId) => {
+    let latest = null;
+    for (let attempt = 0; attempt < PAYMENT_POLL_ATTEMPTS; attempt += 1) {
+      if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, PAYMENT_POLL_INTERVAL_MS));
+      latest = await api.getSubscription();
+      if (!latest || (latest.transactionId && String(latest.transactionId) !== String(transactionId))) continue;
+      const activeMembership = confirmedMembership(latest);
+      if (activeMembership) return { latest, activeMembership };
+      if (latest.paymentStatus === 'fallido') {
+        throw new Error(latest.paymentError || 'Culqi no aprobo el pago. Tu suscripcion no fue activada.');
+      }
+    }
+    return { latest, activeMembership: null };
+  };
+
+  const confirmPendingPayment = async (transactionId) => {
+    setProcessing(true);
+    setError('');
+    try {
+      const { latest, activeMembership } = await waitForPaymentConfirmation(transactionId);
+      if (activeMembership) {
+        setMembership(activeMembership);
+        setSubscription(latest);
+        setSuccess({ pending: false, membership: latest.membership });
+        attemptRef.current = null;
+        return;
+      }
+      if (latest) setSubscription(latest);
+      setSuccess({ pending: true, transactionId });
+    } catch (requestError) {
+      setSuccess(null);
+      setError(requestError.message);
+      attemptRef.current = null;
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const processToken = async (tokenId, authentication3DS = null) => {
@@ -205,15 +266,30 @@ export default function PlansPage() {
         return;
       }
 
-      setSuccess(result);
-      if (result.membership?.membership_end) {
-        setMembership({ isActive: true, endDate: result.membership.membership_end });
+      if (result.pending) {
+        setSuccess(result);
+        if (result.subscription) setSubscription(result.subscription);
+        const { latest, activeMembership } = await waitForPaymentConfirmation(result.transactionId);
+        if (!activeMembership) {
+          if (latest) setSubscription(latest);
+          return;
+        }
+        setMembership(activeMembership);
+        setSubscription(latest);
+        setSuccess({ pending: false, membership: latest.membership });
+      } else {
+        setSuccess(result);
+        const activeMembership = confirmedMembership(result);
+        if (activeMembership) setMembership(activeMembership);
+        if (result.subscription) setSubscription(result.subscription);
       }
-      if (result.subscription) setSubscription(result.subscription);
       attemptRef.current = null;
       window.Culqi3DS?.reset?.();
     } catch (requestError) {
+      setSuccess(null);
       setError(requestError.message);
+      attemptRef.current = null;
+      window.Culqi3DS?.reset?.();
     } finally {
       setProcessing(false);
     }
@@ -243,6 +319,8 @@ export default function PlansPage() {
     }
 
     setError('');
+    culqiRef.current?.close?.();
+    culqiRef.current = null;
     attemptRef.current = {
       idempotencyKey: crypto.randomUUID(),
       tokenId: '',
@@ -268,6 +346,7 @@ export default function PlansPage() {
       },
       appearance: {
         theme: 'default',
+        hiddenCulqiLogo: false,
         hiddenBannerContent: false,
         hiddenBanner: false,
         hiddenToolBarAmount: paymentChoice === 'tarjeta',
@@ -291,8 +370,12 @@ export default function PlansPage() {
         const method = culqi.token.id.startsWith('ype_') || tokenKind.includes('yape') ? 'yape' : 'tarjeta';
         attemptRef.current = { ...attemptRef.current, tokenId: culqi.token.id, paymentMethod: method };
         culqi.close();
+        culqiRef.current = null;
         processToken(culqi.token.id);
       } else if (culqi.error) {
+        culqi.close();
+        culqiRef.current = null;
+        attemptRef.current = null;
         setError(culqi.error.user_message || culqi.error.merchant_message || 'No se pudo generar el token de pago.');
       }
     };
@@ -397,7 +480,7 @@ export default function PlansPage() {
           </> : null}
 
           {hasAccess ? <div className="mt-5 border-l-4 border-success bg-emerald-50 px-4 py-3 text-sm text-emerald-950"><p className="font-black">Tu suscripcion esta activa</p>{membership.endDate ? <p className="mt-1">Vigente hasta {new Date(membership.endDate).toLocaleDateString('es-PE')}.</p> : null}{autoRenew ? <p className="mt-1 font-bold">Renovacion automatica activa{subscription.nextBillingAt ? ` · proximo cobro ${new Date(subscription.nextBillingAt).toLocaleDateString('es-PE')}` : ''}.</p> : null}</div> : null}
-          {paymentPending ? <div className="mt-5 border-l-4 border-traffic-yellow bg-amber-50 px-4 py-3 text-sm text-amber-950" role="status"><p className="font-black">Suscripcion creada</p><p className="mt-1">Culqi esta confirmando el primer cobro. Tu acceso se activara cuando llegue la confirmacion.</p></div> : null}
+          {paymentPending ? <div className="mt-5 border-l-4 border-traffic-yellow bg-amber-50 px-4 py-3 text-sm text-amber-950" role="status"><p className="font-black">Pago en validacion</p><p className="mt-1">Culqi aun esta procesando el cobro. Todavia no activamos tu acceso; usa el boton para revisar el estado.</p></div> : null}
           {success?.cancellation ? <div className="mt-5 border-l-4 border-brand bg-blue-50 px-4 py-3 text-sm text-blue-950" role="status"><p className="font-black">Renovacion cancelada</p><p className="mt-1">No habra mas cobros. Tu acceso conserva la fecha ya pagada.</p></div> : null}
           {success && !success.pending && !success.cancellation ? <div className="mt-5 border-l-4 border-success bg-emerald-50 px-4 py-3 text-sm text-emerald-950" role="status"><p className="flex items-center gap-2 font-black"><FileCheck2 className="h-5 w-5" />Pago confirmado</p><p className="mt-1">{success.receipt?.number ? `${success.receipt.type} ${success.receipt.number} generada correctamente.` : 'Tu acceso esta activo. El comprobante quedo registrado para revision.'}</p></div> : null}
           {error ? <p className="mt-4 border-l-4 border-danger bg-red-50 px-4 py-3 text-sm font-bold text-danger" role="alert">{error}</p> : null}
@@ -407,9 +490,9 @@ export default function PlansPage() {
             <span>He leído y acepto los <Link className="font-bold text-brand hover:underline" to="/terminos-y-condiciones" target="_blank" rel="noopener noreferrer">Términos y condiciones</Link> y la <Link className="font-bold text-brand hover:underline" to="/politica-de-cambios-y-devoluciones" target="_blank" rel="noopener noreferrer">Política de cambios y devoluciones</Link>.</span>
           </label> : null}
 
-          <Button size="lg" className="mt-5 w-full" onClick={hasAccess ? () => navigate(examPath) : openCheckout} disabled={processing || cancelling || paymentPending}>
+          <Button size="lg" className="mt-5 w-full" onClick={hasAccess ? () => navigate(examPath) : paymentPending ? () => confirmPendingPayment(success.transactionId) : openCheckout} disabled={processing || cancelling}>
             {hasAccess ? <Target className="h-6 w-6" /> : <LockKeyhole className="h-5 w-5" />}
-            {processing ? 'Confirmando pago...' : paymentPending ? 'Esperando a Culqi...' : hasAccess ? 'Rendir simulacro' : `Suscribirme por ${priceLabel(plan.price)}/mes`}
+            {processing ? 'Confirmando pago...' : paymentPending ? 'Revisar estado del pago' : hasAccess ? 'Rendir simulacro' : `Suscribirme por ${priceLabel(plan.price)}/mes`}
             <ArrowRight className="h-5 w-5" />
           </Button>
           {hasAccess && autoRenew ? <Button variant="secondary" className="mt-3 w-full" onClick={() => setShowCancelDialog(true)} disabled={cancelling}>Cancelar renovacion automatica</Button> : null}
@@ -431,6 +514,15 @@ export default function PlansPage() {
           <Button variant="danger" className="w-full" onClick={cancelRecurring} disabled={cancelling}>{cancelling ? 'Deteniendo cobros...' : 'Si, detener cobros'}</Button>
         </div>
       </Modal>
+
+      {processing ? <div className="fixed inset-0 z-[120] grid place-items-center bg-ink/75 px-4" role="dialog" aria-modal="true" aria-labelledby="payment-processing-title" aria-describedby="payment-processing-description">
+        <div className="w-full max-w-md rounded-lg bg-white px-6 py-8 text-center shadow-2xl" aria-live="assertive">
+          <LoaderCircle className="mx-auto h-12 w-12 animate-spin text-brand" aria-hidden="true" />
+          <h2 id="payment-processing-title" className="mt-5 font-display text-2xl font-black text-ink">Confirmando tu pago</h2>
+          <p id="payment-processing-description" className="mt-3 text-base font-bold leading-6 text-slate-700">No cierres ni actualices esta pagina.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">Tu suscripcion se activara unicamente cuando Culqi confirme el cobro.</p>
+        </div>
+      </div> : null}
     </div>
   );
 }
