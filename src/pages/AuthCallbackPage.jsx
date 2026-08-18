@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import BrandLogo from '../components/layout/BrandLogo.jsx';
 import Button from '../components/ui/Button.jsx';
@@ -14,7 +14,10 @@ export default function AuthCallbackPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { loginWithToken } = useAuth();
+  const loginWithTokenRef = useRef(loginWithToken);
   const [error, setError] = useState('');
+
+  loginWithTokenRef.current = loginWithToken;
 
   useEffect(() => {
     let cancelled = false;
@@ -76,7 +79,7 @@ export default function AuthCallbackPage() {
         if (cancelled) return;
 
         const pendingCategory = Number(window.sessionStorage.getItem(PENDING_GOOGLE_CATEGORY_KEY)) || null;
-        const result = await loginWithToken(token, { category: pendingCategory });
+        const result = await loginWithTokenRef.current(token, { category: pendingCategory });
         if (cancelled) return;
 
         if (!result.ok) {
@@ -96,7 +99,7 @@ export default function AuthCallbackPage() {
     return () => {
       cancelled = true;
     };
-  }, [loginWithToken, navigate, searchParams]);
+  }, [navigate, searchParams]);
 
   if (error) {
     return (
