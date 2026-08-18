@@ -915,8 +915,8 @@ async function startRecurringSubscription(
 
     let providerSubscription = verified.subscription;
     let chargeId = subscriptionChargeIds(providerSubscription).at(-1) || '';
-    for (let attempt = 0; !chargeId && attempt < 3; attempt += 1) {
-      await new Promise((resolve) => setTimeout(resolve, 700));
+    for (let attempt = 0; !chargeId && attempt < 8; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 750));
       providerSubscription = (await retrieveCulqiSubscription(subscriptionId)).subscription;
       chargeId = subscriptionChargeIds(providerSubscription).at(-1) || '';
     }
@@ -1272,7 +1272,35 @@ export async function handleSimularPago(_req: Request) {
   return errorResponse('Esta operacion no esta disponible', 503);
 }
 
-function publicSubscription(recurring: any) {
+async function failRecurringInitialPayment(supabase: any, recurring: any, message: string) {
+  if (providerId(recurring.culqi_subscription_id, 'sxn')) {
+    await culqiRequest(`/recurrent/subscriptions/${encodeURIComponent(recurring.culqi_subscription_id)}`, { method: 'DELETE' }).catch(() => undefined);
+  }
+  if (providerId(recurring.culqi_card_id, 'crd')) {
+    await culqiRequest(`/cards/${encodeURIComponent(recurring.culqi_card_id)}`, { method: 'DELETE' }).catch(() => undefined);
+  }
+
+  const now = new Date().toISOString();
+  const [{ error: transactionError }, { data: updated, error: recurringError }] = await Promise.all([
+    supabase
+      .from('transacciones_pago')
+      .update({ estado: 'fallido', mensaje_error: cleanText(message, 180), actualizado_en: now })
+      .eq('id', recurring.id_transaccion_inicial)
+      .neq('estado', 'exitoso'),
+    supabase
+      .from('suscripciones_culqi')
+      .update({ estado: 'fallida', renovacion_automatica: false, proximo_cobro_en: null, mensaje_error: cleanText(message, 240), actualizado_en: now })
+      .eq('id', recurring.id)
+      .select('*')
+      .single(),
+  ]);
+  if (transactionError || recurringError || !updated) {
+    throw new Error(`No se pudo cerrar el pago rechazado: ${transactionError?.message || recurringError?.message || 'sin datos'}`);
+  }
+  return updated;
+}
+
+function publicSubscription(recurring: any, payment: any = null, membership: any = null) {
   if (!recurring) return null;
   return {
     status: recurring.estado,
@@ -1283,6 +1311,16 @@ function publicSubscription(recurring: any) {
     cardLast4: recurring.culqi_card_last4,
     cancelledAt: recurring.cancelada_en,
     createdAt: recurring.creado_en,
+    transactionId: payment?.id || recurring.id_transaccion_inicial || null,
+    paymentStatus: payment?.estado || null,
+    paymentError: payment?.estado === 'fallido'
+      ? 'Culqi no aprobo el pago. Tu suscripcion no fue activada.'
+      : null,
+    membership: membership ? {
+      isActive: true,
+      startDate: membership.fecha_inicio,
+      endDate: membership.fecha_fin,
+    } : null,
   };
 }
 
@@ -1329,6 +1367,10 @@ export async function handleGetCulqiSubscription(req: Request) {
               verifiedCharge.requestId,
             );
           } catch (chargeError) {
+            if (chargeError instanceof ProviderError && chargeError.publicCode === 'subscription_charge_verification_failed') {
+              current = await failRecurringInitialPayment(supabase, current, chargeError.message);
+              break;
+            }
             console.warn('[PAYMENT] Subscription charge reconciliation skipped', {
               subscriptionId: recurring.culqi_subscription_id,
               chargeId,
@@ -1340,7 +1382,39 @@ export async function handleGetCulqiSubscription(req: Request) {
         console.warn('[PAYMENT] Subscription status refresh failed', { subscriptionId: recurring.culqi_subscription_id });
       }
     }
-    return jsonResponse(publicSubscription(current));
+
+    let [{ data: payment, error: paymentError }, { data: membership, error: membershipError }] = await Promise.all([
+      supabase
+        .from('transacciones_pago')
+        .select('id, estado')
+        .eq('id', current.id_transaccion_inicial)
+        .eq('id_usuario', user.userId)
+        .maybeSingle(),
+      supabase
+        .from('membresias_usuario')
+        .select('fecha_inicio, fecha_fin')
+        .eq('id_usuario', user.userId)
+        .eq('esta_activa', true)
+        .gte('fecha_fin', new Date().toISOString())
+        .order('fecha_fin', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    if (paymentError || membershipError) throw paymentError || membershipError;
+
+    if (!membership && payment?.estado !== 'exitoso' && ['cancelada', 'fallida', 'finalizada'].includes(current.estado)) {
+      current = await failRecurringInitialPayment(supabase, current, 'Culqi no aprobo el primer cobro');
+      const refreshed = await supabase
+        .from('transacciones_pago')
+        .select('id, estado')
+        .eq('id', current.id_transaccion_inicial)
+        .eq('id_usuario', user.userId)
+        .maybeSingle();
+      if (refreshed.error) throw refreshed.error;
+      payment = refreshed.data;
+    }
+
+    return jsonResponse(publicSubscription(current, payment, membership));
   } catch (error) {
     console.error('[PAYMENT] Subscription status error', { message: cleanText(error, 160) });
     return errorResponse('No pudimos consultar tu renovacion mensual', 500);
