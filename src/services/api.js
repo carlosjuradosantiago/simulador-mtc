@@ -370,7 +370,9 @@ export function toPlan(plan, index = 0) {
 }
 
 export function toQuestion(question, category = '') {
-  const options = [...(question.opciones ?? question.options ?? [])].sort((a, b) => Number(a.orden ?? a.order ?? 0) - Number(b.orden ?? b.order ?? 0));
+  const options = [...(question.opciones ?? question.options ?? [])]
+    .filter((option) => String(option.texto ?? '').trim() || String(option.mediaData ?? option.datosMultimedia ?? option.datos_multimedia ?? '').trim())
+    .sort((a, b) => Number(a.orden ?? a.order ?? 0) - Number(b.orden ?? b.order ?? 0));
   const correctOption = options.find((option) => option.esCorrecta || option.isCorrect);
   const difficultyMap = { 1: 'fácil', 2: 'medio', 3: 'difícil' };
   return {

@@ -59,6 +59,13 @@ def build_import_rows(questions: list[dict[str, Any]]) -> dict[str, Any]:
     relation_rows = []
 
     for index, question in enumerate(questions, start=1):
+        options = question.get("options") or []
+        if len(options) not in {3, 4}:
+            raise ValueError(f"Pregunta {index}: se esperaban 3 o 4 alternativas oficiales.")
+        if any(not option.get("text") and not option.get("media") for option in options):
+            raise ValueError(f"Pregunta {index}: contiene una alternativa sin texto ni imagen.")
+        if sum(bool(option.get("is_correct")) for option in options) != 1:
+            raise ValueError(f"Pregunta {index}: debe tener exactamente una respuesta correcta.")
         sources = question.get("sources") or []
         first_source = sources[0] if sources else question
         source_class = first_source.get("clase") or first_source.get("source_code")
@@ -76,7 +83,7 @@ def build_import_rows(questions: list[dict[str, Any]]) -> dict[str, Any]:
             "fundamento": fundamento,
             "explicacion": fundamento,
         })
-        for option in question["options"]:
+        for option in options:
             media = option["media"][0] if option.get("media") else None
             option_rows.append({
                 "_import_index": index,
