@@ -574,7 +574,7 @@ function verifyRecurringCharge(charge: any, recurring: any, providerSubscription
     && isApprovedCharge(charge);
 
   if (!matches) {
-    throw new ProviderError('La verificacion del cobro recurrente no coincide con la suscripcion', 'subscription_charge_verification_failed', 502);
+    throw new ProviderError('Culqi no aprobo el cobro. Tu suscripcion no fue activada.', 'subscription_charge_verification_failed', 502);
   }
 }
 
