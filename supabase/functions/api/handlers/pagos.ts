@@ -171,9 +171,7 @@ function safeProviderMessage(data: any, fallback: string) {
 }
 
 function culqiProviderEmail(userEmail = '') {
-  const isTest = (Deno.env.get('CULQI_PUBLIC_KEY') || '').startsWith('pk_test_');
-  const isProduction = (Deno.env.get('APP_ENV') || 'development') === 'production';
-  return isTest && !isProduction ? 'review@culqi.com' : userEmail;
+  return cleanText(userEmail, 180).toLowerCase();
 }
 
 async function culqiRequest(path: string, init: RequestInit = {}) {
