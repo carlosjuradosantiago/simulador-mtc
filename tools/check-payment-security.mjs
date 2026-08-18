@@ -65,6 +65,7 @@ assert.match(backend, /handleCulqiWebhook/);
 assert.match(backend, /paymentStatus:\s*payment\?\.estado/);
 assert.match(backend, /membership:\s*membership \? \{/);
 assert.match(backend, /failRecurringInitialPayment/);
+assert.match(backend, /Culqi no aprobo el cobro\. Tu suscripcion no fue activada\./);
 assert.match(backend, /handleSimularPago[\s\S]*Esta operacion no esta disponible/);
 assert.doesNotMatch(backend, /console\.(log|error)\([^\n]*(tokenId|chargePayload|CULQI_SECRET_KEY)/);
 assert.match(migration, /enable row level security/g);
