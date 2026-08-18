@@ -21,7 +21,7 @@ from PIL import Image
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE_DIR = ROOT / "data" / "mtc_official"
+SOURCE_DIR = ROOT / "public" / "mtc-official"
 OUT_DIR = ROOT / "data" / "mtc_extracted"
 MEDIA_DIR = OUT_DIR / "media"
 
@@ -659,12 +659,18 @@ def parse_pdf(pdf_path: Path, source_code: str) -> list[dict[str, Any]]:
 
             options = []
             for order, label in enumerate(OPTION_LABELS, start=1):
+                option_text = strip_option_prefix(label, cells.get(label, ""))
+                option_media = row_media_by_cell[label]
+                # Some official MTC rows contain only three alternatives. Do not
+                # manufacture an empty fourth option when the PDF cell is absent.
+                if not option_text and not option_media:
+                    continue
                 options.append({
                     "label": label,
                     "order": order,
-                    "text": strip_option_prefix(label, cells.get(label, "")),
+                    "text": option_text,
                     "is_correct": answer == label,
-                    "media": row_media_by_cell[label],
+                    "media": option_media,
                 })
 
             flags = []
@@ -672,7 +678,7 @@ def parse_pdf(pdf_path: Path, source_code: str) -> list[dict[str, Any]]:
                 flags.append("missing_answer")
             if not clean_text(cells.get("pregunta")):
                 flags.append("missing_question_text")
-            if sum(1 for option in options if option["text"] or option["media"]) < 2:
+            if len(options) < 3:
                 flags.append("few_options")
             if any(option["is_correct"] for option in options) is False:
                 flags.append("answer_not_matching_option")

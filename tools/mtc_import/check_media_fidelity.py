@@ -85,7 +85,7 @@ def main() -> int:
 
         if media["extraction"] == "pdf_image_group":
             source_file = question["source_file"]
-            doc = documents.setdefault(source_file, fitz.open(ROOT / "data" / "mtc_official" / source_file))
+            doc = documents.setdefault(source_file, fitz.open(ROOT / "public" / "mtc-official" / source_file))
             instances = [
                 (int(item["xref"]), fitz.Rect(item["rect"]))
                 for item in media.get("source_instances") or []
@@ -98,7 +98,7 @@ def main() -> int:
         if media["extraction"] != "pdf_image":
             continue
         source_file = question["source_file"]
-        doc = documents.setdefault(source_file, fitz.open(ROOT / "data" / "mtc_official" / source_file))
+        doc = documents.setdefault(source_file, fitz.open(ROOT / "public" / "mtc-official" / source_file))
         page_number = media.get("source_page")
         xref = media.get("source_xref")
         if not page_number or not xref or not media.get("source_rect"):
