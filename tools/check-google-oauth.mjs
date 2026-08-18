@@ -20,6 +20,9 @@ assert.match(apiSource, /exchangeSupabaseOAuthCode\(code, flowId = null\)/);
 assert.match(apiSource, /flowId \? \{ flowId \} : undefined/);
 assert.match(callbackSource, /searchParams\.get\('sb_flow_id'\)/);
 assert.match(callbackSource, /exchangeSupabaseOAuthCode\(authCode, flowId\)/);
+assert.match(callbackSource, /const loginWithTokenRef = useRef\(loginWithToken\)/);
+assert.match(callbackSource, /loginWithTokenRef\.current\(token, \{ category: pendingCategory \}\)/);
+assert.doesNotMatch(callbackSource, /\[loginWithToken, navigate, searchParams\]/);
 
 const values = new Map();
 const storage = {
