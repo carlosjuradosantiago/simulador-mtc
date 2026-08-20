@@ -1553,6 +1553,32 @@ export async function handleGetReceipt(req: Request, receiptId: string) {
   }
 }
 
+export async function handleRetryReceipt(req: Request, receiptId: string) {
+  try {
+    const user = await getUserFromToken(req);
+    if (!user) return unauthorizedResponse();
+    if (!/^\d+$/.test(receiptId)) return errorResponse('Comprobante no valido', 400);
+    const supabase = getSupabaseClient();
+    const { data: receipt, error } = await supabase
+      .from('comprobantes_electronicos')
+      .select('*')
+      .eq('id', Number(receiptId))
+      .eq('id_usuario', user.userId)
+      .single();
+    if (error || !receipt) return errorResponse('Comprobante no encontrado', 404);
+    if (receipt.estado_sunat === 'aceptado') {
+      return jsonResponse({ success: true, receipt: { id: receipt.id, status: receipt.estado_sunat } });
+    }
+
+    const result = await generateAndSendTaxDocument(supabase, receipt);
+    return jsonResponse({ success: result.status === 'aceptado', receipt: result });
+  } catch (error) {
+    const message = cleanText(error instanceof Error ? error.message : error, 300);
+    console.error('[PAYMENT] Receipt retry error', { receiptId, message });
+    return jsonResponse({ success: false, error: message }, 502);
+  }
+}
+
 function webhookData(payload: any) {
   if (typeof payload?.data !== 'string') return payload?.data || payload;
   try {

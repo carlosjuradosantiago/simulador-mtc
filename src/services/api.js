@@ -616,6 +616,7 @@ export const api = {
   getPaymentConfig: () => apiRequest('/config', { baseUrl: PAYMENTS_BASE_URL }),
   getPaymentHistory: () => apiRequest('/historial', { auth: true, baseUrl: PAYMENTS_BASE_URL }),
   getReceipt: (receiptId) => apiRequest(`/comprobantes/${receiptId}`, { auth: true, baseUrl: PAYMENTS_BASE_URL }),
+  retryReceipt: (receiptId) => apiRequest(`/comprobantes/${receiptId}`, { method: 'POST', auth: true, baseUrl: PAYMENTS_BASE_URL }),
   processPayment: (payload) => apiRequest('/procesar', { method: 'POST', body: payload, auth: true, baseUrl: PAYMENTS_BASE_URL }),
   getSubscription: () => apiRequest('/suscripcion', { auth: true, baseUrl: PAYMENTS_BASE_URL }),
   cancelSubscription: () => apiRequest('/suscripcion', { method: 'DELETE', auth: true, baseUrl: PAYMENTS_BASE_URL }),
@@ -681,6 +682,7 @@ export const api = {
     return apiRequest(`/admin/finanzas/conciliacion?${params.toString()}`, { auth: true });
   },
   getAdminReceipt: (id) => apiRequest(`/admin/finanzas/comprobantes/${id}`, { auth: true }),
+  retryAdminReceipt: (id) => apiRequest(`/admin/finanzas/comprobantes/${id}`, { method: 'POST', auth: true }),
   exportAdminFinance: (type, filters = {}) => {
     const params = new URLSearchParams({ type });
     Object.entries(filters).forEach(([key, value]) => {

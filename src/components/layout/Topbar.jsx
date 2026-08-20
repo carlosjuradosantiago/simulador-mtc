@@ -1,8 +1,9 @@
-import { BarChart3, BrainCircuit, ChevronDown, CircleUserRound, Clock3, FileDown, FileText, HelpCircle, Home, LogOut, ShieldCheck, UserRound } from 'lucide-react';
+import { BarChart3, BrainCircuit, ChevronDown, CircleUserRound, Clock3, CreditCard, FileDown, FileText, HelpCircle, Home, LogOut, ShieldCheck, UserRound } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import { isAdminUser } from '../../utils/admin.js';
+import { FULL_EXAM_IS_FREE } from '../../data/examRules.js';
 import BrandLogo from './BrandLogo.jsx';
 
 function isActivePath(pathname, search, item) {
@@ -118,6 +119,10 @@ export default function Topbar() {
                     <UserRound className="h-5 w-5" />
                     Mi perfil
                   </Link>
+                  {!FULL_EXAM_IS_FREE ? <Link to="/mi-suscripcion" role="menuitem" className="flex min-h-12 items-center gap-3 px-4 font-bold text-slate-700 hover:bg-blue-50 hover:text-brand">
+                    <CreditCard className="h-5 w-5" />
+                    Mi suscripción
+                  </Link> : null}
                   <Link to="/materiales" role="menuitem" className="flex min-h-12 items-center gap-3 px-4 font-bold text-slate-700 hover:bg-blue-50 hover:text-brand">
                     <FileDown className="h-5 w-5" />
                     PDF oficiales

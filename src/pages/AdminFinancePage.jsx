@@ -80,7 +80,7 @@ function EmptyRow({ columns, children }) {
   return <tr><td colSpan={columns} className="px-4 py-10 text-center font-semibold text-slate-500">{children}</td></tr>;
 }
 
-function ReceiptDownloads({ receipt, onError }) {
+function ReceiptDownloads({ receipt, onError, onUpdated }) {
   const [loading, setLoading] = useState('');
 
   const openFile = async (type) => {
@@ -104,8 +104,23 @@ function ReceiptDownloads({ receipt, onError }) {
     }
   };
 
+  const retry = async () => {
+    setLoading('retry');
+    onError('');
+    try {
+      const result = await api.retryAdminReceipt(receipt.id);
+      if (!result.success) throw new Error('SUNAT todavía no aceptó el comprobante.');
+      await onUpdated();
+    } catch (error) {
+      onError(error.message || 'No se pudo reintentar el comprobante.');
+    } finally {
+      setLoading('');
+    }
+  };
+
   return (
     <div className="flex flex-wrap justify-end gap-1.5">
+      {!receipt.files?.pdf ? <button type="button" onClick={retry} disabled={Boolean(loading)} className="min-h-9 rounded-md border border-line bg-white px-2 text-xs font-black text-brand hover:bg-blue-50 disabled:opacity-60">{loading === 'retry' ? '...' : 'Reintentar'}</button> : null}
       {['pdf', 'xml', 'cdr'].map((type) => (
         <button
           key={type}
@@ -345,7 +360,7 @@ export default function AdminFinancePage() {
                     <td className="px-3 py-3"><Badge variant={statusVariant(receipt.status)}>{receipt.status}</Badge></td>
                     <td className="px-3 py-3 text-right font-black">{formatPEN(receipt.total)}</td>
                     <td className="px-3 py-3 text-slate-500">{formatDate(receipt.createdAt)}</td>
-                    <td className="px-4 py-3"><ReceiptDownloads receipt={receipt} onError={setError} /></td>
+                    <td className="px-4 py-3"><ReceiptDownloads receipt={receipt} onError={setError} onUpdated={loadReceipts} /></td>
                   </tr>)}
                   {!loading && !receipts.items.length ? <EmptyRow columns={7}>No hay comprobantes en este rango.</EmptyRow> : null}
                   {loading ? <EmptyRow columns={7}>Cargando comprobantes...</EmptyRow> : null}

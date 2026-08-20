@@ -18,6 +18,7 @@
     "check:traffic-sources": "node tools/check-traffic-sources.mjs",
     "check:remote-environments": "node tools/check-remote-environments.mjs",
     "check:payment-security": "node tools/check-payment-security.mjs",
+    "check:subscription-management": "node tools/check-subscription-management.mjs",
     "check:commerce-compliance": "node tools/check-commerce-compliance.mjs",
     "check:sunat-documents": "node tools/check-sunat-documents.mjs",
     "check:navigation": "node tools/check-safe-navigation.mjs",

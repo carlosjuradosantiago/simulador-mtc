@@ -127,6 +127,10 @@ export default function PlansPage() {
       setHadMembership(memberships.length > 0);
       setSubscription(activeSubscription);
       setConfig(paymentConfig);
+      if (activeMembership) {
+        navigate('/mi-suscripcion', { replace: true });
+        return;
+      }
       if (!activeMembership && activeSubscription?.paymentStatus === 'procesando') {
         setSuccess({ pending: true, transactionId: activeSubscription.transactionId });
       } else if (!activeMembership && activeSubscription?.paymentStatus === 'fallido') {
@@ -208,6 +212,7 @@ export default function PlansPage() {
         setSubscription(latest);
         setSuccess({ pending: false, membership: latest.membership });
         attemptRef.current = null;
+        navigate('/mi-suscripcion?pago=confirmado', { replace: true });
         return;
       }
       if (latest) setSubscription(latest);
@@ -277,11 +282,13 @@ export default function PlansPage() {
         setMembership(activeMembership);
         setSubscription(latest);
         setSuccess({ pending: false, membership: latest.membership });
+        navigate('/mi-suscripcion?pago=confirmado', { replace: true });
       } else {
         setSuccess(result);
         const activeMembership = confirmedMembership(result);
         if (activeMembership) setMembership(activeMembership);
         if (result.subscription) setSubscription(result.subscription);
+        if (activeMembership) navigate('/mi-suscripcion?pago=confirmado', { replace: true });
       }
       attemptRef.current = null;
       window.Culqi3DS?.reset?.();
