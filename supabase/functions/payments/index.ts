@@ -8,6 +8,7 @@ import {
   handleGetCulqiSubscription,
   handleGetHistorialPagos,
   handleGetReceipt,
+  handleRetryReceipt,
   handleProcesarPago,
   handleSimularPago,
 } from '../api/handlers/pagos.ts';
@@ -33,6 +34,7 @@ Deno.serve(async (req) => {
     if (path === '/historial' && method === 'GET') return handleGetHistorialPagos(req);
     const receipt = path.match(/^\/comprobantes\/(\d+)$/);
     if (receipt && method === 'GET') return handleGetReceipt(req, receipt[1]);
+    if (receipt && method === 'POST') return handleRetryReceipt(req, receipt[1]);
     return errorResponse('Ruta de pagos no encontrada', 404);
   } catch (error) {
     console.error('[PAYMENTS] Unhandled error', { message: error instanceof Error ? error.message : 'unknown' });

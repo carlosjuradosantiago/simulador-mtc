@@ -17,6 +17,7 @@ const ComplaintBookPage = lazy(() => import('../pages/ComplaintBookPage.jsx'));
 const DashboardPage = lazy(() => import('../pages/DashboardPage.jsx'));
 const LandingPage = lazy(() => import('../pages/LandingPage.jsx'));
 const LegalPage = lazy(() => import('../pages/LegalPage.jsx'));
+const MySubscriptionPage = lazy(() => import('../pages/MySubscriptionPage.jsx'));
 const OfficialMaterialsPage = lazy(() => import('../pages/OfficialMaterialsPage.jsx'));
 const ProfilePage = lazy(() => import('../pages/ProfilePage.jsx'));
 const ProgressPage = lazy(() => import('../pages/ProgressPage.jsx'));
@@ -90,6 +91,7 @@ export default function AppRoutes() {
             <Route path="/resultados/:id" element={<ResultsPage />} />
             <Route path="/ranking" element={<Navigate to="/dashboard" replace />} />
             <Route path="/perfil" element={<ProfilePage />} />
+            <Route path="/mi-suscripcion" element={<MySubscriptionPage />} />
             <Route path="/configuracion" element={<Navigate to="/perfil" replace />} />
             <Route path="/checkout" element={FULL_EXAM_IS_FREE ? <Navigate to="/dashboard" replace /> : <CheckoutPage />} />
           </Route>

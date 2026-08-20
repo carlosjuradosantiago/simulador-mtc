@@ -1,5 +1,6 @@
 import { corsHeaders } from '../_shared/cors.ts';
 import { errorResponse, jsonResponse } from '../_shared/response.ts';
+import { generateAndSendTaxDocument } from '../_shared/sunat.ts';
 import { requireAdmin } from './admin.ts';
 
 const CULQI_API_URL = 'https://api.culqi.com/v2';
@@ -416,6 +417,29 @@ export async function handleGetAdminReceipt(req: Request, receiptId: string) {
   } catch (error) {
     console.error('Admin receipt download error:', error);
     return errorResponse('No se pudo abrir el comprobante', 500);
+  }
+}
+
+export async function handleRetryAdminReceipt(req: Request, receiptId: string) {
+  try {
+    const admin = await requireAdmin(req);
+    if (!admin.ok) return admin.response;
+    if (!/^\d+$/.test(receiptId)) return errorResponse('Comprobante no valido', 400);
+    const { data: receipt, error } = await admin.supabase
+      .from('comprobantes_electronicos')
+      .select('*')
+      .eq('id', Number(receiptId))
+      .single();
+    if (error || !receipt) return errorResponse('Comprobante no encontrado', 404);
+    if (receipt.estado_sunat === 'aceptado') {
+      return jsonResponse({ success: true, receipt: { id: receipt.id, status: receipt.estado_sunat } });
+    }
+
+    const result = await generateAndSendTaxDocument(admin.supabase, receipt);
+    return jsonResponse({ success: result.status === 'aceptado', receipt: result });
+  } catch (error) {
+    console.error('Admin receipt retry error:', error);
+    return errorResponse(error instanceof Error ? error.message : 'No se pudo reintentar el comprobante', 502);
   }
 }
 

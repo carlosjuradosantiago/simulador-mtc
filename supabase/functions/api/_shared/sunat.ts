@@ -49,13 +49,13 @@ function getSunatConfig(): SunatConfig {
   }
 
   const ruc = requiredEnv('SUNAT_RUC');
-  const solUser = requiredEnv('SUNAT_SOL_USER');
 
   return {
     environment: 'beta',
     endpoint: SUNAT_BETA_URL,
-    username: `${ruc}${solUser}`,
-    password: requiredEnv('SUNAT_SOL_PASSWORD'),
+    // SUNAT beta publishes MODDATOS as the shared credential for structure tests.
+    username: `${ruc}MODDATOS`,
+    password: 'MODDATOS',
     privateKey: requiredEnv('SUNAT_PRIVATE_KEY_PEM').replace(/\\n/g, '\n'),
     certificate: requiredEnv('SUNAT_CERTIFICATE_PEM').replace(/\\n/g, '\n'),
   };

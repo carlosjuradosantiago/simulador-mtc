@@ -105,6 +105,10 @@ Deno.serve(async (req)=>{
       const { handleGetAdminReceipt } = await import('./handlers/admin_finance.ts');
       return await withLogging(req, path, 'handleGetAdminReceipt', () => handleGetAdminReceipt(req, adminReceipt[1]));
     }
+    if (adminReceipt && method === 'POST') {
+      const { handleRetryAdminReceipt } = await import('./handlers/admin_finance.ts');
+      return await withLogging(req, path, 'handleRetryAdminReceipt', () => handleRetryAdminReceipt(req, adminReceipt[1]));
+    }
     if (path === '/admin/reclamaciones' && method === 'GET') {
       const { handleGetAdminComplaints } = await import('./handlers/admin_reclamaciones.ts');
       return await withLogging(req, path, 'handleGetAdminComplaints', () => handleGetAdminComplaints(req));
@@ -340,6 +344,10 @@ Deno.serve(async (req)=>{
     if (receiptMatch && method === 'GET') {
       const { handleGetReceipt } = await import('./handlers/pagos.ts');
       return await withLogging(req, path, 'handleGetReceipt', () => handleGetReceipt(req, receiptMatch[1]));
+    }
+    if (receiptMatch && method === 'POST') {
+      const { handleRetryReceipt } = await import('./handlers/pagos.ts');
+      return await withLogging(req, path, 'handleRetryReceipt', () => handleRetryReceipt(req, receiptMatch[1]));
     }
     
     // ============ LIBRO DE RECLAMACIONES (INDECOPI) ============
