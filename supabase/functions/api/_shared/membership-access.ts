@@ -8,7 +8,7 @@ export const SIMULATED_PAYMENT_METHOD = 'simulacion';
 export const FREE_FULL_EXAM_ATTEMPTS = 2;
 
 export function isFullExamFree(value?: string | null) {
-  return String(value ?? '').trim().toLowerCase() !== 'false';
+  return String(value ?? 'false').trim().toLowerCase() === 'true';
 }
 
 export function filterOfficialExamAttempts(query: any, userId: number) {

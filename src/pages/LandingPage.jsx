@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { ArrowRight, BadgeCheck } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
 import VehicleStartPanel from '../components/practice/VehicleStartPanel.jsx';
 import { FREE_FULL_EXAM_ATTEMPTS, FULL_EXAM_IS_FREE } from '../data/examRules.js';
 import { fallbackLicenseCategories } from '../data/vehicleChoices.js';
@@ -61,17 +62,38 @@ export default function LandingPage() {
     : null;
 
   return (
-    <VehicleStartPanel
-      categories={categories}
-      selectedCategoryId={selectedCategoryId}
-      onCategoryChange={setSelectedCategoryId}
-      onStart={startPractice}
-      adaptiveTo={adaptiveTo}
-      fullExamTo={fullExamTo}
-      fullExamHasAccess
-      fullExamIsFree={FULL_EXAM_IS_FREE}
-      fullExamPrice={planPrice}
-      freeFullExamAttemptsRemaining={FULL_EXAM_IS_FREE ? 0 : FREE_FULL_EXAM_ATTEMPTS}
-    />
+    <>
+      <VehicleStartPanel
+        categories={categories}
+        selectedCategoryId={selectedCategoryId}
+        onCategoryChange={setSelectedCategoryId}
+        onStart={startPractice}
+        adaptiveTo={adaptiveTo}
+        fullExamTo={fullExamTo}
+        fullExamHasAccess
+        fullExamIsFree={FULL_EXAM_IS_FREE}
+        fullExamPrice={planPrice}
+        freeFullExamAttemptsRemaining={FULL_EXAM_IS_FREE ? 0 : FREE_FULL_EXAM_ATTEMPTS}
+      />
+
+      {!FULL_EXAM_IS_FREE ? (
+        <section className="border-y border-line bg-slate-50" aria-labelledby="subscription-cta-title">
+          <div className="mx-auto grid max-w-5xl gap-5 px-5 py-8 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:px-6">
+            <span className="grid h-12 w-12 place-items-center rounded-full bg-emerald-100 text-emerald-700" aria-hidden="true">
+              <BadgeCheck className="h-6 w-6" />
+            </span>
+            <div>
+              <p className="text-sm font-bold text-brand">Continúa tu preparación</p>
+              <h2 id="subscription-cta-title" className="font-display text-2xl font-black text-ink">Entrena hasta sentirte listo para rendir</h2>
+              <p className="mt-1 text-base leading-6 text-slate-600">Accede a simulacros cronometrados, entrenamiento inteligente y seguimiento de tu avance por S/ {(planPrice / 100).toFixed(0)} al mes.</p>
+            </div>
+            <Link to="/planes" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-brand px-5 font-bold text-white hover:bg-blue-700">
+              Ver suscripción
+              <ArrowRight className="h-5 w-5" />
+            </Link>
+          </div>
+        </section>
+      ) : null}
+    </>
   );
 }

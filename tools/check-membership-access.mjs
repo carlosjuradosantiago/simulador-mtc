@@ -23,7 +23,7 @@ import {
   remainingFreeFullExamAttempts,
 } from '../src/data/examRules.js';
 
-assert.equal(isFullExamFree(undefined), true);
+assert.equal(isFullExamFree(undefined), false);
 assert.equal(isFullExamFree('true'), true);
 assert.equal(isFullExamFree('FALSE'), false);
 assert.equal(FULL_EXAM_IS_FREE, true);
