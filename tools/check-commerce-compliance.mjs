@@ -15,6 +15,7 @@ const paths = {
   subscription: '../src/pages/SubscriptionPage.jsx',
   publicHeader: '../src/components/layout/PublicHeader.jsx',
   publicFooter: '../src/components/layout/PublicFooter.jsx',
+  landing: '../src/pages/LandingPage.jsx',
   sidebar: '../src/components/layout/Sidebar.jsx',
   complaint: '../src/pages/ComplaintBookPage.jsx',
   plans: '../src/pages/PlansPage.jsx',
@@ -83,7 +84,9 @@ assert.doesNotMatch(files.handler, /nombreCompleto:\s*data\.nombre_completo|nume
 assert.doesNotMatch(allComplianceCode, /Simulador MTC S\.A\.C\.|20123456789|Av\. Principal 123|simuladormtc\.pe|30 días calendario/);
 assert.match(files.email, /RESEND_FROM_EMAIL/);
 assert.match(files.environments, /development:[\s\S]*fullExamFree:\s*false/);
-assert.match(files.environments, /production:[\s\S]*fullExamFree:\s*true/);
+assert.match(files.environments, /production:[\s\S]*fullExamFree:\s*false/);
+assert.match(files.landing, /to="\/planes"/);
+assert.match(files.landing, /Ver suscripci/);
 
 const deadline = addBusinessDays(new Date('2026-08-14T15:00:00.000Z'), 15);
 assert.equal(deadline.toISOString(), '2026-09-04T15:00:00.000Z');

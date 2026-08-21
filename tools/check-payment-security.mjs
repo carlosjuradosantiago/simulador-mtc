@@ -80,6 +80,6 @@ assert.match(legalAcceptanceMigration, /transacciones_pago_aceptacion_legal_chec
 assert.match(legalData, /LEGAL_TERMS_VERSION = '2026-08-13'/);
 assert.match(backend, /CURRENT_TERMS_VERSION = '2026-08-13'/);
 assert.match(environments, /development:[\s\S]*fullExamFree:\s*false/);
-assert.match(environments, /production:[\s\S]*fullExamFree:\s*true/);
+assert.match(environments, /production:[\s\S]*fullExamFree:\s*false/);
 
-console.log('Culqi payment trust boundaries and DEV-only gating are intact.');
+console.log('Culqi payment trust boundaries and paid-environment gating are intact.');

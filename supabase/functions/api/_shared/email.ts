@@ -24,8 +24,9 @@ const FROM_EMAIL = 'Simulador MTC <admin@simuladormtc.com>';
 const FROM_EMAIL_DEV = 'Simulador MTC <onboarding@resend.dev>';
 
 function getFromEmail() {
+  const isProduction = Deno.env.get('APP_ENV')?.trim().toLowerCase() === 'production';
   return Deno.env.get('RESEND_FROM_EMAIL')
-    || (Deno.env.get('RESEND_ALLOWED_RECIPIENT') ? FROM_EMAIL_DEV : FROM_EMAIL);
+    || (!isProduction && Deno.env.get('RESEND_ALLOWED_RECIPIENT') ? FROM_EMAIL_DEV : FROM_EMAIL);
 }
 /**
  * Envía un email usando la API de Resend
@@ -39,11 +40,12 @@ function getFromEmail() {
     };
   }
 
+  const isProduction = Deno.env.get('APP_ENV')?.trim().toLowerCase() === 'production';
   const recipient = resolveEmailRecipient(
     to,
-    Deno.env.get('RESEND_QA_SOURCE_EMAIL'),
-    Deno.env.get('RESEND_QA_RECIPIENT'),
-    Deno.env.get('RESEND_ALLOWED_RECIPIENT'),
+    isProduction ? null : Deno.env.get('RESEND_QA_SOURCE_EMAIL'),
+    isProduction ? null : Deno.env.get('RESEND_QA_RECIPIENT'),
+    isProduction ? null : Deno.env.get('RESEND_ALLOWED_RECIPIENT'),
   );
 
   if (!recipient.allowed) {
