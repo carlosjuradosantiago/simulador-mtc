@@ -99,12 +99,12 @@ export default function VehicleStartPanel({
     <section className="mx-auto w-full max-w-[1280px] px-4 pb-10 pt-4 sm:px-6 lg:px-8 lg:pb-14 lg:pt-5">
       <div className="mx-auto max-w-5xl text-center">
         <h1 className="font-display text-3xl font-black text-ink sm:text-4xl lg:text-5xl">
-          {focusSelected && selectedCategory ? `Prepárate para aprobar ${selectedCategory.title} a la primera` : 'Prepárate para aprobar tu examen MTC a la primera'}
+          {focusSelected && selectedCategory ? `Prepárate para aprobar ${selectedCategory.title} a la primera` : 'Simulador MTC: practica el examen de reglas por categoría'}
         </h1>
         <p className="mx-auto mt-2 max-w-2xl text-base leading-6 text-slate-600 sm:text-lg sm:leading-7">
           {focusSelected && selectedCategory
             ? `Entrenamiento optimizado para reforzar tus errores y avanzar en ${selectedCategory.vehicle}.`
-            : 'Elige tu categoría. La IA optimiza cada práctica para ayudarte a llegar mejor preparado.'}
+            : 'Elige tu licencia y entrena con preguntas completas, respuestas explicadas y simulacros de 40 preguntas en 40 minutos.'}
         </p>
         {!selectedCategory ? <div className="mx-auto mt-4 flex max-w-3xl items-start gap-3 border-y border-blue-200 bg-blue-50 px-4 py-3 text-left sm:items-center sm:px-5">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand text-white">

@@ -55,7 +55,7 @@ export default function PublicFooter() {
           </div>
           <h2 className="mt-6 font-display text-lg font-black text-ink">Fuentes</h2>
           <div className="mt-3 grid gap-2">
-            <a className="w-fit font-semibold text-brand hover:underline" href="/simulador-mtc">Cómo funciona</a>
+            <a className="w-fit font-semibold text-brand hover:underline" href="/preguntas-mtc">Preguntas con respuestas</a>
             <a className="w-fit font-semibold text-brand hover:underline" href="/fuentes-mtc">Fuentes oficiales</a>
             <a className="w-fit font-semibold text-brand hover:underline" href="/metodologia-simulador-mtc">Cómo funciona el entrenamiento</a>
           </div>

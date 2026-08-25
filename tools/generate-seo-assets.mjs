@@ -140,27 +140,6 @@ const categories = [
 
 const corePages = [
   {
-    slug: 'simulador-mtc',
-    title: 'Simulador MTC 2026 con entrenamiento inteligente por categoría',
-    description: 'Prepárate para el examen MTC con un entrenamiento que refuerza tus errores, incorpora preguntas nuevas y repasa lo aprendido.',
-    h1: 'Entrena para aprobar tu examen MTC a la primera',
-    intro: 'Elige la categoría exacta de tu licencia. La IA optimiza cada práctica según tus errores y tu progreso; después, el simulacro cronometrado comprueba cuánto avanzaste.',
-    primaryCta: '/?auth=register',
-    ctaText: 'Elegir categoría y practicar',
-    keywords: ['simulador mtc', 'examen de conocimientos mtc', 'balotario mtc', 'licencia de conducir peru'],
-    sections: [
-      ['Entrenamiento que se adapta a ti', 'La práctica usa tus resultados para reforzar lo que más te cuesta, incorporar preguntas nuevas y recuperar temas que ya estudiaste.'],
-      ['Repaso útil, no repetición automática', 'Las preguntas que necesitas reforzar vuelven a aparecer en el momento adecuado para comprobar que comprendiste la respuesta.'],
-      ['Simulacro cronometrado', 'Responde 40 preguntas en 40 minutos. Solo estos simulacros alimentan el promedio, la evolución y los temas débiles de Mi avance.'],
-      ['Balotario por categoría', 'Cada licencia usa su propia selección de preguntas. La plataforma enlaza el PDF correspondiente y las fuentes oficiales del MTC.'],
-    ],
-    faqs: [
-      ['Que es un simulador MTC?', 'Es una herramienta educativa para practicar preguntas similares al examen de conocimientos requerido para obtener o revalidar una licencia de conducir en Peru.'],
-      ['Simulador MTC es una pagina oficial?', disclaimer],
-      ['Puedo practicar desde el celular?', 'Si. La plataforma esta pensada para estudiar desde celular, tablet o computadora.'],
-    ],
-  },
-  {
     slug: 'metodologia-simulador-mtc',
     title: 'Entrenamiento inteligente para aprobar el examen MTC',
     description: 'Entrenamiento inteligente optimizado para ayudarte a aprobar el examen MTC a la primera: errores, preguntas nuevas, repaso y medición real.',
@@ -276,7 +255,7 @@ const articlePages = [
     description: 'Plan de estudio para aprobar el examen MTC de conocimientos con practica por temas, simulacros y repaso de errores frecuentes.',
     h1: 'Como aprobar el examen MTC de conocimientos',
     intro: 'Aprobar el examen MTC depende menos de memorizar opciones y mas de practicar con orden: primero entender senales y reglas, luego medir errores y reforzar los temas con menor porcentaje.',
-    primaryCta: '/simulador-mtc',
+    primaryCta: '/',
     ctaText: 'Practicar con simulador',
     keywords: ['como aprobar examen mtc', 'examen mtc', 'simulador mtc', 'licencia de conducir peru'],
     sections: [
@@ -528,7 +507,7 @@ const articlePages = [
     description: 'Consejos para prepararte si debes rendir examen de conocimientos en una revalidacion de licencia MTC.',
     h1: 'Revalidacion de licencia MTC y examen de conocimientos',
     intro: 'Si vas a revalidar, no confies solo en la experiencia manejando. El examen mide conocimiento de reglas, senales y seguridad segun criterios vigentes.',
-    primaryCta: '/simulador-mtc',
+    primaryCta: '/',
     ctaText: 'Practicar ahora',
     keywords: ['revalidacion licencia mtc examen', 'examen revalidacion licencia conducir', 'simulador mtc revalidacion'],
     sections: [
@@ -757,7 +736,7 @@ const questionDirectoryPage = {
   description: 'Consulta preguntas del balotario MTC con alternativas, respuesta, imágenes y referencia al PDF de cada categoría de licencia.',
   h1: 'Preguntas MTC con respuestas verificables',
   intro: `Explora ${generatedQuestionPages.length} preguntas completas con su respuesta y ubicación en los balotarios publicados por el MTC.`,
-  primaryCta: '/simulador-mtc',
+  primaryCta: '/',
   ctaText: 'Practicar en el simulador',
   secondaryCta: '/fuentes-mtc',
   secondaryCtaText: 'Revisar fuentes',
@@ -1098,7 +1077,7 @@ function renderGuideLinks(page) {
 }
 
 function renderTopicLinks(page) {
-  if (!(page.topicSlug || ['simulador-mtc', 'examen-mtc-preguntas'].includes(page.slug))) return '';
+  if (!(page.topicSlug || page.slug === 'examen-mtc-preguntas')) return '';
   return topicPages.map((topic) => `
             <a class="${page.slug === topic.slug ? 'active' : ''}" href="/${topic.slug}">
               <strong>${escapeHtml(topic.topicName)}</strong>
@@ -1169,7 +1148,7 @@ function renderQuestionDirectory(page) {
 }
 
 function shouldShowCategories(page) {
-  return Boolean(page.categorySlug) || ['simulador-mtc', 'fuentes-mtc', 'balotario-mtc-pdf'].includes(page.slug);
+  return Boolean(page.categorySlug) || ['fuentes-mtc', 'balotario-mtc-pdf'].includes(page.slug);
 }
 
 function renderHtml(page) {
@@ -1483,7 +1462,7 @@ function renderHtml(page) {
           <span>Simulador MTC</span>
         </a>
         <nav aria-label="Recursos principales">
-          <a href="/simulador-mtc">Simulador</a>
+          <a href="/">Simulador</a>
           <a href="/preguntas-mtc">Preguntas</a>
           <a href="/senales-de-transito">Señales</a>
           <a href="/reglas-de-transito-peru">Reglas</a>
@@ -1731,9 +1710,9 @@ async function main() {
   }
 
   const coreSitemapUrls = [
-    { loc: siteUrl, priority: '1.0', changefreq: 'daily' },
+    { loc: siteUrl, lastmod: '2026-08-25', priority: '1.0', changefreq: 'daily' },
     ...publicSpaPages.map((pathname) => ({ loc: `${siteUrl}${pathname}`, priority: pathname === '/suscripcion' ? '0.9' : '0.6', changefreq: 'monthly' })),
-    ...[questionDirectoryPage, ...corePages, ...articlePages].map((page) => ({ loc: pageUrl(page.slug), priority: page.slug === 'simulador-mtc' ? '0.95' : '0.8', changefreq: 'weekly' })),
+    ...[questionDirectoryPage, ...corePages, ...articlePages].map((page) => ({ loc: pageUrl(page.slug), priority: '0.8', changefreq: 'weekly' })),
   ];
   const categorySitemapUrls = [
     ...categories.map(simulatorPageFor),
@@ -1746,7 +1725,7 @@ async function main() {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${includeImages ? ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"' : ''}>
 ${items.map((item) => `  <url>
     <loc>${item.loc}</loc>
-    <lastmod>${contentLastReviewed}</lastmod>${item.changefreq ? `
+    <lastmod>${item.lastmod || contentLastReviewed}</lastmod>${item.changefreq ? `
     <changefreq>${item.changefreq}</changefreq>` : ''}${item.priority ? `
     <priority>${item.priority}</priority>` : ''}${item.images?.map((image) => `
     <image:image>
@@ -1845,7 +1824,7 @@ ${disclaimer}
 
 ## Páginas principales
 
-- ${siteUrl}/simulador-mtc: simulador MTC general para examen de conocimientos.
+- ${siteUrl}/: simulador MTC general por categoría para el examen de conocimientos.
 - ${siteUrl}/examen-mtc-preguntas: guía de preguntas y temas del examen.
 - ${siteUrl}/preguntas-mtc: índice de preguntas con respuesta, imágenes y referencia al PDF.
 - ${siteUrl}/senales-de-transito: señales de tránsito para practicar.
