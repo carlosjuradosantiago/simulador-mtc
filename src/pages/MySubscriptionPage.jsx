@@ -161,10 +161,10 @@ export default function MySubscriptionPage() {
                     <div className="min-w-0">
                       <p className="font-black text-ink">{payment.planes_membresia?.nombre || 'Plan Premium'} · S/ {Number(payment.monto).toFixed(2)}</p>
                       <p className="mt-1 text-sm text-slate-600">{formatDate(payment.fecha_pago || payment.creado_en)} · {payment.estado === 'exitoso' ? 'Pago confirmado' : payment.estado}</p>
-                      {receipt ? <p className="mt-1 text-sm font-semibold text-slate-600">{receipt.tipo_comprobante} {receipt.serie}-{receipt.numero} · {accepted ? 'Aceptada por SUNAT' : 'Emisión pendiente'}</p> : <p className="mt-1 text-sm text-slate-500">Comprobante en preparación</p>}
+                      {receipt ? <p className="mt-1 text-sm font-semibold text-slate-600">{accepted ? `${receipt.tipo_comprobante} ${receipt.serie}-${receipt.numero} · Aceptada por SUNAT` : `${receipt.tipo_comprobante} solicitada · Emisión electrónica pendiente`}</p> : <p className="mt-1 text-sm text-slate-500">Constancia de compra enviada · Documento tributario pendiente</p>}
                     </div>
                   </div>
-                  {receipt ? (
+                  {accepted || receipt?.estado_sunat === 'error' ? (
                     <div className="flex flex-wrap gap-2 sm:justify-end">
                       <button type="button" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line px-3 font-bold text-brand hover:bg-blue-50 disabled:opacity-60" onClick={() => openReceipt(receipt, 'pdf')} disabled={Boolean(working)}>
                         {accepted ? <Download className="h-5 w-5" /> : <RefreshCw className={`h-5 w-5 ${working === `${receipt.id}-pdf` ? 'animate-spin' : ''}`} />}

@@ -3,6 +3,7 @@ import { sendEmail } from '../_shared/email.ts';
 import { errorResponse, jsonResponse, unauthorizedResponse } from '../_shared/response.ts';
 import { getSupabaseClient } from '../_shared/supabase.ts';
 import { generateAndSendTaxDocument, isSunatConfigurationReady } from '../_shared/sunat.ts';
+import { PDFDocument, StandardFonts, rgb } from 'npm:pdf-lib@1.17.1';
 
 const CULQI_API_URL = 'https://api.culqi.com/v2';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -172,6 +173,60 @@ function safeProviderMessage(data: any, fallback: string) {
 
 function culqiProviderEmail(userEmail = '') {
   return cleanText(userEmail, 180).toLowerCase();
+}
+
+function purchaseConfirmationNumber(transactionId: number) {
+  return `COMPRA-${String(transactionId).padStart(8, '0')}`;
+}
+
+function paymentAudit(event: string, data: Record<string, unknown>) {
+  console.info('[PAYMENT_AUDIT]', JSON.stringify({ event, at: new Date().toISOString(), ...data }));
+}
+
+async function buildPurchaseConfirmationPdf(dbUser: any, plan: any, transaction: any, membership: any) {
+  const pdf = await PDFDocument.create();
+  const page = pdf.addPage([595, 842]);
+  const regular = await pdf.embedFont(StandardFonts.Helvetica);
+  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const confirmationNumber = purchaseConfirmationNumber(transaction.id);
+  const fullName = `${dbUser.primer_nombre || ''} ${dbUser.apellido || ''}`.trim() || dbUser.correo_electronico;
+  const paidAt = new Date(transaction.fecha_pago || transaction.actualizado_en || transaction.creado_en || Date.now())
+    .toLocaleString('es-PE', { timeZone: 'America/Lima' });
+  const accessUntil = new Date(membership.membership_end).toLocaleDateString('es-PE', { timeZone: 'America/Lima' });
+  const lines = [
+    ['Constancia', confirmationNumber],
+    ['Fecha del pago', paidAt],
+    ['Cliente', fullName],
+    ['Plan', plan.nombre],
+    ['Monto pagado', `S/ ${Number(transaction.monto).toFixed(2)} ${transaction.moneda || 'PEN'}`],
+    ['Operacion Culqi', transaction.culqi_charge_id || 'Confirmada'],
+    ['Estado', 'Pago confirmado'],
+    ['Acceso hasta', accessUntil],
+  ];
+
+  page.drawText('SIMULADOR MTC', { x: 48, y: 785, size: 18, font: bold, color: rgb(0.04, 0.16, 0.35) });
+  page.drawText('CONSTANCIA DE COMPRA', { x: 330, y: 785, size: 14, font: bold });
+  let y = 700;
+  for (const [label, value] of lines) {
+    page.drawText(`${label}:`, { x: 58, y, size: 11, font: bold, color: rgb(0.25, 0.31, 0.4) });
+    page.drawText(String(value), { x: 190, y, size: 11, font: regular });
+    y -= 38;
+  }
+  page.drawText('Esta constancia acredita la compra y no reemplaza la boleta o factura electronica.', {
+    x: 58,
+    y: 220,
+    size: 9,
+    font: bold,
+    color: rgb(0.45, 0.24, 0.02),
+  });
+  page.drawText('El documento tributario se enviara por separado cuando complete su emision electronica.', {
+    x: 58,
+    y: 202,
+    size: 9,
+    font: regular,
+    color: rgb(0.35, 0.4, 0.47),
+  });
+  return new Uint8Array(await pdf.save());
 }
 
 async function culqiRequest(path: string, init: RequestInit = {}) {
@@ -630,6 +685,20 @@ async function ensureReceipt(supabase: any, transaction: any, billing: BillingIn
     };
   }
 
+  if (!isSunatConfigurationReady()) {
+    paymentAudit('tax_document_deferred', {
+      transactionId: transaction.id,
+      receiptId: receipt.id,
+      requestedType: receipt.tipo_comprobante,
+      reason: 'sunat_not_configured',
+    });
+    return {
+      id: receipt.id,
+      type: receipt.tipo_comprobante,
+      status: 'pendiente',
+    };
+  }
+
   try {
     return await generateAndSendTaxDocument(supabase, receipt);
   } catch (error) {
@@ -646,17 +715,18 @@ async function ensureReceipt(supabase: any, transaction: any, billing: BillingIn
     return {
       id: receipt.id,
       type: receipt.tipo_comprobante,
-      number: `${receipt.serie}-${receipt.numero}`,
       status: 'error',
       responseDescription: message,
     };
   }
 }
 
-async function sendConfirmationEmail(supabase: any, dbUser: any, plan: any, transaction: any, membership: any, receipt: any) {
+async function sendConfirmationEmail(supabase: any, dbUser: any, plan: any, transaction: any, membership: any, billing: BillingInput, receipt: any) {
   const appUrl = Deno.env.get('APP_URL') || 'https://simuladormtc-vertexlabs-dev.vercel.app';
   const fullName = `${dbUser.primer_nombre || ''} ${dbUser.apellido || ''}`.trim() || dbUser.correo_electronico;
-  const receiptLabel = receipt ? `${receipt.type} ${receipt.number}` : 'Comprobante en preparacion';
+  const fiscalReceiptReady = receipt?.status === 'aceptado' && receipt?.number;
+  const confirmationNumber = purchaseConfirmationNumber(transaction.id);
+  const receiptLabel = fiscalReceiptReady ? `${receipt.type} ${receipt.number}` : `${billing.receiptType === 'factura' ? 'Factura' : 'Boleta'} pendiente de emision electronica`;
   const html = `<!doctype html>
 <html lang="es"><body style="margin:0;background:#f4f7fb;font-family:Arial,sans-serif;color:#10213d">
 <table width="100%" cellpadding="0" cellspacing="0" style="padding:24px"><tr><td align="center">
@@ -666,15 +736,24 @@ async function sendConfirmationEmail(supabase: any, dbUser: any, plan: any, tran
 <p>Hola <strong>${escapeHtml(fullName)}</strong>,</p>
 <p>Procesamos correctamente tu compra. Tu acceso ya se encuentra activo.</p>
 <table width="100%" cellpadding="7" style="background:#f7f9fc;border-left:4px solid #0f55e8">
+<tr><td>Constancia de compra</td><td align="right"><strong>${escapeHtml(confirmationNumber)}</strong></td></tr>
 <tr><td>Plan</td><td align="right"><strong>${escapeHtml(plan.nombre)}</strong></td></tr>
 <tr><td>Monto</td><td align="right"><strong>S/ ${Number(transaction.monto).toFixed(2)}</strong></td></tr>
-<tr><td>Comprobante</td><td align="right"><strong>${escapeHtml(receiptLabel)}</strong></td></tr>
+<tr><td>Operacion Culqi</td><td align="right"><strong>${escapeHtml(transaction.culqi_charge_id || 'Confirmada')}</strong></td></tr>
+<tr><td>Documento tributario</td><td align="right"><strong>${escapeHtml(receiptLabel)}</strong></td></tr>
 <tr><td>Acceso hasta</td><td align="right"><strong>${new Date(membership.membership_end).toLocaleDateString('es-PE')}</strong></td></tr>
 </table>
+${fiscalReceiptReady
+    ? '<p>Adjuntamos el documento tributario emitido y aceptado.</p>'
+    : '<p style="padding:12px;background:#fff8e6;border-left:4px solid #f5a623">Adjuntamos tu constancia de compra. Esta constancia no reemplaza la boleta o factura electronica; ese documento se enviara por separado cuando complete su emision.</p>'}
 <p style="text-align:center;margin-top:24px"><a href="${appUrl}/perfil" style="display:inline-block;padding:13px 24px;background:#0f55e8;color:#fff;text-decoration:none;font-weight:bold">Ver mi acceso</a></p>
 </td></tr></table></td></tr></table></body></html>`;
 
-  const attachments = [];
+  const purchasePdf = await buildPurchaseConfirmationPdf(dbUser, plan, transaction, membership);
+  const attachments = [{
+    filename: `constancia-${confirmationNumber.toLowerCase()}.pdf`,
+    content: bytesToBase64(purchasePdf),
+  }];
   for (const [path, fallbackName] of [
     [receipt?.pdfPath, `${receiptLabel}.pdf`],
     [receipt?.xmlPath, `${receiptLabel}.xml`],
@@ -688,10 +767,17 @@ async function sendConfirmationEmail(supabase: any, dbUser: any, plan: any, tran
 
   const result = await sendEmail(
     dbUser.correo_electronico,
-    `Pago confirmado - ${plan.nombre} - Simulador MTC`,
+    `Pago confirmado y constancia de compra - ${plan.nombre} - Simulador MTC`,
     html,
     { idempotencyKey: `payment-confirmation/${transaction.id}`, attachments },
   );
+
+  if (!result.success) throw new Error(result.error || 'No se pudo enviar la constancia de compra');
+  paymentAudit('purchase_confirmation_sent', {
+    transactionId: transaction.id,
+    messageId: result.messageId,
+    taxDocumentStatus: receipt?.status || 'pendiente',
+  });
 
   if (result.success && receipt?.id) {
     await supabase
@@ -724,12 +810,14 @@ async function getCanonicalData(supabase: any, userId: number, planId: number) {
 
 async function completeVerifiedPayment(supabase: any, transaction: any, dbUser: any, plan: any, billing: BillingInput, charge: any, requestId: string) {
   verifyCharge(charge, transaction, dbUser, plan);
+  paymentAudit('charge_verified', { transactionId: transaction.id, chargeId: charge.id, requestId });
   const membership = await finalizePayment(supabase, transaction, charge, requestId);
+  paymentAudit('membership_activated', { transactionId: transaction.id, membershipId: membership?.membership_id || membership?.id });
   const receipt = await ensureReceipt(supabase, transaction, billing);
-  await sendConfirmationEmail(supabase, dbUser, plan, transaction, membership, receipt).catch((error) => {
+  await sendConfirmationEmail(supabase, dbUser, plan, transaction, membership, billing, receipt).catch((error) => {
     console.error('[PAYMENT] Resend error', { transactionId: transaction.id, message: cleanText(error, 200) });
   });
-  return { membership, receipt };
+  return { membership, receipt, purchaseConfirmation: { number: purchaseConfirmationNumber(transaction.id) } };
 }
 
 async function syncRecurringSubscription(supabase: any, recurringId: number, providerSubscription: any, extra: Record<string, unknown> = {}) {
@@ -827,9 +915,11 @@ async function completeRecurringCharge(
 
   if (!transaction) throw new Error('No se encontro la transaccion recurrente');
   const billing = normalizeBilling(recurring.datos_facturacion, `${dbUser.primer_nombre || ''} ${dbUser.apellido || ''}`.trim());
+  paymentAudit('recurring_charge_verified', { transactionId: transaction.id, chargeId: charge.id, requestId });
   const membership = await finalizePayment(supabase, transaction, charge, requestId);
+  paymentAudit('membership_renewed', { transactionId: transaction.id, membershipId: membership?.membership_id || membership?.id });
   const receipt = await ensureReceipt(supabase, transaction, billing);
-  await sendConfirmationEmail(supabase, dbUser, plan, transaction, membership, receipt).catch((error) => {
+  await sendConfirmationEmail(supabase, dbUser, plan, transaction, membership, billing, receipt).catch((error) => {
     console.error('[PAYMENT] Recurring Resend error', { transactionId: transaction.id, message: cleanText(error, 200) });
   });
   await syncRecurringSubscription(supabase, recurring.id, providerSubscription);
