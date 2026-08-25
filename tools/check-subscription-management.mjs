@@ -13,5 +13,8 @@ assert.match(page, /api\.getPaymentHistory/, 'La pantalla debe mostrar pagos y c
 assert.match(page, /api\.retryReceipt/, 'La pantalla debe poder recuperar un comprobante fallido.');
 assert.match(payments, /\.eq\('id_usuario', user\.userId\)/, 'El comprobante debe estar limitado a su propietario.');
 assert.match(payments, /culqi_subscription_id/, 'La suscripción debe conservar trazabilidad con Culqi.');
+assert.match(payments, /subscription\.charge\.failed/, 'El webhook debe procesar cobros recurrentes rechazados.');
+assert.match(payments, /recurring_charge_failure_notice_sent/, 'El usuario debe recibir aviso del cobro recurrente rechazado.');
+assert.match(payments, /existingEvent\.procesado/, 'Los reintentos de webhooks pendientes deben volver a procesarse.');
 
 console.log('Subscription management checks passed.');

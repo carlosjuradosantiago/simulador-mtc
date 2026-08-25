@@ -1669,6 +1669,30 @@ export async function handleRetryReceipt(req: Request, receiptId: string) {
   }
 }
 
+async function sendRecurringChargeFailureEmail(dbUser: any, plan: any, eventId: string) {
+  const appUrl = Deno.env.get('APP_URL') || 'https://simuladormtc.com';
+  const fullName = `${dbUser.primer_nombre || ''} ${dbUser.apellido || ''}`.trim() || dbUser.correo_electronico;
+  const html = `<!doctype html>
+<html lang="es"><body style="margin:0;background:#f4f7fb;font-family:Arial,sans-serif;color:#10213d">
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:24px"><tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border:1px solid #d8e2ef">
+<tr><td style="padding:26px;background:#0f55e8;color:#fff"><h1 style="margin:0;font-size:24px">No se pudo procesar el cobro</h1></td></tr>
+<tr><td style="padding:28px">
+<p>Hola <strong>${escapeHtml(fullName)}</strong>,</p>
+<p>Culqi no aprobo el cobro mensual de <strong>${escapeHtml(plan.nombre)}</strong>. No activamos ni extendimos tu membresia con este intento.</p>
+<p>Si ya tenias acceso, conservaras el periodo que pagaste anteriormente. Revisa tu suscripcion para actualizar el medio de pago o volver a intentarlo.</p>
+<p style="text-align:center;margin-top:24px"><a href="${appUrl}/mi-suscripcion" style="display:inline-block;padding:13px 24px;background:#0f55e8;color:#fff;text-decoration:none;font-weight:bold">Revisar mi suscripcion</a></p>
+</td></tr></table></td></tr></table></body></html>`;
+  const result = await sendEmail(
+    dbUser.correo_electronico,
+    `No se pudo procesar tu suscripcion - ${plan.nombre} - Simulador MTC`,
+    html,
+    { idempotencyKey: `subscription-charge-failed/${eventId}` },
+  );
+  if (!result.success) throw new Error(result.error || 'No se pudo avisar el cobro rechazado');
+  return result.messageId;
+}
+
 function webhookData(payload: any) {
   if (typeof payload?.data !== 'string') return payload?.data || payload;
   try {
@@ -1729,7 +1753,7 @@ export async function handleCulqiWebhook(req: Request, suppliedToken: string) {
   const chargeIds = extractWebhookChargeIds(payload);
   const subscriptionId = extractWebhookSubscriptionId(payload);
   const objectId = subscriptionId || chargeIds[0] || '';
-  const { data: event, error: eventError } = await supabase
+  const { data: insertedEvent, error: eventError } = await supabase
     .from('eventos_webhook_culqi')
     .upsert({
       event_id: eventId,
@@ -1744,7 +1768,17 @@ export async function handleCulqiWebhook(req: Request, suppliedToken: string) {
     console.error('[PAYMENT] Webhook registry error', { code: eventError.code });
     return errorResponse('No pudimos registrar el evento', 500);
   }
-  if (!event) return jsonResponse({ received: true, duplicate: true });
+  let event = insertedEvent;
+  if (!event) {
+    const { data: existingEvent, error: existingEventError } = await supabase
+      .from('eventos_webhook_culqi')
+      .select('id, procesado')
+      .eq('event_id', eventId)
+      .single();
+    if (existingEventError || !existingEvent) return errorResponse('No pudimos recuperar el evento', 500);
+    if (existingEvent.procesado) return jsonResponse({ received: true, duplicate: true });
+    event = existingEvent;
+  }
   if (!subscriptionId && chargeIds.length === 0) {
     await supabase.from('eventos_webhook_culqi').update({ procesado: true, procesado_en: new Date().toISOString() }).eq('id', event.id);
     return jsonResponse({ received: true, ignored: true });
@@ -1764,7 +1798,38 @@ export async function handleCulqiWebhook(req: Request, suppliedToken: string) {
           ? recurring.cancelada_en || new Date().toISOString()
           : recurring.cancelada_en,
       });
-      if (!['cancelada', 'finalizada'].includes(current.estado)) {
+      if (eventType === 'subscription.charge.failed') {
+        const [{ dbUser, plan }, initialPaymentResult, activeMembershipResult] = await Promise.all([
+          getCanonicalData(supabase, recurring.id_usuario, recurring.id_plan_membresia),
+          supabase.from('transacciones_pago').select('estado').eq('id', recurring.id_transaccion_inicial).maybeSingle(),
+          supabase
+            .from('membresias_usuario')
+            .select('id')
+            .eq('id_usuario', recurring.id_usuario)
+            .eq('esta_activa', true)
+            .gte('fecha_fin', new Date().toISOString())
+            .limit(1)
+            .maybeSingle(),
+        ]);
+        if (initialPaymentResult.error || activeMembershipResult.error) {
+          throw initialPaymentResult.error || activeMembershipResult.error;
+        }
+        const initialPayment = initialPaymentResult.data;
+        const activeMembership = activeMembershipResult.data;
+        const failureMessage = 'Culqi no aprobo el cobro mensual. La membresia no fue activada ni renovada.';
+        if (initialPayment?.estado !== 'exitoso' && !activeMembership) {
+          await failRecurringInitialPayment(supabase, current, failureMessage);
+        } else {
+          const { error: failureError } = await supabase
+            .from('suscripciones_culqi')
+            .update({ mensaje_error: failureMessage, actualizado_en: new Date().toISOString() })
+            .eq('id', current.id);
+          if (failureError) throw failureError;
+        }
+        paymentAudit('recurring_charge_failed', { subscriptionId, eventId });
+        const messageId = await sendRecurringChargeFailureEmail(dbUser, plan, eventId);
+        paymentAudit('recurring_charge_failure_notice_sent', { subscriptionId, eventId, messageId });
+      } else if (!['cancelada', 'finalizada'].includes(current.estado)) {
         const pendingChargeIds = [...new Set([...chargeIds, ...subscriptionChargeIds(provider.subscription)])];
         for (const chargeId of pendingChargeIds) {
           const { data: paid } = await supabase
