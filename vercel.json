@@ -10,6 +10,11 @@
       "permanent": true
     },
     {
+      "source": "/simulador-mtc",
+      "destination": "/",
+      "permanent": true
+    },
+    {
       "source": "/balotario-mtc-a1-pdf",
       "destination": "/balotario-mtc-a1",
       "permanent": true
@@ -26,7 +31,7 @@
     },
     {
       "source": "/simulacro-mtc-con-respuestas",
-      "destination": "/simulador-mtc",
+      "destination": "/",
       "permanent": true
     },
     {
@@ -122,10 +127,6 @@
     }
   ],
   "rewrites": [
-    {
-      "source": "/simulador-mtc",
-      "destination": "/seo/simulador-mtc.html"
-    },
     {
       "source": "/examen-mtc-preguntas",
       "destination": "/seo/examen-mtc-preguntas.html"

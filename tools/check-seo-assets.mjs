@@ -144,15 +144,18 @@ async function main() {
     'vercel.json: las rutas internas sin extensión deben redirigir a su URL pública',
   );
   for (const [source, destination] of [
+    ['/simulador-mtc', '/'],
     ['/balotario-mtc-a1-pdf', '/balotario-mtc-a1'],
     ['/examen-conocimientos-mtc-a1', '/simulador-mtc-a1'],
     ['/licencia-a1-peru-examen', '/simulador-mtc-a1'],
-    ['/simulacro-mtc-con-respuestas', '/simulador-mtc'],
+    ['/simulacro-mtc-con-respuestas', '/'],
   ]) {
     assert(redirects.some((redirect) => redirect.source === source && redirect.destination === destination && redirect.permanent), `vercel.json: falta consolidar ${source}`);
   }
   const htmlFiles = fileNames.filter((file) => file.endsWith('.html')).sort();
   assert(htmlFiles.length >= 130, `Se esperaban al menos 130 páginas SEO; se encontraron ${htmlFiles.length}`);
+  assert(!htmlFiles.includes('simulador-mtc.html'), 'La página genérica duplicada no debe volver a generarse');
+  assert(!sitemapCore.includes(`${siteUrl}/simulador-mtc</loc>`), 'El sitemap no debe publicar la URL genérica redirigida');
 
   const titles = new Set();
   const descriptions = new Set();
@@ -320,6 +323,7 @@ async function main() {
   const initialAppShell = home.slice(home.indexOf('<div id="root">'), home.indexOf('<noscript>'));
   assert(initialAppShell.includes('data-static-app-shell'), 'index.html: el HTML inicial no debe entregar un #root vacío');
   assert(initialAppShell.includes('<h1'), 'index.html: el HTML inicial debe incluir el H1 de la portada');
+  assert(initialAppShell.includes('Simulador MTC: practica el examen de reglas por categoría'), 'index.html: el H1 debe responder a la búsqueda principal');
   for (const category of categoryBank.categories) {
     assert(
       initialAppShell.includes(`href="/simulador-mtc-${category.slug}"`),

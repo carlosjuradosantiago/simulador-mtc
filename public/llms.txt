@@ -20,7 +20,7 @@ Plataforma educativa independiente. No afiliada al Ministerio de Transportes y C
 
 ## Páginas principales
 
-- https://www.simuladormtc.com/simulador-mtc: simulador MTC general para examen de conocimientos.
+- https://www.simuladormtc.com/: simulador MTC general por categoría para el examen de conocimientos.
 - https://www.simuladormtc.com/examen-mtc-preguntas: guía de preguntas y temas del examen.
 - https://www.simuladormtc.com/preguntas-mtc: índice de preguntas con respuesta, imágenes y referencia al PDF.
 - https://www.simuladormtc.com/senales-de-transito: señales de tránsito para practicar.
