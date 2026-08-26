@@ -75,8 +75,8 @@ export default function VehicleStartPanel({
     ? 'Simulacro completo disponible'
     : freeFullExamAttemptsRemaining > 0
       ? freeFullExamAttemptsRemaining === FREE_FULL_EXAM_ATTEMPTS
-        ? 'Pruebas 1 y 2 sin costo; la 3.ª requiere suscripción'
-        : 'Te queda 1 simulacro sin costo; después necesitas suscripción'
+        ? `${FREE_FULL_EXAM_ATTEMPTS} prácticas completas sin costo antes de suscribirte`
+        : `Te ${freeFullExamAttemptsRemaining === 1 ? 'queda' : 'quedan'} ${freeFullExamAttemptsRemaining} ${freeFullExamAttemptsRemaining === 1 ? 'práctica completa' : 'prácticas completas'} sin costo`
     : fullExamHasAccess
       ? `Acceso activo${membershipEndDate ? ` hasta ${new Date(membershipEndDate).toLocaleDateString('es-PE')}` : ''}`
       : `Suscripcion mensual ${priceLabel}`;
@@ -334,8 +334,8 @@ export default function VehicleStartPanel({
                 >
                   <Target className="h-6 w-6 shrink-0" />
                   <span>
-                    <strong className="block text-sm sm:text-base">Reforzar mis errores</strong>
-                    <span className="hidden text-xs sm:block">Primero lo que más fallaste</span>
+                    <strong className="block text-sm sm:text-base">Repasar solo mis falladas</strong>
+                    <span className="hidden text-xs sm:block">Sin mezclar preguntas nuevas</span>
                   </span>
                 </button>
               </div>
@@ -356,7 +356,7 @@ export default function VehicleStartPanel({
                 </button>
               )}
               <p className="mt-1 text-center text-sm text-slate-600">
-                {selectedCategory.title} · {practiceMode === 'weak' ? 'refuerzo de errores' : 'selección aleatoria'}
+                {selectedCategory.title} · {practiceMode === 'weak' ? 'solo preguntas falladas' : 'selección aleatoria'}
               </p>
             </div>
           </section>

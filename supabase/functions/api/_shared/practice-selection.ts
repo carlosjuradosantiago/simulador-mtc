@@ -73,9 +73,10 @@ function buildQuestionProgress(answerDetails: AnswerDetail[], availableSet: Set<
     const isUnanswered = Boolean(answer.sinResponder ?? answer.sin_responder);
     current.attempts.add(attemptKey);
     current.lastAttemptAt = Math.max(current.lastAttemptAt, timestamp);
-    if (isCorrect === true && !isUnanswered) {
+    if (isUnanswered) return;
+    if (isCorrect === true) {
       current.correctStreak += 1;
-    } else {
+    } else if (isCorrect === false) {
       current.failures += 1;
       current.correctStreak = 0;
     }
@@ -158,7 +159,20 @@ export function selectPracticeQuestionIds(
     take(newIds, newTarget, 'newSelected');
     take(reviewIds, reviewTarget, 'reviewSelected');
   } else {
-    take(dueFailures.map((item) => item.questionId), count, 'failedSelected');
+    take(
+      [...dueFailures, ...deferredFailures].map((item) => item.questionId),
+      count,
+      'failedSelected',
+    );
+    return {
+      ids: shuffled(selected, random),
+      failedAvailable: unresolvedFailures.length,
+      deferredFailures: deferredFailures.length,
+      retiredFailures: [...progress.values()].filter((item) => item.failures > 0 && item.correctStreak >= 2).length,
+      seenQuestions: progress.size,
+      composition,
+      appliedMode: mode,
+    };
   }
 
   take(dueFailures.map((item) => item.questionId), count, 'failedSelected');
@@ -174,8 +188,6 @@ export function selectPracticeQuestionIds(
     retiredFailures: [...progress.values()].filter((item) => item.failures > 0 && item.correctStreak >= 2).length,
     seenQuestions: progress.size,
     composition,
-    appliedMode: mode === 'weak' && unresolvedFailures.length === 0
-      ? 'random' as PracticeSelectionMode
-      : mode,
+    appliedMode: mode,
   };
 }

@@ -93,7 +93,7 @@ export default function SimulatorPage() {
   const practiceLabel = adaptivePractice
     ? 'Entrenamiento inteligente'
     : strategy === 'weak'
-      ? 'Refuerzo de errores'
+      ? 'Solo mis falladas'
       : 'Preguntas aleatorias';
 
   useEffect(() => {
@@ -237,6 +237,7 @@ export default function SimulatorPage() {
 
   if (error || !currentQuestion) {
     const membershipRequired = !FULL_EXAM_IS_FREE && errorStatus === 402;
+    const noFailedQuestions = quickPractice && strategy === 'weak' && errorStatus === 409;
     return (
       <div className="grid min-h-screen place-items-center bg-white p-6 text-center">
         <div className="max-w-lg">
@@ -244,7 +245,11 @@ export default function SimulatorPage() {
             ? <LockKeyhole className="mx-auto h-12 w-12 text-brand" />
             : <X className="mx-auto h-12 w-12 text-danger" />}
           <h1 className="mt-4 font-display text-3xl font-black text-ink">
-            {membershipRequired ? 'Necesitas una suscripcion activa' : 'No pudimos iniciar la práctica'}
+            {membershipRequired
+              ? 'Necesitas una suscripcion activa'
+              : noFailedQuestions
+                ? 'Aún no tienes preguntas falladas'
+                : 'No pudimos iniciar la práctica'}
           </h1>
           <p className="mt-3 text-lg leading-7 text-slate-600">
             {membershipRequired
@@ -258,7 +263,13 @@ export default function SimulatorPage() {
                 <ArrowRight className="h-5 w-5" />
               </Button>
             ) : null}
-            <Button as={Link} to="/dashboard" variant={membershipRequired ? 'secondary' : 'primary'}>
+            {noFailedQuestions ? (
+              <Button as={Link} to={`/simulacro/${categoria}?mode=quick&strategy=random`}>
+                Practicar preguntas aleatorias
+                <ArrowRight className="h-5 w-5" />
+              </Button>
+            ) : null}
+            <Button as={Link} to="/dashboard" variant={membershipRequired || noFailedQuestions ? 'secondary' : 'primary'}>
               <ArrowLeft className="h-5 w-5" />
               Volver al inicio
             </Button>
@@ -309,7 +320,7 @@ export default function SimulatorPage() {
                 ? `${OFFICIAL_EXAM_RULES.questionCount} preguntas · ${OFFICIAL_EXAM_RULES.durationMinutes} minutos · puedes revisar y corregir antes de entregar.`
                 : quickPractice
                   ? strategy === 'weak'
-                  ? 'Primero verás lo que más necesitas reforzar.'
+                  ? 'Repasarás únicamente las preguntas que respondiste mal.'
                   : 'Sin tiempo. Preguntas de toda la categoría.'
                 : `${OFFICIAL_EXAM_RULES.questionCount} preguntas · ${OFFICIAL_EXAM_RULES.durationMinutes} minutos · tu resultado mide tu preparación.`}
             </p>

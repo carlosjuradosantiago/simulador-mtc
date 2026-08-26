@@ -123,6 +123,12 @@ export async function handleIniciarPractica(req, idTipoExamen, idCategoria) {
       total: shuffled.length,
     });
     if (shuffled.length === 0) {
+      if (modoSeleccion === 'weak') {
+        return jsonResponse({
+          code: 'NO_FAILED_QUESTIONS',
+          message: 'Todavía no tienes preguntas falladas en esta categoría. Practica preguntas aleatorias y vuelve cuando tengas errores por repasar.',
+        }, 409);
+      }
       return errorResponse('No hay preguntas disponibles para esta categoría', 404);
     }
     // Get questions with options
