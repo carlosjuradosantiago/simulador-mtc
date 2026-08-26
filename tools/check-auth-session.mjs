@@ -6,6 +6,10 @@ const [apiSource, authSource, authModalSource] = await Promise.all([
   readFile(new URL('../src/hooks/useAuth.js', import.meta.url), 'utf8'),
   readFile(new URL('../src/components/auth/AuthModal.jsx', import.meta.url), 'utf8'),
 ]);
+const {
+  AUTH_INACTIVITY_TIMEOUT_MS,
+  isAuthSessionInactive,
+} = await import('../src/utils/sessionInactivity.js');
 
 assert.match(apiSource, /AUTH_SESSION_EXPIRED_EVENT/);
 assert.match(apiSource, /auth\.getSession\(\)/);
@@ -17,10 +21,18 @@ assert.match(authSource, /auth\.onAuthStateChange/);
 assert.match(authSource, /event === 'SIGNED_OUT'/);
 assert.match(authSource, /AUTH_SESSION_EXPIRED_EVENT/);
 assert.match(authSource, /auth\.signOut\(\{ scope: 'local' \}\)/);
+assert.match(authSource, /\['pointerdown', 'keydown', 'scroll'\]/);
+assert.match(authSource, /AUTH_INACTIVITY_BROADCAST_KEY/);
+assert.match(authSource, /expireInactiveSession/);
+assert.match(authModalSource, /AUTH_INACTIVITY_NOTICE_KEY/);
 assert.match(authModalSource, /backdropPointerDownRef\.current = event\.target === event\.currentTarget/);
 assert.match(authModalSource, /backdropPointerDownRef\.current && event\.target === event\.currentTarget/);
 assert.match(authModalSource, /aria-label=\{visible \? 'Ocultar contraseña' : 'Mostrar contraseña'\}/);
 assert.equal((authModalSource.match(/<PasswordInput /g) || []).length, 4);
+assert.equal(AUTH_INACTIVITY_TIMEOUT_MS, 30 * 60 * 1000);
+assert.equal(isAuthSessionInactive(null, 1_000), false);
+assert.equal(isAuthSessionInactive(1_000, 1_000 + AUTH_INACTIVITY_TIMEOUT_MS - 1), false);
+assert.equal(isAuthSessionInactive(1_000, 1_000 + AUTH_INACTIVITY_TIMEOUT_MS), true);
 
 globalThis.__SIMULADOR_API_BASE_URL__ = 'https://api.example.test/api';
 globalThis.__SIMULADOR_SUPABASE_URL__ = 'https://example.supabase.co';
