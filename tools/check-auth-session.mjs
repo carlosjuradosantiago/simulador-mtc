@@ -29,7 +29,7 @@ assert.match(authModalSource, /backdropPointerDownRef\.current = event\.target =
 assert.match(authModalSource, /backdropPointerDownRef\.current && event\.target === event\.currentTarget/);
 assert.match(authModalSource, /aria-label=\{visible \? 'Ocultar contraseña' : 'Mostrar contraseña'\}/);
 assert.equal((authModalSource.match(/<PasswordInput /g) || []).length, 4);
-assert.equal(AUTH_INACTIVITY_TIMEOUT_MS, 30 * 60 * 1000);
+assert.equal(AUTH_INACTIVITY_TIMEOUT_MS, 60 * 60 * 1000);
 assert.equal(isAuthSessionInactive(null, 1_000), false);
 assert.equal(isAuthSessionInactive(1_000, 1_000 + AUTH_INACTIVITY_TIMEOUT_MS - 1), false);
 assert.equal(isAuthSessionInactive(1_000, 1_000 + AUTH_INACTIVITY_TIMEOUT_MS), true);
