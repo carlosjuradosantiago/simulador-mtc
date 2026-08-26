@@ -9,6 +9,14 @@ import {
   toFrontendUser,
 } from '../services/api.js';
 import { safeInternalPath } from '../utils/navigation.js';
+import {
+  AUTH_ACTIVITY_KEY,
+  AUTH_INACTIVITY_BROADCAST_KEY,
+  AUTH_INACTIVITY_NOTICE,
+  AUTH_INACTIVITY_NOTICE_KEY,
+  AUTH_INACTIVITY_TIMEOUT_MS,
+  isAuthSessionInactive,
+} from '../utils/sessionInactivity.js';
 import { useLocalStorage } from './useLocalStorage.js';
 
 const AuthContext = createContext(null);
@@ -21,6 +29,7 @@ export function AuthProvider({ children }) {
 
   const clearAuthentication = useCallback(() => {
     setStoredToken(null);
+    window.localStorage.removeItem(AUTH_ACTIVITY_KEY);
     removeUser();
     setLoading(false);
   }, [removeUser]);
@@ -52,6 +61,7 @@ export function AuthProvider({ children }) {
 
   const storeAuthenticatedUser = useCallback(async (response, extra = {}) => {
     setStoredToken(response.token);
+    window.localStorage.setItem(AUTH_ACTIVITY_KEY, String(Date.now()));
     const nextUser = toFrontendUser(response, extra);
     setUser(nextUser);
     await hydrateUser(nextUser).catch(() => null);
@@ -71,6 +81,20 @@ export function AuthProvider({ children }) {
   const closeAuthModal = useCallback(() => {
     setAuthModal((currentModal) => ({ ...currentModal, open: false }));
   }, []);
+
+  const expireInactiveSession = useCallback(({ broadcast = true } = {}) => {
+    const token = getStoredToken();
+    const redirectTo = safeInternalPath(`${window.location.pathname}${window.location.search}`);
+    window.sessionStorage.setItem(AUTH_INACTIVITY_NOTICE_KEY, AUTH_INACTIVITY_NOTICE);
+    if (broadcast) {
+      window.localStorage.setItem(AUTH_INACTIVITY_BROADCAST_KEY, String(Date.now()));
+    }
+    if (isSupabaseAccessToken(token)) {
+      getSupabaseAuth().then((supabaseAuth) => supabaseAuth.auth.signOut({ scope: 'local' })).catch(() => null);
+    }
+    clearAuthentication();
+    openAuthModal('login', { redirectTo });
+  }, [clearAuthentication, openAuthModal]);
 
   useEffect(() => {
     let cancelled = false;
@@ -106,6 +130,15 @@ export function AuthProvider({ children }) {
       return undefined;
     }
 
+    const storedActivity = window.localStorage.getItem(AUTH_ACTIVITY_KEY);
+    if (isAuthSessionInactive(storedActivity)) {
+      expireInactiveSession();
+      return undefined;
+    }
+    if (!storedActivity) {
+      window.localStorage.setItem(AUTH_ACTIVITY_KEY, String(Date.now()));
+    }
+
     hydrateUser().catch((error) => {
       if (!cancelled && error.status === 401) clearAuthentication();
     }).finally(() => {
@@ -115,7 +148,81 @@ export function AuthProvider({ children }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [expireInactiveSession]);
+
+  useEffect(() => {
+    if (loading || !user || !getStoredToken()) return undefined;
+
+    let expired = false;
+    let timeoutId;
+    let lastHandledAt = 0;
+    let lastActivityAt = Number(window.localStorage.getItem(AUTH_ACTIVITY_KEY)) || Date.now();
+
+    const scheduleExpiration = () => {
+      window.clearTimeout(timeoutId);
+      const remaining = Math.max(AUTH_INACTIVITY_TIMEOUT_MS - (Date.now() - lastActivityAt), 0);
+      timeoutId = window.setTimeout(() => {
+        if (expired) return;
+        if (!isAuthSessionInactive(lastActivityAt)) {
+          scheduleExpiration();
+          return;
+        }
+        expired = true;
+        expireInactiveSession();
+      }, remaining);
+    };
+
+    const recordActivity = () => {
+      const now = Date.now();
+      if (expired) return;
+      if (isAuthSessionInactive(lastActivityAt, now)) {
+        expired = true;
+        expireInactiveSession();
+        return;
+      }
+      if (now - lastHandledAt < 1000) return;
+      lastHandledAt = now;
+      lastActivityAt = now;
+      window.localStorage.setItem(AUTH_ACTIVITY_KEY, String(now));
+      scheduleExpiration();
+    };
+
+    const handleStorage = (event) => {
+      if (event.key === AUTH_INACTIVITY_BROADCAST_KEY && event.newValue) {
+        if (!expired) {
+          expired = true;
+          expireInactiveSession({ broadcast: false });
+        }
+        return;
+      }
+      if (event.key !== AUTH_ACTIVITY_KEY) return;
+      if (!event.newValue) {
+        clearAuthentication();
+        return;
+      }
+      const nextActivityAt = Number(event.newValue);
+      if (Number.isFinite(nextActivityAt) && nextActivityAt > lastActivityAt) {
+        lastActivityAt = nextActivityAt;
+        scheduleExpiration();
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') recordActivity();
+    };
+    const activityEvents = ['pointerdown', 'keydown', 'scroll'];
+    activityEvents.forEach((eventName) => window.addEventListener(eventName, recordActivity, { passive: true }));
+    window.addEventListener('storage', handleStorage);
+    document.addEventListener('visibilitychange', handleVisibility);
+    scheduleExpiration();
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      activityEvents.forEach((eventName) => window.removeEventListener(eventName, recordActivity));
+      window.removeEventListener('storage', handleStorage);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [clearAuthentication, expireInactiveSession, loading, user]);
 
   const value = useMemo(
     () => ({
@@ -195,6 +302,7 @@ export function AuthProvider({ children }) {
       loginWithToken: async (token, { category = null } = {}) => {
         try {
           setStoredToken(token);
+          window.localStorage.setItem(AUTH_ACTIVITY_KEY, String(Date.now()));
           const authenticatedUser = await hydrateUser(null);
           if (category) {
             await api.updateSettings({ categoriaPreferidaId: category, categoriaConfirmada: true, notificacionesHabilitadas: true, tema: 'light' });

@@ -6,6 +6,7 @@ import { fallbackLicenseCategories, getCategoryById } from '../../data/vehicleCh
 import { useAuth } from '../../hooks/useAuth.js';
 import { getGoogleOAuthUrl } from '../../services/api.js';
 import { cn } from '../../utils/cn.js';
+import { AUTH_INACTIVITY_NOTICE_KEY } from '../../utils/sessionInactivity.js';
 import Button from '../ui/Button.jsx';
 import Input from '../ui/Input.jsx';
 
@@ -107,7 +108,9 @@ export default function AuthModal() {
     setPendingCategory(initialCategory);
     setRegisterForm((currentForm) => ({ ...currentForm, category: initialCategory }));
     setError('');
-    setNotice('');
+    const sessionNotice = window.sessionStorage.getItem(AUTH_INACTIVITY_NOTICE_KEY);
+    setNotice(sessionNotice || '');
+    if (sessionNotice) window.sessionStorage.removeItem(AUTH_INACTIVITY_NOTICE_KEY);
     setLoading(false);
     setGoogleLoading(false);
     setVerificationEmailSent(true);
