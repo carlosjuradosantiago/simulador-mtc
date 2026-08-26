@@ -199,7 +199,6 @@ async function buildPurchaseConfirmationPdf(dbUser: any, plan: any, transaction:
     ['Cliente', fullName],
     ['Plan', plan.nombre],
     ['Monto pagado', `S/ ${Number(transaction.monto).toFixed(2)} ${transaction.moneda || 'PEN'}`],
-    ['Operacion Culqi', transaction.culqi_charge_id || 'Confirmada'],
     ['Estado', 'Pago confirmado'],
     ['Acceso hasta', accessUntil],
   ];
@@ -739,7 +738,6 @@ async function sendConfirmationEmail(supabase: any, dbUser: any, plan: any, tran
 <tr><td>Constancia de compra</td><td align="right"><strong>${escapeHtml(confirmationNumber)}</strong></td></tr>
 <tr><td>Plan</td><td align="right"><strong>${escapeHtml(plan.nombre)}</strong></td></tr>
 <tr><td>Monto</td><td align="right"><strong>S/ ${Number(transaction.monto).toFixed(2)}</strong></td></tr>
-<tr><td>Operacion Culqi</td><td align="right"><strong>${escapeHtml(transaction.culqi_charge_id || 'Confirmada')}</strong></td></tr>
 <tr><td>Documento tributario</td><td align="right"><strong>${escapeHtml(receiptLabel)}</strong></td></tr>
 <tr><td>Acceso hasta</td><td align="right"><strong>${new Date(membership.membership_end).toLocaleDateString('es-PE')}</strong></td></tr>
 </table>

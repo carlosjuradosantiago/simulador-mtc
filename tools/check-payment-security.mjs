@@ -38,6 +38,8 @@ assert.doesNotMatch(
   'Environment details must never be shown in customer payment emails.',
 );
 assert.match(backend, /<h1 style="margin:0;font-size:24px">Pago confirmado<\/h1>/);
+assert.doesNotMatch(backend, /\[['"]Operacion Culqi['"],/, 'The customer PDF must not expose Culqi internal IDs.');
+assert.doesNotMatch(backend, /<tr><td>Operacion Culqi<\/td>/, 'The customer email must not expose Culqi internal IDs.');
 assert.match(apiClient, /PAYMENTS_BASE_URL = API_BASE_URL\.replace/, 'Payments must use the isolated DEV Edge Function.');
 assert.match(backend, /retrieveCulqiCharge\(created\.charge\.id\)/);
 assert.match(backend, /status === 201 && !data\?\.id/, 'HTTP 201 without a charge must enter the Culqi 3DS flow.');
