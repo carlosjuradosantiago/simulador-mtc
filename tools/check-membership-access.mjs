@@ -27,14 +27,15 @@ assert.equal(isFullExamFree(undefined), false);
 assert.equal(isFullExamFree('true'), true);
 assert.equal(isFullExamFree('FALSE'), false);
 assert.equal(FULL_EXAM_IS_FREE, true);
-assert.equal(API_FREE_FULL_EXAM_ATTEMPTS, 2);
-assert.equal(FREE_FULL_EXAM_ATTEMPTS, 2);
+assert.equal(API_FREE_FULL_EXAM_ATTEMPTS, 5);
+assert.equal(FREE_FULL_EXAM_ATTEMPTS, 5);
 assert.equal(hasFreeFullExamAttempt(0), true);
 assert.equal(hasFreeFullExamAttempt(1), true);
-assert.equal(hasFreeFullExamAttempt(2), false);
-assert.equal(remainingFreeFullExamAttempts(0), 2);
-assert.equal(remainingFreeFullExamAttempts(1), 1);
-assert.equal(remainingFreeFullExamAttempts(2), 0);
+assert.equal(hasFreeFullExamAttempt(4), true);
+assert.equal(hasFreeFullExamAttempt(5), false);
+assert.equal(remainingFreeFullExamAttempts(0), 5);
+assert.equal(remainingFreeFullExamAttempts(4), 1);
+assert.equal(remainingFreeFullExamAttempts(5), 0);
 
 const historyFilters = [];
 const fakeQuery = {
@@ -124,7 +125,9 @@ assert.match(routes, /path="\/checkout" element=\{FULL_EXAM_IS_FREE/);
 assert.doesNotMatch(routes.split('<Route element={<ProtectedRoute />}>')[1] || '', /path="\/planes"/);
 assert.doesNotMatch(plansPage, /nunca recibimos|numero completo de tu tarjeta|formulario protegido/i);
 assert.match(vehicleStartPanel, /Simulacro completo disponible/);
-assert.match(vehicleStartPanel, /Pruebas 1 y 2 sin costo; la 3\.ª requiere suscripción/);
+assert.match(vehicleStartPanel, /FREE_FULL_EXAM_ATTEMPTS} prácticas completas sin costo antes de suscribirte/);
+assert.match(vehicleStartPanel, /Repasar solo mis falladas/);
+assert.match(adaptivePracticeHandler, /NO_FAILED_QUESTIONS/);
 assert.doesNotMatch(seoGenerator, /suscripción mensual por S\/ 12/);
 for (const source of [publicHeader, publicFooter, vehicleStartPanel, seoGenerator]) {
   assert.doesNotMatch(source, /20\/12\/8/);

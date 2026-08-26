@@ -5,7 +5,7 @@ export const QUICK_SESSION_TYPE = 'PRACTICA_CORTA';
 export const ADAPTIVE_SESSION_TYPE = 'PRACTICA_ADAPTATIVA';
 export const FULL_PRACTICE_SESSION_TYPES = [TIMED_SESSION_TYPE, ADAPTIVE_SESSION_TYPE, 'PRACTICA'];
 export const SIMULATED_PAYMENT_METHOD = 'simulacion';
-export const FREE_FULL_EXAM_ATTEMPTS = 2;
+export const FREE_FULL_EXAM_ATTEMPTS = 5;
 
 export function isFullExamFree(value?: string | null) {
   return String(value ?? 'false').trim().toLowerCase() === 'true';

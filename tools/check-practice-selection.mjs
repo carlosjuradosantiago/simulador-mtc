@@ -16,8 +16,10 @@ const history = [
 const weak = selectPracticeQuestionIds([10, 20, 30, 40], history, 3, 'weak', alwaysFirst, now);
 assert.ok(weak.ids.includes(10));
 assert.ok(weak.ids.includes(20));
+assert.equal(weak.ids.length, 2);
 assert.equal(weak.failedAvailable, 2);
-assert.equal(new Set(weak.ids).size, 3);
+assert.equal(new Set(weak.ids).size, 2);
+assert.ok(weak.ids.every((id) => [10, 20].includes(id)));
 
 const random = selectPracticeQuestionIds([10, 20, 30, 40], history, 3, 'random', alwaysFirst, now);
 assert.equal(random.ids.length, 3);
@@ -25,8 +27,18 @@ assert.equal(new Set(random.ids).size, 3);
 assert.ok(random.ids.every((id) => [10, 20, 30, 40].includes(id)));
 
 const noHistory = selectPracticeQuestionIds([10, 20], [], 5, 'weak', alwaysFirst, now);
-assert.equal(noHistory.appliedMode, 'random');
-assert.equal(noHistory.ids.length, 2);
+assert.equal(noHistory.appliedMode, 'weak');
+assert.equal(noHistory.ids.length, 0);
+
+const unansweredIsNotFailed = selectPracticeQuestionIds(
+  [10, 20],
+  [{ idPregunta: 10, esCorrecta: false, sinResponder: true, attemptId: 1, attemptedAt: oldAttempt }],
+  5,
+  'weak',
+  alwaysFirst,
+  now,
+);
+assert.equal(unansweredIsNotFailed.ids.length, 0);
 
 const adaptiveIds = Array.from({ length: 80 }, (_, index) => index + 1);
 const adaptiveHistory = [
@@ -58,6 +70,16 @@ const spaced = selectPracticeQuestionIds(
 );
 assert.equal(spaced.failedAvailable, 0);
 assert.equal(spaced.deferredFailures, 1);
+
+const immediateWeak = selectPracticeQuestionIds(
+  [1, 2, 3],
+  [{ idPregunta: 1, esCorrecta: false, attemptId: 1, attemptedAt: recentAttempt }],
+  5,
+  'weak',
+  alwaysFirst,
+  now,
+);
+assert.deepEqual(immediateWeak.ids, [1]);
 
 const mastered = selectPracticeQuestionIds(
   [1, 2, 3],
