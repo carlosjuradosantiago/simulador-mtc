@@ -26,6 +26,7 @@ export function AuthProvider({ children }) {
   const [user, setUser, removeUser] = useLocalStorage(USER_KEY, null);
   const [loading, setLoading] = useState(Boolean(getStoredToken()));
   const [authModal, setAuthModal] = useState({ open: false, mode: 'login', redirectTo: '/dashboard', category: null });
+  const hasSupabaseSession = isSupabaseAccessToken(getStoredToken());
 
   const clearAuthentication = useCallback(() => {
     setStoredToken(null);
@@ -102,6 +103,10 @@ export function AuthProvider({ children }) {
     const handleExpiredSession = () => clearAuthentication();
 
     window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, handleExpiredSession);
+    if (!hasSupabaseSession) {
+      return () => window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, handleExpiredSession);
+    }
+
     getSupabaseAuth().then((supabaseAuth) => {
       if (cancelled) return;
       const { data } = supabaseAuth.auth.onAuthStateChange((event, session) => {
@@ -121,7 +126,7 @@ export function AuthProvider({ children }) {
       subscription?.unsubscribe();
       window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, handleExpiredSession);
     };
-  }, [clearAuthentication]);
+  }, [clearAuthentication, hasSupabaseSession]);
 
   useEffect(() => {
     let cancelled = false;

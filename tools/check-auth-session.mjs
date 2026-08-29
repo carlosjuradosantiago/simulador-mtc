@@ -18,6 +18,8 @@ assert.match(apiSource, /response\.status === 401/);
 assert.match(apiSource, /dispatchEvent\(new Event\(AUTH_SESSION_EXPIRED_EVENT\)\)/);
 
 assert.match(authSource, /auth\.onAuthStateChange/);
+assert.match(authSource, /if \(!hasSupabaseSession\)/);
+assert.match(authSource, /\[clearAuthentication, hasSupabaseSession\]/);
 assert.match(authSource, /event === 'SIGNED_OUT'/);
 assert.match(authSource, /AUTH_SESSION_EXPIRED_EVENT/);
 assert.match(authSource, /auth\.signOut\(\{ scope: 'local' \}\)/);
