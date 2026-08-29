@@ -175,7 +175,7 @@ export default function VehicleStartPanel({
         selectedCategory ? 'mt-4' : 'mt-6',
         focusSelected && selectedCategory ? 'max-w-6xl grid-cols-1' : 'max-w-6xl md:grid-cols-3',
       )}>
-        {vehicleChoices.map((choice) => {
+        {vehicleChoices.map((choice, index) => {
           const selected = choice.id === selectedVehicle?.id;
           return (
             <button
@@ -198,7 +198,15 @@ export default function VehicleStartPanel({
                 </span>
               ) : null}
               <span className={cn('items-center justify-center', focusSelected && selectedCategory ? 'hidden' : 'flex h-[205px] w-full sm:h-[220px] lg:h-[235px]')}>
-                <img src={choice.image} alt={choice.imageAlt} width="900" height="600" className="h-full w-full object-contain" />
+                <img
+                  src={choice.image}
+                  alt={choice.imageAlt}
+                  width="900"
+                  height="600"
+                  loading={index === 0 ? 'eager' : 'lazy'}
+                  fetchPriority={index === 0 ? 'high' : 'auto'}
+                  className="h-full w-full object-contain"
+                />
               </span>
               {focusSelected && selectedCategory ? <CheckCircle2 className="h-6 w-6 shrink-0 text-brand" /> : null}
               <span className={cn('block font-display font-black leading-tight text-ink', focusSelected && selectedCategory ? 'text-lg' : 'mt-1 text-2xl sm:text-3xl')}>{choice.title}</span>

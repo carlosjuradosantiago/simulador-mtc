@@ -42,7 +42,7 @@ function escapeRawHtml(value) {
 }
 
 async function main() {
-  const [fileNames, sitemap, sitemapCore, sitemapCategories, sitemapTopics, sitemapQuestions, sitemapImages, robots, llms, home, readme, vercel, categoryBankText, topicBankText, questionBankText, appRoutes, officialPdfDownloads] = await Promise.all([
+  const [fileNames, sitemap, sitemapCore, sitemapCategories, sitemapTopics, sitemapQuestions, sitemapImages, robots, llms, home, readme, vercel, categoryBankText, topicBankText, questionBankText, appRoutes, officialPdfDownloads, vehicleStartPanel] = await Promise.all([
     htmlFilesUnder(seoDir),
     readFile(path.resolve('public', 'sitemap.xml'), 'utf8'),
     readFile(path.resolve('public', 'sitemap-core.xml'), 'utf8'),
@@ -60,6 +60,7 @@ async function main() {
     readFile(path.resolve('tools', 'seo-question-page-bank.json'), 'utf8'),
     readFile(path.resolve('src', 'routes', 'AppRoutes.jsx'), 'utf8'),
     readFile(path.resolve('src', 'components', 'ui', 'OfficialPdfDownloads.jsx'), 'utf8'),
+    readFile(path.resolve('src', 'components', 'practice', 'VehicleStartPanel.jsx'), 'utf8'),
   ]);
   const categoryBank = JSON.parse(categoryBankText);
   const topicBank = JSON.parse(topicBankText);
@@ -333,6 +334,9 @@ async function main() {
   assert(officialPdfDownloads.includes('href={pdf.guideHref}'), 'La página de materiales debe enlazar las guías de cada balotario');
   assert(appRoutes.includes("import LandingPage from '../pages/LandingPage.jsx';"), 'La portada debe cargarse con el bundle inicial para mejorar el LCP');
   assert(!appRoutes.includes('const LandingPage = lazy('), 'La portada no debe esperar un chunk diferido');
+  assert(home.includes('rel="preload" as="image" href="/src/assets/vehicles/car-a1.webp"'), 'index.html: la imagen LCP debe descubrirse desde el HTML inicial');
+  assert(home.includes('fetchpriority="high"'), 'index.html: el preload de la imagen LCP debe tener prioridad alta');
+  assert(vehicleStartPanel.includes("fetchPriority={index === 0 ? 'high' : 'auto'}"), 'La primera imagen de vehículo debe conservar prioridad alta al renderizarse');
   const initialAppShell = home.slice(home.indexOf('<div id="root">'), home.indexOf('<noscript>'));
   assert(initialAppShell.includes('data-static-app-shell'), 'index.html: el HTML inicial no debe entregar un #root vacío');
   assert(initialAppShell.includes('<h1'), 'index.html: el HTML inicial debe incluir el H1 de la portada');
