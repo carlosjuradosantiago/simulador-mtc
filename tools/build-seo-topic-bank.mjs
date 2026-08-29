@@ -151,6 +151,26 @@ function serializeQuestion(question) {
   };
 }
 
+async function verifyStoredBank() {
+  const bank = JSON.parse(await readFile(outputPath, 'utf8'));
+  assert.match(bank.meta?.sourceSha256 || '', /^[a-f0-9]{64}$/, 'El banco temático no conserva el hash SHA-256 de su fuente');
+  assert.equal(bank.meta?.maxQuestionsPerTopic, maxQuestionsPerTopic, 'Cantidad máxima de preguntas inesperada');
+  assert.equal(bank.topics?.length, topicDefinitions.length, 'Cantidad de temas inesperada');
+
+  const ids = [];
+  for (const definition of topicDefinitions) {
+    const topic = bank.topics.find((item) => item.slug === definition.slug);
+    assert(topic, `Falta el tema ${definition.slug}`);
+    assert(topic.questions?.length >= 5 && topic.questions.length <= maxQuestionsPerTopic, `${definition.slug}: cantidad de preguntas inválida`);
+    for (const question of topic.questions) {
+      ids.push(question.id);
+      assert.equal(question.options?.length, 4, `${question.id}: deben existir cuatro alternativas`);
+      assert(question.options.includes(question.correctAnswer), `${question.id}: la respuesta no coincide con una alternativa`);
+    }
+  }
+  assert.equal(new Set(ids).size, ids.length, 'Hay preguntas repetidas entre temas');
+}
+
 async function buildBank() {
   const sourceText = await readFile(sourcePath, 'utf8');
   const questions = JSON.parse(sourceText);
@@ -187,11 +207,25 @@ async function buildBank() {
   }, null, 2)}\n`;
 }
 
-const expected = await buildBank();
-if (process.argv.includes('--check')) {
-  assert.equal(await readFile(outputPath, 'utf8'), expected, 'El banco temático SEO no coincide con la fuente deduplicada');
-  console.log('Banco temático SEO verificado contra 655 preguntas deduplicadas.');
-} else {
-  await writeFile(outputPath, expected, 'utf8');
-  console.log(`Banco temático SEO generado en ${outputPath}.`);
+async function main() {
+  const checkOnly = process.argv.includes('--check');
+  let expected;
+  try {
+    expected = await buildBank();
+  } catch (error) {
+    if (!checkOnly || error.code !== 'ENOENT') throw error;
+    await verifyStoredBank();
+    console.log('Banco temático SEO verificado internamente; la fuente deduplicada local no está disponible.');
+    return;
+  }
+
+  if (checkOnly) {
+    assert.equal(await readFile(outputPath, 'utf8'), expected, 'El banco temático SEO no coincide con la fuente deduplicada');
+    console.log(`Banco temático SEO verificado contra ${JSON.parse(expected).meta.sourceQuestionCount} preguntas deduplicadas.`);
+  } else {
+    await writeFile(outputPath, expected, 'utf8');
+    console.log(`Banco temático SEO generado en ${outputPath}.`);
+  }
 }
+
+await main();

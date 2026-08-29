@@ -5,6 +5,7 @@ import PublicLayout from '../layouts/PublicLayout.jsx';
 import { FULL_EXAM_IS_FREE } from '../data/examRules.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { isAdminUser } from '../utils/admin.js';
+import LandingPage from '../pages/LandingPage.jsx';
 
 const AdminDashboardPage = lazy(() => import('../pages/AdminDashboardPage.jsx'));
 const AdminComplaintsPage = lazy(() => import('../pages/AdminComplaintsPage.jsx'));
@@ -15,7 +16,6 @@ const CheckoutPage = lazy(() => import('../pages/CheckoutPage.jsx'));
 const ClassesPage = lazy(() => import('../pages/ClassesPage.jsx'));
 const ComplaintBookPage = lazy(() => import('../pages/ComplaintBookPage.jsx'));
 const DashboardPage = lazy(() => import('../pages/DashboardPage.jsx'));
-const LandingPage = lazy(() => import('../pages/LandingPage.jsx'));
 const LegalPage = lazy(() => import('../pages/LegalPage.jsx'));
 const MySubscriptionPage = lazy(() => import('../pages/MySubscriptionPage.jsx'));
 const OfficialMaterialsPage = lazy(() => import('../pages/OfficialMaterialsPage.jsx'));

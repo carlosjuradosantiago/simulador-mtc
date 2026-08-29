@@ -1,16 +1,17 @@
 export const officialMtcPdfs = [
-  { code: 'A-I', categoryIds: [25], vehicle: 'Auto particular', filename: 'balotario_A-I.pdf', bytes: 943041 },
-  { code: 'A-IIA', categoryIds: [16], vehicle: 'Taxi y vehículo especial', filename: 'balotario_A-IIA.pdf', bytes: 999170 },
-  { code: 'A-IIB', categoryIds: [17], vehicle: 'Microbús y camión mediano', filename: 'balotario_A-IIB.pdf', bytes: 1106158 },
-  { code: 'A-IIIA', categoryIds: [18], vehicle: 'Ómnibus', filename: 'balotario_A-IIIA.pdf', bytes: 1096436 },
-  { code: 'A-IIIB', categoryIds: [19], vehicle: 'Camión y volquete', filename: 'balotario_A-IIIB.pdf', bytes: 1104305 },
-  { code: 'A-IIIC', categoryIds: [20], vehicle: 'Ómnibus y camión pesado', filename: 'balotario_A-IIIC.pdf', bytes: 1583797 },
-  { code: 'B-IIA', categoryIds: [22], vehicle: 'Bicimoto', filename: 'balotario_B-IIA.pdf', bytes: 212522 },
-  { code: 'B-IIB', categoryIds: [23], vehicle: 'Motocicleta', filename: 'balotario_B-IIB.pdf', bytes: 202684 },
-  { code: 'B-IIC', categoryIds: [24], vehicle: 'Mototaxi', filename: 'balotario_B-IIC.pdf', bytes: 211815 },
+  { code: 'A-I', slug: 'a1', categoryIds: [25], vehicle: 'Auto particular', filename: 'balotario_A-I.pdf', bytes: 943041 },
+  { code: 'A-IIA', slug: 'a2a', categoryIds: [16], vehicle: 'Taxi y vehículo especial', filename: 'balotario_A-IIA.pdf', bytes: 999170 },
+  { code: 'A-IIB', slug: 'a2b', categoryIds: [17], vehicle: 'Microbús y camión mediano', filename: 'balotario_A-IIB.pdf', bytes: 1106158 },
+  { code: 'A-IIIA', slug: 'a3a', categoryIds: [18], vehicle: 'Ómnibus', filename: 'balotario_A-IIIA.pdf', bytes: 1096436 },
+  { code: 'A-IIIB', slug: 'a3b', categoryIds: [19], vehicle: 'Camión y volquete', filename: 'balotario_A-IIIB.pdf', bytes: 1104305 },
+  { code: 'A-IIIC', slug: 'a3c', categoryIds: [20], vehicle: 'Ómnibus y camión pesado', filename: 'balotario_A-IIIC.pdf', bytes: 1583797 },
+  { code: 'B-IIA', slug: 'b2a', categoryIds: [22], vehicle: 'Bicimoto', filename: 'balotario_B-IIA.pdf', bytes: 212522 },
+  { code: 'B-IIB', slug: 'b2b', categoryIds: [23], vehicle: 'Motocicleta', filename: 'balotario_B-IIB.pdf', bytes: 202684 },
+  { code: 'B-IIC', slug: 'b2c', categoryIds: [24], vehicle: 'Mototaxi', filename: 'balotario_B-IIC.pdf', bytes: 211815 },
 ].map((pdf) => ({
   ...pdf,
   href: `/mtc-official/${pdf.filename}`,
+  guideHref: `/balotario-mtc-${pdf.slug}`,
   size: formatPdfSize(pdf.bytes),
 }));
 
