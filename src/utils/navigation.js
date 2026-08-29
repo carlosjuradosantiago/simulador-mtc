@@ -21,3 +21,23 @@ export function safeInternalPath(value, fallback = '/dashboard') {
     return fallback;
   }
 }
+
+export function parseAuthFragment(value) {
+  const fragment = typeof value === 'string' ? value.trim() : '';
+  const match = fragment.match(/^#(login|register)(?:\?(.*))?$/);
+  if (!match) return null;
+
+  const params = new URLSearchParams(match[2] || '');
+  const keys = [...params.keys()];
+  if (keys.some((key) => !['category', 'next'].includes(key)) || new Set(keys).size !== keys.length) return null;
+
+  const categoryValue = params.get('category');
+  const category = categoryValue === null ? null : Number(categoryValue);
+  if (categoryValue !== null && (!/^\d+$/.test(categoryValue) || !Number.isSafeInteger(category) || category <= 0)) return null;
+
+  return {
+    mode: match[1],
+    redirectTo: safeInternalPath(params.get('next'), '/dashboard'),
+    category,
+  };
+}

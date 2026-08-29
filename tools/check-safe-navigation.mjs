@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { safeInternalPath } from '../src/utils/navigation.js';
+import { parseAuthFragment, safeInternalPath } from '../src/utils/navigation.js';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const topbar = read('src/components/layout/Topbar.jsx');
@@ -14,6 +14,17 @@ assert.equal(safeInternalPath('/\\example.com'), '/dashboard');
 assert.equal(safeInternalPath('/%5c%5cexample.com'), '/dashboard');
 assert.equal(safeInternalPath('/%2f%2fexample.com'), '/dashboard');
 assert.equal(safeInternalPath('/%'), '/dashboard');
+assert.deepEqual(parseAuthFragment('#register'), { mode: 'register', redirectTo: '/dashboard', category: null });
+assert.deepEqual(
+  parseAuthFragment('#register?category=25&next=%2Fsimulacro%2F25%3Fmode%3Dexam'),
+  { mode: 'register', redirectTo: '/simulacro/25?mode=exam', category: 25 },
+);
+assert.deepEqual(parseAuthFragment('#login?next=%2Fperfil'), { mode: 'login', redirectTo: '/perfil', category: null });
+assert.deepEqual(parseAuthFragment('#register?next=https%3A%2F%2Fevil.test'), { mode: 'register', redirectTo: '/dashboard', category: null });
+assert.equal(parseAuthFragment('#register?category=-1'), null);
+assert.equal(parseAuthFragment('#register?category=25&category=24'), null);
+assert.equal(parseAuthFragment('#register?unexpected=1'), null);
+assert.equal(parseAuthFragment('#otro'), null);
 assert.match(topbar, /<BrandLogo compact to="\/"/);
 assert.match(topbar, /<BrandLogo to="\/"/);
 assert.match(simulator, /event\.key !== 'Enter'/);

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { ArrowRight, BadgeCheck, CheckCircle2, Clock3, FileQuestion } from 'lucide-react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import VehicleStartPanel from '../components/practice/VehicleStartPanel.jsx';
 import { FREE_FULL_EXAM_ATTEMPTS, FULL_EXAM_IS_FREE } from '../data/examRules.js';
 import { fallbackLicenseCategories } from '../data/vehicleChoices.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { api } from '../services/api.js';
+import { parseAuthFragment, safeInternalPath } from '../utils/navigation.js';
 
 const licenseGuides = [
   ['A1', 'A-I: autos particulares', '/simulador-mtc-a1'],
@@ -28,6 +29,8 @@ const examFacts = [
 export default function LandingPage() {
   const { openAuthModal } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [categories, setCategories] = useState(fallbackLicenseCategories);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [planPrice, setPlanPrice] = useState(1200);
@@ -44,11 +47,22 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
+    const authRequest = parseAuthFragment(location.hash);
+    if (!authRequest) return;
+
+    openAuthModal(authRequest.mode, {
+      redirectTo: authRequest.redirectTo,
+      category: authRequest.category,
+    });
+    navigate({ pathname: location.pathname, search: location.search }, { replace: true });
+  }, [location.hash, location.pathname, location.search, navigate, openAuthModal]);
+
+  useEffect(() => {
     const authMode = searchParams.get('auth');
     if (authMode !== 'login' && authMode !== 'register') return;
 
     openAuthModal(authMode, {
-      redirectTo: searchParams.get('next') || '/dashboard',
+      redirectTo: safeInternalPath(searchParams.get('next'), '/dashboard'),
       category: Number(searchParams.get('category')) || null,
     });
     const nextParams = new URLSearchParams(searchParams);
@@ -70,13 +84,13 @@ export default function LandingPage() {
     ? `/simulacro/${selectedCategoryId}?mode=exam`
     : null;
   const fullExamTo = fullExamDestination
-    ? `/?auth=register&category=${selectedCategoryId}&next=${encodeURIComponent(fullExamDestination)}`
+    ? `/#register?category=${selectedCategoryId}&next=${encodeURIComponent(fullExamDestination)}`
     : null;
   const adaptiveDestination = selectedCategoryId
     ? `/simulacro/${selectedCategoryId}?mode=adaptive&strategy=adaptive`
     : null;
   const adaptiveTo = adaptiveDestination
-    ? `/?auth=register&category=${selectedCategoryId}&next=${encodeURIComponent(adaptiveDestination)}`
+    ? `/#register?category=${selectedCategoryId}&next=${encodeURIComponent(adaptiveDestination)}`
     : null;
 
   return (
