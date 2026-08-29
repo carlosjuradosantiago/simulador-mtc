@@ -23,8 +23,8 @@ const officialMtcSource = 'https://www.gob.pe/institucion/mtc/informes-publicaci
 const contentPublished = '2026-06-05';
 const contentLastModified = '2026-08-29';
 // ponytail: update this only after a real editorial review; builds must not fake freshness.
-const contentLastReviewed = '2026-08-14';
-const contentLastReviewedLabel = '14 de agosto de 2026';
+const contentLastReviewed = '2026-08-29';
+const contentLastReviewedLabel = '29 de agosto de 2026';
 const organizationId = `${siteUrl}/#organization`;
 const websiteId = `${siteUrl}/#website`;
 const repositoryUrl = 'https://github.com/carlosjuradosantiago/simulador-mtc';
@@ -36,13 +36,27 @@ const businessEmail = 'admin@simuladormtc.com';
 const developmentApiBaseUrl = resolveRemoteEnvironment('development').apiBaseUrl;
 const productionApiBaseUrl = resolveRemoteEnvironment('production').apiBaseUrl;
 
-const publicSpaPages = [
+
+function registrationHref({ category, next } = {}) {
+  const params = new URLSearchParams();
+  if (Number.isInteger(category) && category > 0) params.set('category', String(category));
+  if (next) params.set('next', next);
+  const query = params.toString();
+  return `/#register${query ? `?${query}` : ''}`;
+}
+
+function fitSeoTitle(title, maxLength = 60) {
+  const value = String(title).trim();
+  if (value.length <= maxLength) return value;
+  const candidate = value.slice(0, maxLength - 1);
+  const boundary = candidate.lastIndexOf(' ');
+  const end = boundary >= Math.floor(maxLength * 0.65) ? boundary : maxLength - 1;
+  return `${candidate.slice(0, end).replace(/[,:;—-]+$/u, '')}…`;
+}
+
+const indexableSpaPages = [
   '/materiales',
   '/contacto',
-  '/terminos-y-condiciones',
-  '/politica-de-cambios-y-devoluciones',
-  '/politica-de-privacidad',
-  '/libro-reclamaciones',
 ];
 
 const officialSources = [
@@ -149,7 +163,7 @@ const corePages = [
     description: 'Entrenamiento inteligente optimizado para ayudarte a aprobar el examen MTC a la primera: errores, preguntas nuevas, repaso y medición real.',
     h1: 'Prepárate para aprobar tu examen MTC a la primera',
     intro: 'El entrenamiento se adapta a tus resultados: refuerza tus errores, incorpora contenido nuevo y recupera lo aprendido; después usa un simulacro aleatorio y cronometrado para comprobar tu nivel real.',
-    primaryCta: '/?auth=register',
+    primaryCta: registrationHref(),
     ctaText: 'Empezar entrenamiento inteligente',
     secondaryCta: '/fuentes-mtc',
     secondaryCtaText: 'Revisar fuentes oficiales',
@@ -557,7 +571,7 @@ const manualQuestionPages = [
     description: 'Conoce qué significa la luz ámbar del semáforo según la pregunta 6 del balotario MTC A-I y practica sus cuatro alternativas.',
     h1: '¿Qué significa la luz ámbar del semáforo?',
     intro: 'Debes detenerte antes de ingresar a la intersección si tu velocidad y ubicación lo permiten. Si ya no es posible detenerte con seguridad, cruza y despeja la intersección.',
-    primaryCta: '/?auth=register&category=25&next=%2Fsimulacro%2F25%3Fmode%3Dquick%26strategy%3Drandom',
+    primaryCta: registrationHref({ category: 25, next: '/simulacro/25?mode=quick&strategy=random' }),
     ctaText: 'Practicar preguntas A1',
     keywords: ['luz ámbar semáforo mtc', 'pregunta semáforo amarillo mtc', 'balotario mtc a1 pregunta 6'],
     question: {
@@ -591,7 +605,7 @@ const manualQuestionPages = [
     description: 'Aprende qué indica una flecha verde del semáforo según la pregunta 8 del balotario MTC A-I y evita una respuesta incompleta.',
     h1: '¿Qué indica una flecha verde en un semáforo?',
     intro: 'Puedes continuar con precaución únicamente en la dirección de la flecha y desde el carril que esa flecha controla.',
-    primaryCta: '/?auth=register&category=25&next=%2Fsimulacro%2F25%3Fmode%3Dquick%26strategy%3Drandom',
+    primaryCta: registrationHref({ category: 25, next: '/simulacro/25?mode=quick&strategy=random' }),
     ctaText: 'Practicar preguntas A1',
     keywords: ['flecha verde semáforo mtc', 'qué indica flecha verde semáforo', 'balotario mtc a1 pregunta 8'],
     question: {
@@ -625,7 +639,7 @@ const manualQuestionPages = [
     description: 'Conoce cuándo se puede cruzar una línea central amarilla discontinua según la pregunta 5 del balotario MTC A-I.',
     h1: '¿Qué significa una línea amarilla central discontinua?',
     intro: 'Está permitido cruzar al otro carril para adelantar únicamente cuando sea seguro hacerlo.',
-    primaryCta: '/?auth=register&category=25&next=%2Fsimulacro%2F25%3Fmode%3Dquick%26strategy%3Drandom',
+    primaryCta: registrationHref({ category: 25, next: '/simulacro/25?mode=quick&strategy=random' }),
     ctaText: 'Practicar preguntas A1',
     keywords: ['línea amarilla discontinua mtc', 'adelantamiento línea discontinua', 'balotario mtc a1 pregunta 5'],
     question: {
@@ -659,7 +673,7 @@ const manualQuestionPages = [
     description: 'Aprende qué prohíbe la señal R-6 según la pregunta 3 del balotario MTC A-I y si también impide realizar un giro en U.',
     h1: '¿Qué significa la señal R-6?',
     intro: 'La señal R-6 prohíbe voltear a la izquierda y, por lo tanto, también prohíbe realizar un giro en U.',
-    primaryCta: '/?auth=register&category=25&next=%2Fsimulacro%2F25%3Fmode%3Dquick%26strategy%3Drandom',
+    primaryCta: registrationHref({ category: 25, next: '/simulacro/25?mode=quick&strategy=random' }),
     ctaText: 'Practicar preguntas A1',
     keywords: ['señal R-6 MTC', 'prohibido voltear izquierda giro en U', 'balotario mtc a1 pregunta 3'],
     question: {
@@ -710,7 +724,7 @@ const generatedQuestionPages = questionPageBank.pages.map((entry) => {
     description: entry.description,
     h1: entry.h1,
     intro: entry.intro,
-    primaryCta: `/?auth=register&category=${primaryCategory.categoryId}&next=${encodeURIComponent(simulatorDestination)}`,
+    primaryCta: registrationHref({ category: primaryCategory.categoryId, next: simulatorDestination }),
     ctaText: `Practicar ${primaryCategory.common}`,
     secondaryCta: `/mtc-official/${primaryCategory.pdf}`,
     secondaryCtaText: `Abrir balotario ${primaryCategory.code}`,
@@ -736,10 +750,10 @@ const generatedQuestionPages = questionPageBank.pages.map((entry) => {
 const questionPages = [...manualQuestionPages, ...generatedQuestionPages];
 const questionDirectoryPage = {
   slug: 'preguntas-mtc',
-  title: 'Preguntas MTC con respuestas por tema y categoría',
-  description: 'Consulta preguntas del balotario MTC con alternativas, respuesta, imágenes y referencia al PDF de cada categoría de licencia.',
-  h1: 'Preguntas MTC con respuestas verificables',
-  intro: `Explora ${generatedQuestionPages.length} preguntas completas con su respuesta y ubicación en los balotarios publicados por el MTC.`,
+  title: 'Preguntas MTC por tema y categoría | Respuestas',
+  description: 'Busca preguntas MTC por tema o licencia y abre cada enunciado con alternativas, respuesta explicada y referencia al balotario oficial.',
+  h1: 'Directorio de preguntas MTC por tema y categoría',
+  intro: `Usa este directorio para encontrar ${generatedQuestionPages.length} enunciados exactos. Cada enlace abre alternativas, respuesta y ubicación en los balotarios publicados por el MTC.`,
   primaryCta: '/',
   ctaText: 'Practicar en el simulador',
   secondaryCta: '/fuentes-mtc',
@@ -747,7 +761,7 @@ const questionDirectoryPage = {
   keywords: ['preguntas examen MTC', 'balotario MTC con respuestas', 'preguntas MTC por categoría', 'respuestas examen de manejo'],
   questionDirectory: true,
   sections: [
-    ['Texto completo', 'Cada enlace abre una sola pregunta con sus alternativas y sin recortar el enunciado.'],
+    ['Directorio, no simulacro', 'Esta página sirve para localizar una pregunta por tema. Para practicar una licencia completa, abre el simulador de esa categoría.'],
     ['Respuesta verificable', 'La respuesta se conserva desde el balotario y muestra su número, página y categoría de origen.'],
     ['Imágenes reales', 'Cuando la pregunta depende de una señal o gráfico, la página incluye el recurso extraído y verificado contra el PDF.'],
   ],
@@ -1010,56 +1024,59 @@ function renderFaqs(faqs) {
 }
 
 function renderStaticAnalytics() {
-  return `<script data-static-analytics>
-    (() => {
-      if (location.protocol !== 'https:') return;
-      const hostname = location.hostname.toLowerCase();
-      const apiBaseUrl = hostname === 'simuladormtc.com' || hostname === 'www.simuladormtc.com'
-        ? '${productionApiBaseUrl}'
-        : hostname.endsWith('.vercel.app')
-          ? '${developmentApiBaseUrl}'
-          : null;
-      if (!apiBaseUrl) return;
+  return '<script src="/static-seo-analytics.js" defer data-static-analytics></script>';
+}
 
-      const sensitiveParams = new Set(['code', 'access_token', 'refresh_token', 'token']);
-      const params = new URLSearchParams(location.search);
-      sensitiveParams.forEach((key) => params.delete(key));
-      const search = params.toString();
-      let referrer = null;
-      try {
-        const referrerUrl = new URL(document.referrer);
-        sensitiveParams.forEach((key) => referrerUrl.searchParams.delete(key));
-        referrer = referrerUrl.toString();
-      } catch {}
-      const visitorKey = 'simuladormtc:visitorId';
-      let visitorId;
-      try {
-        visitorId = localStorage.getItem(visitorKey);
-        if (!visitorId) {
-          visitorId = typeof crypto.randomUUID === 'function'
-            ? crypto.randomUUID()
-            : 'visitor-' + Date.now() + '-' + Math.random().toString(16).slice(2);
-          localStorage.setItem(visitorKey, visitorId);
-        }
-      } catch {
-        visitorId = 'visitor-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+function renderStaticAnalyticsScript() {
+  return `(() => {
+    if (location.protocol !== 'https:') return;
+    const hostname = location.hostname.toLowerCase();
+    const apiBaseUrl = hostname === 'simuladormtc.com' || hostname === 'www.simuladormtc.com'
+      ? '${productionApiBaseUrl}'
+      : hostname.endsWith('.vercel.app')
+        ? '${developmentApiBaseUrl}'
+        : null;
+    if (!apiBaseUrl) return;
+
+    const sensitiveParams = new Set(['code', 'access_token', 'refresh_token', 'token']);
+    const params = new URLSearchParams(location.search);
+    sensitiveParams.forEach((key) => params.delete(key));
+    const search = params.toString();
+    let referrer = null;
+    try {
+      const referrerUrl = new URL(document.referrer);
+      sensitiveParams.forEach((key) => referrerUrl.searchParams.delete(key));
+      referrer = referrerUrl.toString();
+    } catch {}
+    const visitorKey = 'simuladormtc:visitorId';
+    let visitorId;
+    try {
+      visitorId = localStorage.getItem(visitorKey);
+      if (!visitorId) {
+        visitorId = typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : 'visitor-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+        localStorage.setItem(visitorKey, visitorId);
       }
+    } catch {
+      visitorId = 'visitor-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+    }
 
-      fetch(apiBaseUrl + '/analytics/event', {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-        body: JSON.stringify({
-          type: 'page_view',
-          visitorId,
-          path: location.pathname + (search ? '?' + search : ''),
-          title: document.title,
-          referrer,
-        }),
-        credentials: 'omit',
-        keepalive: true,
-      }).catch(() => {});
-    })();
-  </script>`;
+    fetch(apiBaseUrl + '/analytics/event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+      body: JSON.stringify({
+        type: 'page_view',
+        visitorId,
+        path: location.pathname + (search ? '?' + search : ''),
+        title: document.title,
+        referrer,
+      }),
+      credentials: 'omit',
+      keepalive: true,
+    }).catch(() => {});
+  })();
+`;
 }
 
 function sourcesForPage(page) {
@@ -1213,7 +1230,8 @@ function shouldShowCategories(page) {
   return Boolean(page.categorySlug) || ['fuentes-mtc', 'balotario-mtc-pdf'].includes(page.slug);
 }
 
-function renderHtml(page) {
+function renderHtml(sourcePage) {
+  const page = { ...sourcePage, title: fitSeoTitle(sourcePage.title) };
   const canonical = pageUrl(page.slug);
   const pageSources = sourcesForPage(page);
   const schemaQuestions = page.question ? [page.question] : page.questionVariants || page.sampleQuestions || page.topicQuestions || [];
@@ -1262,6 +1280,14 @@ function renderHtml(page) {
     dateModified: contentLastModified,
     learningResourceType: page.type === 'Article' ? 'Guía de estudio' : page.topicQuestions ? 'Banco temático de preguntas' : page.type === 'Quiz' ? 'Pregunta explicada' : 'Práctica educativa',
     educationalUse: ['autoestudio', 'práctica'],
+    educationalAlignment: {
+      '@type': 'AlignmentObject',
+      alignmentType: 'educationalSubject',
+      educationalFramework: 'Examen de conocimientos para licencias de conducir del MTC',
+      targetName: page.topicName || (page.categorySlug ? `Balotario ${categories.find((category) => category.slug === page.categorySlug)?.code}` : 'Reglas y seguridad vial para el examen MTC'),
+      targetDescription: 'Conocimientos evaluados para obtener o recategorizar una licencia de conducir en Perú.',
+      targetUrl: officialMtcSource,
+    },
     teaches: page.keywords,
     audience: {
       '@type': 'EducationalAudience',
@@ -1663,9 +1689,9 @@ function simulatorPageFor(category) {
     description: `Entrena para ${category.common} con errores, preguntas nuevas y repaso; luego mide tu nivel con 40 preguntas en 40 minutos.`,
     h1: `Simulador MTC ${category.common} para ${category.exam}`,
     intro: `Esta página corresponde únicamente a ${category.code}. Practica preguntas para ${category.vehicle}, revisa la explicación completa y usa el simulacro cronometrado para medir tu avance.`,
-    primaryCta: `/?auth=register&category=${category.categoryId}&next=${encodeURIComponent(simulatorDestination)}`,
+    primaryCta: registrationHref({ category: category.categoryId, next: simulatorDestination }),
     ctaText: `Entrenamiento inteligente ${category.common}`,
-    secondaryCta: `/?auth=register&category=${category.categoryId}&next=${encodeURIComponent(examDestination)}`,
+    secondaryCta: registrationHref({ category: category.categoryId, next: examDestination }),
     secondaryCtaText: 'Rendir simulacro de 40',
     sampleSourceCode: category.code,
     sampleQuestions: categoryQuestionsBySlug.get(category.slug),
@@ -1694,7 +1720,7 @@ function balotarioPageFor(category) {
     intro: `Este es el acceso al balotario de ${category.code}, la categoría que corresponde a ${category.vehicle}. Descarga el PDF completo y úsalo junto con la práctica filtrada para esa misma licencia.`,
     primaryCta: `/mtc-official/${category.pdf}`,
     ctaText: `Descargar PDF ${category.code}`,
-    secondaryCta: `/?auth=register&category=${category.categoryId}&next=${encodeURIComponent(`/simulacro/${category.categoryId}?mode=adaptive&strategy=adaptive`)}`,
+    secondaryCta: registrationHref({ category: category.categoryId, next: `/simulacro/${category.categoryId}?mode=adaptive&strategy=adaptive` }),
     secondaryCtaText: `Practicar ${category.common}`,
     keywords: [`balotario mtc ${category.common}`, `balotario ${category.code}`, `preguntas mtc ${category.common}`, `pdf mtc ${category.common}`],
     sections: [
@@ -1710,24 +1736,57 @@ function balotarioPageFor(category) {
   };
 }
 
+const topicSeoOverrides = {
+  'preguntas-placa-unica-mtc': {
+    title: 'Preguntas de Placa Única de Rodaje | Respuestas MTC',
+    description: 'Resuelve preguntas MTC sobre la Placa Única de Rodaje: entidad que la entrega, ubicación, vigencia, vehículos obligados y elementos permitidos.',
+    h1: 'Preguntas MTC sobre la Placa Única de Rodaje',
+    intro: 'Consulta quién entrega la placa, dónde debe colocarse, cuánto tiempo está vigente, qué vehículos deben exhibirla y si admite elementos adicionales.',
+    focus: ['Qué dudas resuelve este bloque', 'Incluye las consultas que más aparecen en búsquedas: entidad responsable, ubicación, vigencia, uso en remolques y vehículos obligados a exhibir la placa.'],
+  },
+  'preguntas-inspeccion-tecnica-vehicular-mtc': {
+    title: 'Inspección técnica vehicular: preguntas y respuestas MTC',
+    description: 'Practica preguntas MTC sobre inspección técnica vehicular: inspección ordinaria, cronograma por placa, certificados y observaciones leves o graves.',
+    h1: 'Preguntas MTC de inspección técnica vehicular',
+    intro: 'Repasa la inspección ordinaria, el cronograma según el último dígito de la placa, el certificado y la clasificación de observaciones leves, graves y muy graves.',
+    focus: ['Qué dudas resuelve este bloque', 'Aclara qué se inspecciona, cuándo corresponde la revisión, cómo interviene el último dígito de la placa y qué significan las observaciones del resultado.'],
+  },
+  'preguntas-conduccion-eficiente-mtc': {
+    title: 'Conducción eficiente: preguntas y respuestas del MTC',
+    description: 'Responde preguntas MTC de conducción eficiente sobre arranque, paradas largas, presión de neumáticos, tacómetro, frenado y consumo de combustible.',
+    h1: 'Preguntas MTC sobre conducción eficiente',
+    intro: 'Aprende qué hacer al arrancar, en paradas mayores a un minuto y al frenar, además de cómo influyen la presión de neumáticos y el tacómetro en el consumo.',
+    focus: ['Qué dudas resuelve este bloque', 'Reúne decisiones concretas de manejo que reducen combustible, desgaste y emisiones sin sacrificar seguridad vial.'],
+  },
+  'preguntas-soat-mtc': {
+    title: 'Preguntas de SOAT para el examen MTC | Respuestas',
+    description: 'Estudia preguntas MTC sobre SOAT: vehículos obligados, cobertura, exclusiones, investigación del accidente y plazos de pago del seguro.',
+    h1: 'Preguntas de SOAT para el examen MTC',
+    intro: 'Revisa qué vehículos deben contratar SOAT, qué cubre, qué excluye, si exige investigar primero el accidente y cuáles son los plazos de pago.',
+    focus: ['Qué dudas resuelve este bloque', 'Diferencia la obligación de contratar el seguro, sus coberturas y exclusiones, y el procedimiento posterior a un accidente de tránsito.'],
+  },
+};
+
 function topicPageFor(topic) {
   const count = topic.questions.length;
+  const seo = topicSeoOverrides[topic.slug] || {};
   return {
     slug: topic.slug,
     topicSlug: topic.slug,
     topicName: topic.name,
     topicQuestions: topic.questions,
     type: 'TopicQuiz',
-    title: `${count} preguntas MTC con respuestas: ${topic.name}`,
-    description: topic.description,
-    h1: `${count} preguntas de ${topic.name} para el examen MTC`,
-    intro: topic.intro,
-    primaryCta: '/?auth=register',
+    title: seo.title || `${count} preguntas MTC con respuestas: ${topic.name}`,
+    description: seo.description || topic.description,
+    h1: seo.h1 || `${count} preguntas de ${topic.name} para el examen MTC`,
+    intro: seo.intro || topic.intro,
+    primaryCta: registrationHref(),
     ctaText: 'Practicar en el simulador',
     secondaryCta: officialMtcSource,
     secondaryCtaText: 'Ver fuente oficial',
     keywords: topic.keywords,
     sections: [
+      ...(seo.focus ? [seo.focus] : []),
       ['Selección verificable', `Esta página publica ${count} de ${topic.sourceQuestionCount} preguntas clasificadas en este tema. La selección se genera desde el banco deduplicado y conserva el texto de la fuente.`],
       ['Cuatro alternativas completas', 'Cada pregunta incluye sus cuatro opciones y la respuesta marcada en el balotario. No se resumen los enunciados ni se completan textos por inferencia.'],
       ['Cómo aprovechar este bloque', 'Responde primero sin mirar la solución, comprueba la alternativa correcta y anota el fundamento normativo cuando esté disponible. Después mide tu nivel con un simulacro de 40 preguntas.'],
@@ -1769,6 +1828,7 @@ async function main() {
   const publicDir = path.resolve('public');
   const seoDir = path.join(publicDir, 'seo');
   await mkdir(seoDir, { recursive: true });
+  await writeGeneratedFile(path.join(publicDir, 'static-seo-analytics.js'), renderStaticAnalyticsScript());
 
   // ponytail: Sequential writes avoid Windows handle contention; parallelize only if builds become slow.
   for (const page of pages) {
@@ -1779,7 +1839,7 @@ async function main() {
 
   const coreSitemapUrls = [
     { loc: siteUrl, lastmod: '2026-08-25', priority: '1.0', changefreq: 'daily' },
-    ...publicSpaPages.map((pathname) => ({ loc: `${siteUrl}${pathname}`, priority: pathname === '/suscripcion' ? '0.9' : '0.6', changefreq: 'monthly' })),
+    ...indexableSpaPages.map((pathname) => ({ loc: `${siteUrl}${pathname}`, priority: '0.6', changefreq: 'monthly' })),
     ...[questionDirectoryPage, ...corePages, ...articlePages].map((page) => ({ loc: pageUrl(page.slug), priority: '0.8', changefreq: 'weekly' })),
   ];
   const categorySitemapUrls = [

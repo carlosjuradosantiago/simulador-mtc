@@ -41,8 +41,17 @@ function escapeRawHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
+function decodeHtmlText(value) {
+  return value
+    .replaceAll('&amp;', '&')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&#39;', "'")
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>');
+}
+
 async function main() {
-  const [fileNames, sitemap, sitemapCore, sitemapCategories, sitemapTopics, sitemapQuestions, sitemapImages, robots, llms, home, readme, vercel, categoryBankText, topicBankText, questionBankText, appRoutes, officialPdfDownloads, vehicleStartPanel] = await Promise.all([
+  const [fileNames, sitemap, sitemapCore, sitemapCategories, sitemapTopics, sitemapQuestions, sitemapImages, robots, llms, home, readme, vercel, categoryBankText, topicBankText, questionBankText, appRoutes, officialPdfDownloads, vehicleStartPanel, staticAnalytics] = await Promise.all([
     htmlFilesUnder(seoDir),
     readFile(path.resolve('public', 'sitemap.xml'), 'utf8'),
     readFile(path.resolve('public', 'sitemap-core.xml'), 'utf8'),
@@ -61,6 +70,7 @@ async function main() {
     readFile(path.resolve('src', 'routes', 'AppRoutes.jsx'), 'utf8'),
     readFile(path.resolve('src', 'components', 'ui', 'OfficialPdfDownloads.jsx'), 'utf8'),
     readFile(path.resolve('src', 'components', 'practice', 'VehicleStartPanel.jsx'), 'utf8'),
+    readFile(path.resolve('public', 'static-seo-analytics.js'), 'utf8'),
   ]);
   const categoryBank = JSON.parse(categoryBankText);
   const topicBank = JSON.parse(topicBankText);
@@ -134,6 +144,33 @@ async function main() {
   assert.equal((questionDirectoryHtml.match(/<li><a href="\/preguntas-mtc\//g) || []).length, expectedGeneratedQuestionPages, 'El directorio debe enlazar todas las preguntas generadas');
   const vercelConfig = JSON.parse(vercel);
   const redirects = vercelConfig.redirects || [];
+  const responseHeaders = vercelConfig.headers || [];
+  const globalHeaders = Object.fromEntries(
+    (responseHeaders.find(({ source }) => source === '/(.*)')?.headers || []).map(({ key, value }) => [key, value]),
+  );
+  assert(globalHeaders['Content-Security-Policy']?.includes("script-src 'self'"), 'vercel.json: falta CSP global');
+  assert(globalHeaders['Content-Security-Policy']?.includes('https://*.culqi.com'), 'vercel.json: CSP no permite Culqi');
+  assert(globalHeaders['Content-Security-Policy']?.includes('wazikdsfacrawhphzltn.supabase.co'), 'vercel.json: CSP no permite Supabase producción');
+  assert.equal(globalHeaders['X-Content-Type-Options'], 'nosniff', 'vercel.json: falta nosniff');
+  assert.equal(globalHeaders['X-Frame-Options'], 'DENY', 'vercel.json: falta protección contra framing');
+  assert.equal(globalHeaders['Referrer-Policy'], 'strict-origin-when-cross-origin', 'vercel.json: falta política de referrer');
+  assert(globalHeaders['Permissions-Policy']?.includes('camera=()'), 'vercel.json: falta Permissions-Policy');
+  for (const source of [
+    '/terminos-y-condiciones/:path*',
+    '/terminos/:path*',
+    '/politica-de-cambios-y-devoluciones/:path*',
+    '/politica-devoluciones/:path*',
+    '/politica-de-privacidad/:path*',
+  ]) {
+    const robotsHeader = responseHeaders.find((entry) => entry.source === source)?.headers
+      ?.find(({ key }) => key === 'X-Robots-Tag');
+    assert.equal(robotsHeader?.value, 'noindex, follow', `vercel.json: falta noindex legal para ${source}`);
+  }
+  assert(!responseHeaders.some(({ source }) => source === '/contacto/:path*'), 'vercel.json: contacto debe seguir indexable');
+  for (const pathname of ['/terminos-y-condiciones', '/politica-de-cambios-y-devoluciones', '/politica-de-privacidad', '/libro-reclamaciones']) {
+    assert(!sitemapCore.includes(`<loc>${siteUrl}${pathname}</loc>`), `sitemap-core.xml: ${pathname} no debe publicarse si tiene noindex`);
+  }
+  assert(sitemapCore.includes(`<loc>${siteUrl}/contacto</loc>`), 'sitemap-core.xml: contacto debe seguir indexable');
   assert.equal(vercelConfig.trailingSlash, false, 'vercel.json: las URLs canónicas no deben terminar en /');
   assert(
     redirects.some(({ source, destination, permanent }) => source === '/index.html' && destination === '/' && permanent),
@@ -174,8 +211,9 @@ async function main() {
     assert(html.includes('Fuentes consultadas'), `${file}: faltan fuentes visibles`);
     assert(html.includes('https://www.gob.pe/institucion/mtc/'), `${file}: falta una fuente primaria del MTC`);
     assert(html.includes(repositoryUrl), `${file}: falta la referencia pública del proyecto`);
-    assert(html.includes('<script data-static-analytics>'), `${file}: falta analítica de visitas para la página estática`);
-    assert(html.includes("'access_token'"), `${file}: la analítica estática no protege parámetros sensibles`);
+    assert(html.includes('<script src="/static-seo-analytics.js" defer data-static-analytics></script>'), `${file}: falta analítica externa compatible con CSP`);
+    assert(!html.includes('<script data-static-analytics>'), `${file}: la analítica no debe quedar inline`);
+    assert(!html.includes('?auth=register'), `${file}: quedan URLs de registro rastreables por query`);
     assert(/<img class="(?:question-hero|brand-hero)"[^>]+width="\d+"[^>]+height="\d+"[^>]+fetchpriority="high"/.test(html), `${file}: la imagen principal no declara tamaño y prioridad de carga`);
     assert(!html.includes('Práctica el simulador'), `${file}: uso verbal incorrecto de "practica"`);
     const editorialHtml = html
@@ -189,11 +227,11 @@ async function main() {
       assert(!/\b(Peru|categoria|categorias|preparacion|senal|senales|transito|mecanica|basica|basico|vehiculos|conduccion|publicacion|informacion|evaluacion|revision|circulacion|semaforo|despues|preparate|razon|pagina|guia|guias|dificiles|imagenes|accion|tambien|ademas|segun)\b/i.test(visibleText), `${file}: quedan palabras frecuentes sin acentuar`);
     }
 
-    const title = firstMatch(html, /<title>([^<]+)<\/title>/, 'title', file);
+    const title = decodeHtmlText(firstMatch(html, /<title>([^<]+)<\/title>/, 'title', file));
     const description = firstMatch(html, /<meta name="description" content="([^"]+)"/, 'description', file);
     const canonical = firstMatch(html, /<link rel="canonical" href="([^"]+)"/, 'canonical', file);
 
-    assert(title.length <= 70, `${file}: title demasiado largo (${title.length} caracteres)`);
+    assert(title.length <= 60, `${file}: title demasiado largo (${title.length} caracteres)`);
     assert(description.length <= 160, `${file}: description demasiado larga (${description.length} caracteres)`);
     assert(!titles.has(title), `${file}: title duplicado: ${title}`);
     assert(!descriptions.has(description), `${file}: description duplicada: ${description}`);
@@ -205,6 +243,18 @@ async function main() {
     descriptions.add(description);
     canonicals.add(canonical);
 
+    const ctrTargets = {
+      'preguntas-mtc.html': ['Preguntas MTC por tema y categoría | Respuestas', 'Directorio de preguntas MTC por tema y categoría'],
+      'preguntas-placa-unica-mtc.html': ['Preguntas de Placa Única de Rodaje | Respuestas MTC', 'entidad que la entrega'],
+      'preguntas-inspeccion-tecnica-vehicular-mtc.html': ['Inspección técnica vehicular: preguntas y respuestas MTC', 'cronograma según el último dígito'],
+      'preguntas-conduccion-eficiente-mtc.html': ['Conducción eficiente: preguntas y respuestas del MTC', 'paradas mayores a un minuto'],
+      'preguntas-soat-mtc.html': ['Preguntas de SOAT para el examen MTC | Respuestas', 'qué vehículos deben contratar SOAT'],
+    };
+    if (ctrTargets[file]) {
+      assert.equal(title, ctrTargets[file][0], `${file}: cambió el title CTR aprobado`);
+      assert(html.includes(ctrTargets[file][1]), `${file}: falta la intención de búsqueda aprobada`);
+    }
+
     const scripts = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
     assert(scripts.length > 0, `${file}: falta JSON-LD`);
     const documents = scripts.map((match) => JSON.parse(match[1]));
@@ -214,6 +264,12 @@ async function main() {
     for (const requiredType of ['WebPage', 'BreadcrumbList', 'LearningResource']) {
       assert(types.has(requiredType), `${file}: falta schema ${requiredType}`);
     }
+    const learningResource = graph.find((item) => {
+      const itemTypes = Array.isArray(item['@type']) ? item['@type'] : [item['@type']];
+      return itemTypes.includes('LearningResource');
+    });
+    assert.equal(learningResource?.educationalAlignment?.['@type'], 'AlignmentObject', `${file}: falta educationalAlignment verificable`);
+    assert.equal(learningResource?.educationalAlignment?.targetUrl, 'https://www.gob.pe/institucion/mtc/informes-publicaciones/1928110-examen-de-conocimientos-para-postulantes-a-licencias-de-conducir', `${file}: educationalAlignment no apunta a la referencia oficial`);
 
     if (questionPages.has(file)) {
       assert(types.has('Quiz'), `${file}: falta schema Quiz`);
@@ -246,7 +302,7 @@ async function main() {
 
     const category = categoryByFile.get(file);
     if (category) {
-      assert(html.includes('auth=register&amp;category='), `${file}: el CTA no conserva la categoría al registrar`);
+      assert(html.includes('/#register?category='), `${file}: el CTA no conserva la categoría en el fragmento de registro`);
       assert(html.includes('mode%3Dexam'), `${file}: falta el acceso directo al simulacro de 40 preguntas`);
       assert(types.has('Quiz'), `${file}: falta schema Quiz para las preguntas`);
       assert.equal((html.match(/class="sample-question"/g) || []).length, 40, `${file}: deben mostrarse 40 preguntas completas`);
@@ -296,7 +352,7 @@ async function main() {
 
     const webpage = graph.find((item) => item['@type'] === 'WebPage');
     assert.equal(webpage.dateModified, '2026-08-29', `${file}: fecha editorial inesperada`);
-    assert.equal(webpage.lastReviewed, '2026-08-14', `${file}: la revisión editorial no debe fingir frescura`);
+    assert.equal(webpage.lastReviewed, '2026-08-29', `${file}: fecha de revisión editorial inesperada`);
     assert(webpage.mainEntity?.['@id'], `${file}: WebPage no enlaza su recurso principal`);
 
     const relatedBlock = html.match(/<div class="guide-strip">([\s\S]*?)<\/div>/)?.[1] || '';
@@ -353,6 +409,8 @@ async function main() {
   }
   assert(vercel.includes('"source": "/preguntas-:slug-mtc"'), 'vercel.json: falta rewrite para las páginas temáticas');
   assert(vercel.includes('"source": "/preguntas-mtc/:slug"'), 'vercel.json: falta rewrite para páginas de preguntas exactas');
+  assert(staticAnalytics.includes("'access_token'"), 'La analítica estática no protege parámetros sensibles');
+  assert(staticAnalytics.includes("credentials: 'omit'"), 'La analítica estática no debe enviar credenciales');
 
   const homeSchemas = [...home.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
     .map((match) => JSON.parse(match[1]))

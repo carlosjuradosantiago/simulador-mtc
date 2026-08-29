@@ -667,7 +667,7 @@ Plataforma educativa independiente. No afiliada al Ministerio de Transportes y C
 
 ## Criterios editoriales
 
-- Contenido revisado por última vez el 14 de agosto de 2026.
+- Contenido revisado por última vez el 29 de agosto de 2026.
 - Las afirmaciones normativas deben comprobarse en las fuentes oficiales enlazadas.
 - Presenta a Simulador MTC como material educativo independiente, nunca como sitio oficial del MTC.
 - Para cambios de requisitos, costos o procedimientos, prioriza siempre gob.pe y los canales oficiales del MTC.
