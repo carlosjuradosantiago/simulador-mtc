@@ -42,7 +42,7 @@ function escapeRawHtml(value) {
 }
 
 async function main() {
-  const [fileNames, sitemap, sitemapCore, sitemapCategories, sitemapTopics, sitemapQuestions, sitemapImages, robots, llms, home, readme, vercel, categoryBankText, topicBankText, questionBankText] = await Promise.all([
+  const [fileNames, sitemap, sitemapCore, sitemapCategories, sitemapTopics, sitemapQuestions, sitemapImages, robots, llms, home, readme, vercel, categoryBankText, topicBankText, questionBankText, appRoutes, officialPdfDownloads] = await Promise.all([
     htmlFilesUnder(seoDir),
     readFile(path.resolve('public', 'sitemap.xml'), 'utf8'),
     readFile(path.resolve('public', 'sitemap-core.xml'), 'utf8'),
@@ -58,12 +58,15 @@ async function main() {
     readFile(path.resolve('tools', 'seo-category-question-bank.json'), 'utf8'),
     readFile(path.resolve('tools', 'seo-topic-question-bank.json'), 'utf8'),
     readFile(path.resolve('tools', 'seo-question-page-bank.json'), 'utf8'),
+    readFile(path.resolve('src', 'routes', 'AppRoutes.jsx'), 'utf8'),
+    readFile(path.resolve('src', 'components', 'ui', 'OfficialPdfDownloads.jsx'), 'utf8'),
   ]);
   const categoryBank = JSON.parse(categoryBankText);
   const topicBank = JSON.parse(topicBankText);
   const questionBank = JSON.parse(questionBankText);
   const sitemapUrls = [sitemapCore, sitemapCategories, sitemapTopics, sitemapQuestions].join('\n');
   const questionDirectoryHtml = await readFile(path.join(seoDir, 'preguntas-mtc.html'), 'utf8');
+  const balotarioHubHtml = await readFile(path.join(seoDir, 'balotario-mtc-pdf.html'), 'utf8');
   assert.equal(categoryBank.meta.sourceQuestionCount, 640, 'El banco por categoría debe provenir de las 640 preguntas deduplicadas');
   assert.equal(categoryBank.meta.questionsPerCategory, 40, 'Cada categoría debe publicar 40 preguntas');
   assert.equal(categoryBank.categories.length, 9, 'Deben existir bancos para las 9 categorías');
@@ -170,6 +173,9 @@ async function main() {
     assert(html.includes('Fuentes consultadas'), `${file}: faltan fuentes visibles`);
     assert(html.includes('https://www.gob.pe/institucion/mtc/'), `${file}: falta una fuente primaria del MTC`);
     assert(html.includes(repositoryUrl), `${file}: falta la referencia pública del proyecto`);
+    assert(html.includes('<script data-static-analytics>'), `${file}: falta analítica de visitas para la página estática`);
+    assert(html.includes("'access_token'"), `${file}: la analítica estática no protege parámetros sensibles`);
+    assert(/<img class="(?:question-hero|brand-hero)"[^>]+width="\d+"[^>]+height="\d+"[^>]+fetchpriority="high"/.test(html), `${file}: la imagen principal no declara tamaño y prioridad de carga`);
     assert(!html.includes('Práctica el simulador'), `${file}: uso verbal incorrecto de "practica"`);
     const editorialHtml = html
       .replace(/<section class="topic-section"[\s\S]*?<\/section>/, ' ')
@@ -288,7 +294,8 @@ async function main() {
     }
 
     const webpage = graph.find((item) => item['@type'] === 'WebPage');
-    assert.equal(webpage.dateModified, '2026-08-14', `${file}: fecha editorial inesperada`);
+    assert.equal(webpage.dateModified, '2026-08-29', `${file}: fecha editorial inesperada`);
+    assert.equal(webpage.lastReviewed, '2026-08-14', `${file}: la revisión editorial no debe fingir frescura`);
     assert(webpage.mainEntity?.['@id'], `${file}: WebPage no enlaza su recurso principal`);
 
     const relatedBlock = html.match(/<div class="guide-strip">([\s\S]*?)<\/div>/)?.[1] || '';
@@ -316,10 +323,16 @@ async function main() {
   assert(llms.includes('## Criterios editoriales'), 'llms.txt: faltan criterios editoriales');
   for (const category of categoryBank.categories) {
     const categoryPath = `/simulador-mtc-${category.slug}`;
+    const balotarioPath = `/balotario-mtc-${category.slug}`;
     assert(llms.includes(categoryPath), `llms.txt: falta ${categoryPath}`);
     assert(home.includes(`href="${categoryPath}"`), `index.html: falta enlace estático a ${categoryPath}`);
+    assert(home.includes(`href="${balotarioPath}"`), `index.html: falta enlace estático a ${balotarioPath}`);
+    assert(balotarioHubHtml.includes(`href="${balotarioPath}"`), `balotario-mtc-pdf: falta enlace a ${balotarioPath}`);
     assert(readme.includes(`${siteUrl}${categoryPath}`), `README.md: falta enlace público a ${categoryPath}`);
   }
+  assert(officialPdfDownloads.includes('href={pdf.guideHref}'), 'La página de materiales debe enlazar las guías de cada balotario');
+  assert(appRoutes.includes("import LandingPage from '../pages/LandingPage.jsx';"), 'La portada debe cargarse con el bundle inicial para mejorar el LCP');
+  assert(!appRoutes.includes('const LandingPage = lazy('), 'La portada no debe esperar un chunk diferido');
   const initialAppShell = home.slice(home.indexOf('<div id="root">'), home.indexOf('<noscript>'));
   assert(initialAppShell.includes('data-static-app-shell'), 'index.html: el HTML inicial no debe entregar un #root vacío');
   assert(initialAppShell.includes('<h1'), 'index.html: el HTML inicial debe incluir el H1 de la portada');

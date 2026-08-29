@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { resolveRemoteEnvironment } from '../src/config/remoteEnvironments.js';
 
 const categoryQuestionBank = JSON.parse(
   readFileSync(new URL('./seo-category-question-bank.json', import.meta.url), 'utf8'),
@@ -20,6 +21,7 @@ const brandName = 'Simulador MTC';
 const disclaimer = 'Plataforma educativa independiente. No afiliada al Ministerio de Transportes y Comunicaciones.';
 const officialMtcSource = 'https://www.gob.pe/institucion/mtc/informes-publicaciones/1928110-examen-de-conocimientos-para-postulantes-a-licencias-de-conducir';
 const contentPublished = '2026-06-05';
+const contentLastModified = '2026-08-29';
 // ponytail: update this only after a real editorial review; builds must not fake freshness.
 const contentLastReviewed = '2026-08-14';
 const contentLastReviewedLabel = '14 de agosto de 2026';
@@ -31,6 +33,8 @@ const taxId = '20614965836';
 const businessAddress = 'Sector 3, Grupo 20, Manzana M, Lote 36, Villa El Salvador, Lima, Perú';
 const businessPhone = '+51 987 617 635';
 const businessEmail = 'admin@simuladormtc.com';
+const developmentApiBaseUrl = resolveRemoteEnvironment('development').apiBaseUrl;
+const productionApiBaseUrl = resolveRemoteEnvironment('production').apiBaseUrl;
 
 const publicSpaPages = [
   '/materiales',
@@ -1005,6 +1009,59 @@ function renderFaqs(faqs) {
           </details>`).join('');
 }
 
+function renderStaticAnalytics() {
+  return `<script data-static-analytics>
+    (() => {
+      if (location.protocol !== 'https:') return;
+      const hostname = location.hostname.toLowerCase();
+      const apiBaseUrl = hostname === 'simuladormtc.com' || hostname === 'www.simuladormtc.com'
+        ? '${productionApiBaseUrl}'
+        : hostname.endsWith('.vercel.app')
+          ? '${developmentApiBaseUrl}'
+          : null;
+      if (!apiBaseUrl) return;
+
+      const sensitiveParams = new Set(['code', 'access_token', 'refresh_token', 'token']);
+      const params = new URLSearchParams(location.search);
+      sensitiveParams.forEach((key) => params.delete(key));
+      const search = params.toString();
+      let referrer = null;
+      try {
+        const referrerUrl = new URL(document.referrer);
+        sensitiveParams.forEach((key) => referrerUrl.searchParams.delete(key));
+        referrer = referrerUrl.toString();
+      } catch {}
+      const visitorKey = 'simuladormtc:visitorId';
+      let visitorId;
+      try {
+        visitorId = localStorage.getItem(visitorKey);
+        if (!visitorId) {
+          visitorId = typeof crypto.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : 'visitor-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+          localStorage.setItem(visitorKey, visitorId);
+        }
+      } catch {
+        visitorId = 'visitor-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+      }
+
+      fetch(apiBaseUrl + '/analytics/event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+        body: JSON.stringify({
+          type: 'page_view',
+          visitorId,
+          path: location.pathname + (search ? '?' + search : ''),
+          title: document.title,
+          referrer,
+        }),
+        credentials: 'omit',
+        keepalive: true,
+      }).catch(() => {});
+    })();
+  </script>`;
+}
+
 function sourcesForPage(page) {
   const sourceIds = new Set(['balotarios', 'exam-format']);
   if (/transito|senal|semaforo|prioridad|adelantamiento|manejo|mecanica|auxilios/.test(page.slug)) {
@@ -1040,11 +1097,16 @@ function renderPdfLinks(page) {
       ? categories
       : [];
 
-  return visibleCategories.map((category) => `
-            <a href="/mtc-official/${category.pdf}">
+  return visibleCategories.map((category) => {
+    const isCurrentGuide = page.slug === `balotario-mtc-${category.slug}`;
+    const href = isCurrentGuide ? `/mtc-official/${category.pdf}` : `/balotario-mtc-${category.slug}`;
+    const label = isCurrentGuide ? 'PDF oficial descargable' : 'Guía, preguntas y PDF oficial';
+    return `
+            <a href="${href}">
               <strong>Balotario ${escapeHtml(category.code)}</strong>
-              <span>PDF oficial descargable</span>
-            </a>`).join('');
+              <span>${label}</span>
+            </a>`;
+  }).join('');
 }
 
 function relatedGuidesFor(page) {
@@ -1156,6 +1218,9 @@ function renderHtml(page) {
   const pageSources = sourcesForPage(page);
   const schemaQuestions = page.question ? [page.question] : page.questionVariants || page.sampleQuestions || page.topicQuestions || [];
   const primaryImageUrl = page.heroImage?.url ? `${siteUrl}${page.heroImage.url}` : `${siteUrl}/og-simulador-mtc.png`;
+  const heroImageUrl = page.heroImage?.url || '/brand-mark.svg';
+  const heroImageWidth = page.heroImage?.width || 128;
+  const heroImageHeight = page.heroImage?.height || 128;
   const primaryImageId = `${canonical}#primaryimage`;
   const faqSchema = {
     '@type': 'FAQPage',
@@ -1194,7 +1259,7 @@ function renderHtml(page) {
     image: page.heroImage ? { '@id': primaryImageId } : primaryImageUrl,
     inLanguage: 'es-PE',
     datePublished: contentPublished,
-    dateModified: contentLastReviewed,
+    dateModified: contentLastModified,
     learningResourceType: page.type === 'Article' ? 'Guía de estudio' : page.topicQuestions ? 'Banco temático de preguntas' : page.type === 'Quiz' ? 'Pregunta explicada' : 'Práctica educativa',
     educationalUse: ['autoestudio', 'práctica'],
     teaches: page.keywords,
@@ -1246,7 +1311,7 @@ function renderHtml(page) {
     url: canonical,
     inLanguage: 'es-PE',
     datePublished: contentPublished,
-    dateModified: contentLastReviewed,
+    dateModified: contentLastModified,
     lastReviewed: contentLastReviewed,
     isPartOf: { '@id': websiteId },
     publisher: { '@id': organizationId },
@@ -1329,6 +1394,7 @@ function renderHtml(page) {
     <link rel="alternate" hreflang="es-PE" href="${canonical}">
     <link rel="alternate" type="text/plain" href="${siteUrl}/llms.txt" title="Índice para asistentes de IA">
     <link rel="author" href="${siteUrl}/metodologia-simulador-mtc">
+    ${page.heroImage ? `<link rel="preload" as="image" href="${heroImageUrl}" fetchpriority="high">` : ''}
     <meta property="og:type" content="website">
     <meta property="og:locale" content="es_PE">
     <meta property="og:site_name" content="${brandName}">
@@ -1365,8 +1431,9 @@ function renderHtml(page) {
       .btn.primary { background:var(--brand); color:#fff; box-shadow:0 10px 22px rgba(15,85,232,.18); }
       .btn.secondary { background:#fff; color:var(--brand); }
       .hero-card { border:1px solid var(--line); border-radius:12px; background:#fff; overflow:hidden; box-shadow:0 18px 50px rgba(7,31,69,.10); }
-      .hero-card img { width:100%; display:block; aspect-ratio: 16/10; object-fit:cover; }
-      .hero-card img.question-hero { object-fit:contain; padding:18px; background:#f8fbff; }
+      .hero-card img { display:block; }
+      .hero-card img.question-hero { width:100%; aspect-ratio:16/10; object-fit:contain; padding:18px; background:#f8fbff; }
+      .hero-card img.brand-hero { width:96px; height:96px; margin:32px auto 16px; object-fit:contain; }
       .hero-card div { padding:16px; display:grid; gap:8px; }
       .notice { margin:24px 0 0; padding:12px 14px; border-left:4px solid var(--brand); background:#f8fbff; color:#40536f; line-height:1.6; }
       section { padding:34px 0; }
@@ -1484,7 +1551,7 @@ function renderHtml(page) {
             <p class="notice">${escapeHtml(disclaimer)}</p>
           </div>
           <aside class="hero-card" aria-label="Vista previa de Simulador MTC">
-            <img class="${page.heroImage ? 'question-hero' : ''}" src="${page.heroImage?.url || '/og-simulador-mtc.png'}" alt="${escapeHtml(page.heroImage ? `Imagen de la pregunta: ${page.h1}` : 'Vista previa de Simulador MTC con auto y ciudad')}">
+            <img class="${page.heroImage ? 'question-hero' : 'brand-hero'}" src="${heroImageUrl}" width="${heroImageWidth}" height="${heroImageHeight}" loading="eager" fetchpriority="high" decoding="async" alt="${escapeHtml(page.heroImage ? `Imagen de la pregunta: ${page.h1}` : 'Símbolo de Simulador MTC')}">
             <div>
               <strong>${page.heroImage ? 'Imagen conservada desde el balotario.' : 'Practica por categoría y revisa tus errores.'}</strong>
               <span>${page.heroImage ? 'Revisa el gráfico completo antes de elegir una alternativa.' : 'Simulacros, explicaciones y resultados por tema en una sola plataforma.'}</span>
@@ -1581,6 +1648,7 @@ function renderHtml(page) {
         <p>Revisión editorial: ${contentLastReviewedLabel}. Verifica siempre la información vigente antes de rendir tu examen.</p>
       </div>
     </footer>
+    ${renderStaticAnalytics()}
   </body>
 </html>`.replace(/[ \t]+$/gm, '');
 }
@@ -1725,7 +1793,7 @@ async function main() {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${includeImages ? ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"' : ''}>
 ${items.map((item) => `  <url>
     <loc>${item.loc}</loc>
-    <lastmod>${item.lastmod || contentLastReviewed}</lastmod>${item.changefreq ? `
+    <lastmod>${item.lastmod || contentLastModified}</lastmod>${item.changefreq ? `
     <changefreq>${item.changefreq}</changefreq>` : ''}${item.priority ? `
     <priority>${item.priority}</priority>` : ''}${item.images?.map((image) => `
     <image:image>
@@ -1753,7 +1821,7 @@ ${items.map((item) => `  <url>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${sitemapFiles.map(([filename]) => `  <sitemap>
     <loc>${siteUrl}/${filename}</loc>
-    <lastmod>${contentLastReviewed}</lastmod>
+    <lastmod>${contentLastModified}</lastmod>
   </sitemap>`).join('\n')}
 </sitemapindex>
 `;

@@ -208,6 +208,34 @@ async function serializePage(group, checkOnly) {
   };
 }
 
+async function verifyStoredBank() {
+  const bank = JSON.parse(await readFile(outputPath, 'utf8'));
+  assert.match(bank.meta?.sourceSha256 || '', /^[a-f0-9]{64}$/, 'El banco de preguntas no conserva el hash SHA-256 de su fuente');
+  assert.equal(bank.pages?.length, bank.meta?.publishedPageCount, 'La cantidad publicada no coincide con las páginas almacenadas');
+  assert.equal(new Set(bank.pages.map((page) => page.slug)).size, bank.pages.length, 'Hay slugs duplicados');
+
+  for (const page of bank.pages) {
+    assert(page.slug.startsWith('preguntas-mtc/'), `${page.slug}: ruta inesperada`);
+    assert(page.variants?.length >= 1, `${page.slug}: falta una variante verificable`);
+    for (const variant of page.variants) {
+      assert.equal(variant.options?.length, 4, `${variant.id}: deben existir cuatro alternativas`);
+      assert.equal(variant.options.filter((option) => option.isCorrect).length, 1, `${variant.id}: debe existir una respuesta correcta`);
+      assert(variant.options.some((option) => option.isCorrect && option.text === variant.correctAnswer), `${variant.id}: la respuesta correcta no coincide`);
+      assert(variant.sources?.every((source) => source.code && source.number && source.page && source.pdf), `${variant.id}: falta trazabilidad al PDF`);
+
+      const mediaItems = [
+        ...(variant.questionMedia || []),
+        ...variant.options.flatMap((option) => option.media || []),
+      ];
+      for (const media of mediaItems) {
+        const mediaPath = path.resolve('public', media.url.replace(/^\/+/, ''));
+        const mediaStat = await stat(mediaPath).catch(() => null);
+        assert(mediaStat?.isFile(), `Falta la imagen SEO ${mediaPath}`);
+      }
+    }
+  }
+}
+
 async function buildBank(checkOnly = false) {
   const sourceText = await readFile(sourcePath, 'utf8');
   const questions = JSON.parse(sourceText).filter(isCompleteQuestion);
@@ -238,12 +266,25 @@ async function buildBank(checkOnly = false) {
   return `${JSON.stringify(bank, null, 2)}\n`;
 }
 
-const checkOnly = process.argv.includes('--check');
-const expected = await buildBank(checkOnly);
-if (checkOnly) {
-  assert.equal(await readFile(outputPath, 'utf8'), expected, 'El banco de páginas por pregunta no coincide con la fuente deduplicada');
-  console.log(`Banco SEO por pregunta verificado: ${JSON.parse(expected).pages.length} páginas completas.`);
-} else {
-  await writeFile(outputPath, expected, 'utf8');
-  console.log(`Banco SEO por pregunta generado: ${JSON.parse(expected).pages.length} páginas y medios públicos vinculados.`);
+async function main() {
+  const checkOnly = process.argv.includes('--check');
+  let expected;
+  try {
+    expected = await buildBank(checkOnly);
+  } catch (error) {
+    if (!checkOnly || error.code !== 'ENOENT') throw error;
+    await verifyStoredBank();
+    console.log('Banco SEO por pregunta verificado internamente; la fuente deduplicada local no está disponible.');
+    return;
+  }
+
+  if (checkOnly) {
+    assert.equal(await readFile(outputPath, 'utf8'), expected, 'El banco de páginas por pregunta no coincide con la fuente deduplicada');
+    console.log(`Banco SEO por pregunta verificado: ${JSON.parse(expected).pages.length} páginas completas.`);
+  } else {
+    await writeFile(outputPath, expected, 'utf8');
+    console.log(`Banco SEO por pregunta generado: ${JSON.parse(expected).pages.length} páginas y medios públicos vinculados.`);
+  }
 }
+
+await main();

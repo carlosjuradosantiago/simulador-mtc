@@ -121,6 +121,27 @@ function selectBalancedQuestions(eligibleQuestions, category) {
   return selected.sort((left, right) => left.source.sequence_in_source - right.source.sequence_in_source);
 }
 
+async function verifyStoredBank() {
+  const bank = JSON.parse(await readFile(outputPath, 'utf8'));
+  assert.match(bank.meta?.sourceSha256 || '', /^[a-f0-9]{64}$/, 'El banco SEO no conserva el hash SHA-256 de su fuente');
+  assert.equal(bank.meta?.questionsPerCategory, questionsPerCategory, 'Cantidad configurada de preguntas inesperada');
+  assert.equal(bank.categories?.length, categories.length, 'Cantidad de categorías inesperada');
+
+  for (const expectedCategory of categories) {
+    const category = bank.categories.find((item) => item.slug === expectedCategory.slug);
+    assert(category, `Falta la categoría ${expectedCategory.slug}`);
+    assert.equal(category.code, expectedCategory.code, `${expectedCategory.slug}: código inesperado`);
+    assert.equal(category.categoryId, expectedCategory.categoryId, `${expectedCategory.slug}: id inesperado`);
+    assert.equal(category.questions?.length, questionsPerCategory, `${expectedCategory.slug}: deben existir 40 preguntas`);
+    assert.equal(new Set(category.questions.map((question) => question.id)).size, questionsPerCategory, `${expectedCategory.slug}: hay preguntas duplicadas`);
+    for (const question of category.questions) {
+      assert.equal(question.options?.length, 4, `${question.id}: deben existir cuatro alternativas`);
+      assert(question.options.includes(question.correctAnswer), `${question.id}: la respuesta no coincide con una alternativa`);
+      assert(question.sourceCode && question.number && question.sourcePage, `${question.id}: falta trazabilidad al balotario`);
+    }
+  }
+}
+
 async function buildBank() {
   const sourceText = await readFile(sourcePath, 'utf8');
   const questions = JSON.parse(sourceText);
@@ -156,11 +177,25 @@ async function buildBank() {
   }, null, 2)}\n`;
 }
 
-const expected = await buildBank();
-if (process.argv.includes('--check')) {
-  assert.equal(await readFile(outputPath, 'utf8'), expected, 'El banco SEO por categoría no coincide con la fuente deduplicada');
-  console.log('Banco SEO por categoría verificado: 9 licencias y 360 preguntas.');
-} else {
-  await writeFile(outputPath, expected, 'utf8');
-  console.log(`Banco SEO por categoría generado en ${outputPath}.`);
+async function main() {
+  const checkOnly = process.argv.includes('--check');
+  let expected;
+  try {
+    expected = await buildBank();
+  } catch (error) {
+    if (!checkOnly || error.code !== 'ENOENT') throw error;
+    await verifyStoredBank();
+    console.log('Banco SEO por categoría verificado internamente; la fuente deduplicada local no está disponible.');
+    return;
+  }
+
+  if (checkOnly) {
+    assert.equal(await readFile(outputPath, 'utf8'), expected, 'El banco SEO por categoría no coincide con la fuente deduplicada');
+    console.log('Banco SEO por categoría verificado: 9 licencias y 360 preguntas.');
+  } else {
+    await writeFile(outputPath, expected, 'utf8');
+    console.log(`Banco SEO por categoría generado en ${outputPath}.`);
+  }
 }
+
+await main();

@@ -42,22 +42,26 @@ export default function OfficialPdfDownloads({ preferredCategoryId = null }) {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3">
           {officialMtcPdfs.map((pdf) => (
-            <a
-              key={pdf.code}
-              href={pdf.href}
-              download={pdf.filename}
-              className="flex min-h-24 items-center justify-between gap-3 border-b border-line px-3 py-4 text-left transition hover:bg-blue-50 focus-visible:outline focus-visible:outline-4 focus-visible:outline-brand"
-              title={`Descargar PDF oficial ${pdf.code}`}
-            >
-              <span className="min-w-0">
-                <span className="block text-lg font-black text-ink">{pdf.code}</span>
-                <span className="mt-0.5 block text-sm font-semibold text-slate-600">{pdf.vehicle}</span>
-                <span className="mt-1 block text-xs font-semibold text-slate-500">PDF · {pdf.size}</span>
-              </span>
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-blue-50 text-brand">
-                <Download className="h-4 w-4" />
-              </span>
-            </a>
+            <article key={pdf.code} className="border-b border-line px-3 py-4">
+              <a
+                href={pdf.href}
+                download={pdf.filename}
+                className="flex min-h-16 items-center justify-between gap-3 text-left transition hover:text-brand focus-visible:outline focus-visible:outline-4 focus-visible:outline-brand"
+                title={`Descargar PDF oficial ${pdf.code}`}
+              >
+                <span className="min-w-0">
+                  <span className="block text-lg font-black text-ink">{pdf.code}</span>
+                  <span className="mt-0.5 block text-sm font-semibold text-slate-600">{pdf.vehicle}</span>
+                  <span className="mt-1 block text-xs font-semibold text-slate-500">PDF · {pdf.size}</span>
+                </span>
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-blue-50 text-brand">
+                  <Download className="h-4 w-4" />
+                </span>
+              </a>
+              <a href={pdf.guideHref} className="mt-2 inline-flex min-h-11 items-center text-sm font-bold text-brand underline underline-offset-4">
+                Ver guía, preguntas y respuestas de {pdf.code}
+              </a>
+            </article>
           ))}
         </div>
 
