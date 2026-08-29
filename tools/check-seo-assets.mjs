@@ -172,6 +172,12 @@ async function main() {
   }
   assert(sitemapCore.includes(`<loc>${siteUrl}/contacto</loc>`), 'sitemap-core.xml: contacto debe seguir indexable');
   assert.equal(vercelConfig.trailingSlash, false, 'vercel.json: las URLs canónicas no deben terminar en /');
+  for (const slug of ['contacto', 'materiales']) {
+    assert(
+      vercelConfig.rewrites?.some(({ source, destination }) => source === `/${slug}` && destination === `/seo/${slug}.html`),
+      `vercel.json: falta HTML SEO propio para /${slug}`,
+    );
+  }
   assert(
     redirects.some(({ source, destination, permanent }) => source === '/index.html' && destination === '/' && permanent),
     'vercel.json: /index.html debe redirigir permanentemente a /',
@@ -195,6 +201,9 @@ async function main() {
   }
   const htmlFiles = fileNames.filter((file) => file.endsWith('.html')).sort();
   assert(htmlFiles.length >= 130, `Se esperaban al menos 130 páginas SEO; se encontraron ${htmlFiles.length}`);
+  for (const file of ['contacto.html', 'materiales.html']) {
+    assert(htmlFiles.includes(file), `${file}: la ruta indexable no tiene HTML SEO propio`);
+  }
   assert(!htmlFiles.includes('simulador-mtc.html'), 'La página genérica duplicada no debe volver a generarse');
   assert(!sitemapCore.includes(`${siteUrl}/simulador-mtc</loc>`), 'El sitemap no debe publicar la URL genérica redirigida');
 
@@ -204,12 +213,15 @@ async function main() {
 
   for (const file of htmlFiles) {
     const html = await readFile(path.join(seoDir, file), 'utf8');
+    const isContactPage = file === 'contacto.html';
     assert(!/[ÃÂ]/.test(html), `${file}: contiene texto con codificación dañada`);
     assert(html.includes('<html lang="es-PE">'), `${file}: falta lang="es-PE"`);
     assert(html.includes('max-snippet:-1'), `${file}: el contenido no permite fragmentos amplios`);
     assert(html.includes('Respuesta breve'), `${file}: falta una respuesta breve citable`);
-    assert(html.includes('Fuentes consultadas'), `${file}: faltan fuentes visibles`);
-    assert(html.includes('https://www.gob.pe/institucion/mtc/'), `${file}: falta una fuente primaria del MTC`);
+    if (!isContactPage) {
+      assert(html.includes('Fuentes consultadas'), `${file}: faltan fuentes visibles`);
+      assert(html.includes('https://www.gob.pe/institucion/mtc/'), `${file}: falta una fuente primaria del MTC`);
+    }
     assert(html.includes(repositoryUrl), `${file}: falta la referencia pública del proyecto`);
     assert(html.includes('<script src="/static-seo-analytics.js" defer data-static-analytics></script>'), `${file}: falta analítica externa compatible con CSP`);
     assert(!html.includes('<script data-static-analytics>'), `${file}: la analítica no debe quedar inline`);
@@ -261,15 +273,22 @@ async function main() {
     const graph = documents.flatMap((document) => document['@graph'] || [document]);
     const types = schemaTypes(graph);
 
-    for (const requiredType of ['WebPage', 'BreadcrumbList', 'LearningResource']) {
+    const requiredTypes = isContactPage
+      ? ['ContactPage', 'BreadcrumbList']
+      : ['WebPage', 'BreadcrumbList', 'LearningResource'];
+    for (const requiredType of requiredTypes) {
       assert(types.has(requiredType), `${file}: falta schema ${requiredType}`);
     }
     const learningResource = graph.find((item) => {
       const itemTypes = Array.isArray(item['@type']) ? item['@type'] : [item['@type']];
       return itemTypes.includes('LearningResource');
     });
-    assert.equal(learningResource?.educationalAlignment?.['@type'], 'AlignmentObject', `${file}: falta educationalAlignment verificable`);
-    assert.equal(learningResource?.educationalAlignment?.targetUrl, 'https://www.gob.pe/institucion/mtc/informes-publicaciones/1928110-examen-de-conocimientos-para-postulantes-a-licencias-de-conducir', `${file}: educationalAlignment no apunta a la referencia oficial`);
+    if (isContactPage) {
+      assert.equal(learningResource, undefined, `${file}: contacto no debe declararse como recurso educativo`);
+    } else {
+      assert.equal(learningResource?.educationalAlignment?.['@type'], 'AlignmentObject', `${file}: falta educationalAlignment verificable`);
+      assert.equal(learningResource?.educationalAlignment?.targetUrl, 'https://www.gob.pe/institucion/mtc/informes-publicaciones/1928110-examen-de-conocimientos-para-postulantes-a-licencias-de-conducir', `${file}: educationalAlignment no apunta a la referencia oficial`);
+    }
 
     if (questionPages.has(file)) {
       assert(types.has('Quiz'), `${file}: falta schema Quiz`);
@@ -350,7 +369,7 @@ async function main() {
       }
     }
 
-    const webpage = graph.find((item) => item['@type'] === 'WebPage');
+    const webpage = graph.find((item) => item['@type'] === (isContactPage ? 'ContactPage' : 'WebPage'));
     assert.equal(webpage.dateModified, '2026-08-29', `${file}: fecha editorial inesperada`);
     assert.equal(webpage.lastReviewed, '2026-08-29', `${file}: fecha de revisión editorial inesperada`);
     assert(webpage.mainEntity?.['@id'], `${file}: WebPage no enlaza su recurso principal`);

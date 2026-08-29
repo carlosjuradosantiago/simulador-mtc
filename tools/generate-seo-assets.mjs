@@ -55,8 +55,51 @@ function fitSeoTitle(title, maxLength = 60) {
 }
 
 const indexableSpaPages = [
-  '/materiales',
-  '/contacto',
+  {
+    slug: 'materiales',
+    title: 'Balotarios y materiales oficiales MTC para descargar',
+    description: 'Descarga balotarios MTC por categoría y consulta las publicaciones oficiales para preparar el examen de conocimientos en Perú.',
+    h1: 'Balotarios y materiales oficiales del MTC',
+    intro: 'Esta biblioteca reúne las guías por categoría y dirige cada descarga a su balotario oficial para que estudies con una referencia verificable.',
+    primaryCta: officialMtcSource,
+    ctaText: 'Ver publicación oficial del MTC',
+    secondaryCta: '/fuentes-mtc',
+    secondaryCtaText: 'Revisar todas las fuentes',
+    keywords: ['balotarios mtc pdf', 'materiales oficiales mtc', 'descargar balotario mtc'],
+    sections: [
+      ['Elige tu categoría', 'Usa la guía de A1, A2, A3 o B2 que corresponde a tu licencia antes de descargar el PDF oficial.'],
+      ['Practica y contrasta', 'Resuelve preguntas en línea y vuelve al documento del MTC cuando necesites comprobar una respuesta o un cambio.'],
+      ['Verifica la vigencia', 'Las normas y publicaciones pueden actualizarse; ante cualquier diferencia siempre prevalece la fuente oficial vigente.'],
+    ],
+    faqs: [
+      ['Los balotarios son gratuitos?', 'Sí. Los enlaces dirigen a materiales públicos y a las guías gratuitas organizadas por categoría.'],
+      ['Debo estudiar un balotario distinto para cada licencia?', 'Sí. El contenido específico cambia según la categoría de licencia que vas a obtener o recategorizar.'],
+      ['Simulador MTC reemplaza la publicación oficial?', `No. ${disclaimer} La fuente oficial vigente siempre prevalece.`],
+    ],
+  },
+  {
+    slug: 'contacto',
+    type: 'ContactPage',
+    title: 'Contacto Simulador MTC | CJ VERTEXLABS GROUP EIRL',
+    description: 'Contacta a CJ VERTEXLABS GROUP EIRL para soporte de Simulador MTC, consultas comerciales, privacidad o atención al usuario.',
+    h1: 'Contacto de Simulador MTC',
+    intro: `Simulador MTC es operado por ${legalName}. Escríbenos a ${businessEmail} o llámanos al ${businessPhone} para recibir atención.`,
+    primaryCta: `mailto:${businessEmail}`,
+    ctaText: 'Enviar correo',
+    secondaryCta: '/libro-reclamaciones',
+    secondaryCtaText: 'Abrir Libro de Reclamaciones',
+    keywords: ['contacto simulador mtc', 'soporte simulador mtc', legalName],
+    sections: [
+      ['Correo de atención', businessEmail],
+      ['Teléfono', businessPhone],
+      ['Empresa responsable', `${legalName}, RUC ${taxId}, ${businessAddress}.`],
+    ],
+    faqs: [
+      ['Quien opera Simulador MTC?', `${legalName}, identificada con RUC ${taxId}.`],
+      ['Donde solicito soporte?', `Escribe a ${businessEmail} e incluye el detalle de tu consulta para poder revisarla.`],
+      ['Donde presento un reclamo?', 'Puedes usar el Libro de Reclamaciones disponible desde esta misma página.'],
+    ],
+  },
 ];
 
 const officialSources = [
@@ -1080,12 +1123,13 @@ function renderStaticAnalyticsScript() {
 }
 
 function sourcesForPage(page) {
+  if (page.type === 'ContactPage') return [];
   const sourceIds = new Set(['balotarios', 'exam-format']);
   if (/transito|senal|semaforo|prioridad|adelantamiento|manejo|mecanica|auxilios/.test(page.slug)) {
     sourceIds.add('traffic-rules');
   }
   if (page.categorySlug) sourceIds.add('license-types');
-  if (['fuentes-mtc', 'metodologia-simulador-mtc'].includes(page.slug)) {
+  if (['fuentes-mtc', 'metodologia-simulador-mtc', 'materiales'].includes(page.slug)) {
     officialSources.forEach((source) => sourceIds.add(source.id));
   }
   return officialSources.filter((source) => sourceIds.has(source.id));
@@ -1110,7 +1154,7 @@ function renderCategoryLinks(currentSlug = '') {
 function renderPdfLinks(page) {
   const visibleCategories = page.categorySlug
     ? categories.filter((category) => category.slug === page.categorySlug)
-    : ['fuentes-mtc', 'balotario-mtc-pdf'].includes(page.slug)
+    : ['fuentes-mtc', 'balotario-mtc-pdf', 'materiales'].includes(page.slug)
       ? categories
       : [];
 
@@ -1227,7 +1271,7 @@ function renderQuestionDirectory(page) {
 }
 
 function shouldShowCategories(page) {
-  return Boolean(page.categorySlug) || ['fuentes-mtc', 'balotario-mtc-pdf'].includes(page.slug);
+  return Boolean(page.categorySlug) || ['fuentes-mtc', 'balotario-mtc-pdf', 'materiales'].includes(page.slug);
 }
 
 function renderHtml(sourcePage) {
@@ -1267,7 +1311,7 @@ function renderHtml(sourcePage) {
       },
     ],
   };
-  const learningResourceSchema = {
+  const learningResourceSchema = page.type === 'ContactPage' ? null : {
     '@type': page.type === 'Article' ? ['Article', 'LearningResource'] : 'LearningResource',
     '@id': `${canonical}#learning-resource`,
     name: page.h1,
@@ -1330,7 +1374,7 @@ function renderHtml(sourcePage) {
     }),
   } : null;
   const webPageSchema = {
-    '@type': 'WebPage',
+    '@type': page.type === 'ContactPage' ? 'ContactPage' : 'WebPage',
     '@id': `${canonical}#webpage`,
     name: page.title,
     description: page.description,
@@ -1343,7 +1387,7 @@ function renderHtml(sourcePage) {
     publisher: { '@id': organizationId },
     reviewedBy: { '@id': organizationId },
     breadcrumb: { '@id': `${canonical}#breadcrumb` },
-    mainEntity: { '@id': `${canonical}#learning-resource` },
+    mainEntity: page.type === 'ContactPage' ? { '@id': organizationId } : { '@id': `${canonical}#learning-resource` },
     primaryImageOfPage: page.heroImage ? { '@id': primaryImageId } : undefined,
     about: page.keywords.map((name) => ({ '@type': 'Thing', name })),
   };
@@ -1392,7 +1436,7 @@ function renderHtml(sourcePage) {
       },
       webPageSchema,
       breadcrumbSchema,
-      learningResourceSchema,
+      ...(learningResourceSchema ? [learningResourceSchema] : []),
       ...(quizSchema ? [quizSchema] : []),
       ...(imageSchema ? [imageSchema] : []),
       ...(directorySchema ? [directorySchema] : []),
@@ -1630,7 +1674,7 @@ function renderHtml(sourcePage) {
           <p class="notice">Fuente de referencia: <a href="${officialMtcSource}" rel="noopener noreferrer">publicación oficial del MTC en gob.pe</a>.</p>
         </div>
       </section>` : ''}
-      <section>
+      ${pageSources.length ? `<section>
         <div class="wrap">
           <h2>Fuentes consultadas</h2>
           <p>Estas referencias primarias permiten comprobar los datos y revisar posibles cambios normativos.</p>
@@ -1638,7 +1682,7 @@ function renderHtml(sourcePage) {
             ${renderSources(page)}
           </ul>
         </div>
-      </section>
+      </section>` : ''}
       <section>
         <div class="wrap">
           <h2>Guías relacionadas</h2>
@@ -1670,6 +1714,7 @@ function renderHtml(sourcePage) {
         <p>${disclaimer}</p>
         <p>Fuente oficial de referencia: <a href="${officialMtcSource}" rel="noopener noreferrer" style="color:#fff;">MTC en gob.pe</a>.</p>
         <p><a href="/metodologia-simulador-mtc" style="color:#fff;">Cómo se prepara y revisa el contenido</a></p>
+        <p><a href="/materiales" style="color:#fff;">Balotarios y materiales</a> · <a href="/contacto" style="color:#fff;">Contacto</a></p>
         <p><a href="${repositoryUrl}" rel="noopener noreferrer" style="color:#fff;">Código y documentación del proyecto en GitHub</a></p>
         <p>Revisión editorial: ${contentLastReviewedLabel}. Verifica siempre la información vigente antes de rendir tu examen.</p>
       </div>
@@ -1803,6 +1848,7 @@ const topicPages = topicQuestionBank.topics.map(topicPageFor);
 
 const pages = [
   questionDirectoryPage,
+  ...indexableSpaPages,
   ...corePages,
   ...articlePages,
   ...questionPages,
@@ -1839,7 +1885,7 @@ async function main() {
 
   const coreSitemapUrls = [
     { loc: siteUrl, lastmod: '2026-08-25', priority: '1.0', changefreq: 'daily' },
-    ...indexableSpaPages.map((pathname) => ({ loc: `${siteUrl}${pathname}`, priority: '0.6', changefreq: 'monthly' })),
+    ...indexableSpaPages.map((page) => ({ loc: pageUrl(page.slug), priority: '0.6', changefreq: 'monthly' })),
     ...[questionDirectoryPage, ...corePages, ...articlePages].map((page) => ({ loc: pageUrl(page.slug), priority: '0.8', changefreq: 'weekly' })),
   ];
   const categorySitemapUrls = [

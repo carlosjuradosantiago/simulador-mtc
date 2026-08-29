@@ -228,6 +228,14 @@
   ],
   "rewrites": [
     {
+      "source": "/materiales",
+      "destination": "/seo/materiales.html"
+    },
+    {
+      "source": "/contacto",
+      "destination": "/seo/contacto.html"
+    },
+    {
       "source": "/examen-mtc-preguntas",
       "destination": "/seo/examen-mtc-preguntas.html"
     },
