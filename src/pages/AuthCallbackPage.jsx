@@ -4,11 +4,12 @@ import BrandLogo from '../components/layout/BrandLogo.jsx';
 import Button from '../components/ui/Button.jsx';
 import Card from '../components/ui/Card.jsx';
 import { useAuth } from '../hooks/useAuth.js';
-import { exchangeSupabaseOAuthCode, getStoredToken, getSupabaseAuth } from '../services/api.js';
+import { api, exchangeSupabaseOAuthCode, getStoredToken, getSupabaseAuth } from '../services/api.js';
 import { safeInternalPath } from '../utils/navigation.js';
 
 const oauthCodeExchangePromises = new Map();
 const PENDING_GOOGLE_CATEGORY_KEY = 'simulamanejo:pending-google-category';
+const VISITOR_KEY = 'simuladormtc:visitorId';
 
 export default function AuthCallbackPage() {
   const navigate = useNavigate();
@@ -87,6 +88,17 @@ export default function AuthCallbackPage() {
           return;
         }
 
+        if (pendingCategory) {
+          api.trackEvent({
+            type: 'google_auth_completed',
+            visitorId: window.localStorage.getItem(VISITOR_KEY),
+            path: window.location.pathname,
+            metadata: {
+              categoryId: pendingCategory,
+              method: 'google',
+            },
+          });
+        }
         window.sessionStorage.removeItem(PENDING_GOOGLE_CATEGORY_KEY);
         navigate(nextPath, { replace: true });
       } catch (oauthError) {

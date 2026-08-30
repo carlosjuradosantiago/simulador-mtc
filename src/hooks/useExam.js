@@ -5,6 +5,7 @@ import { api, resolveCategoryId, toQuestion, toResult } from '../services/api.js
 const QUICK_PRACTICE_QUESTIONS = 5;
 const ADAPTIVE_PRACTICE_QUESTIONS = 40;
 const inFlightStarts = new Map();
+const VISITOR_KEY = 'simuladormtc:visitorId';
 
 function getStartRequest(key, createRequest) {
   const existing = inFlightStarts.get(key);
@@ -78,8 +79,30 @@ export function useExam(category, mode = 'quick', strategy = 'random') {
       if (cancelled) return;
       const rawQuestions = response.preguntas ?? response.questions ?? [];
       const questionLimit = quickPractice ? practiceQuestionCount : rawQuestions.length;
-      setSessionId(response.practiceSessionId ?? response.sessionId ?? response.idSesionPractica ?? response.id_sesion_practica ?? response.id);
-      setQuestions(rawQuestions.slice(0, questionLimit).map((question) => toQuestion(question, category)));
+      const nextSessionId = response.practiceSessionId
+        ?? response.sessionId
+        ?? response.idSesionPractica
+        ?? response.id_sesion_practica
+        ?? response.id;
+      const nextQuestions = rawQuestions
+        .slice(0, questionLimit)
+        .map((question) => toQuestion(question, category));
+      setSessionId(nextSessionId);
+      setQuestions(nextQuestions);
+      if (nextSessionId && nextQuestions.length > 0) {
+        api.trackEvent({
+          type: 'practice_started',
+          visitorId: window.localStorage.getItem(VISITOR_KEY),
+          path: window.location.pathname,
+          metadata: {
+            categoryId,
+            mode,
+            strategy: practiceStrategy,
+            questionCount: nextQuestions.length,
+            sessionId: nextSessionId,
+          },
+        });
+      }
       if (timedSession) {
         setTimeRemaining(response.tiempoRestante ?? response.durationSeconds ?? OFFICIAL_EXAM_RULES.durationSeconds);
       }

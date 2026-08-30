@@ -10,10 +10,11 @@ import {
   Target,
   TrendingUp,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FREE_FULL_EXAM_ATTEMPTS, OFFICIAL_EXAM_RULES } from '../../data/examRules.js';
 import { fallbackLicenseCategories, getCategoryById, getVehicleChoice, vehicleChoices } from '../../data/vehicleChoices.js';
+import { api } from '../../services/api.js';
 import { cn } from '../../utils/cn.js';
 import Modal from '../ui/Modal.jsx';
 
@@ -22,6 +23,17 @@ const adaptiveHighlights = [
   [Shuffle, 'Incorpora preguntas nuevas', 'Amplía lo que ya dominas.'],
   [BookOpen, 'Repasa lo aprendido', 'Comprueba que aún lo recuerdas.'],
 ];
+
+const VISITOR_KEY = 'simuladormtc:visitorId';
+
+function trackFunnelEvent(type, metadata) {
+  api.trackEvent({
+    type,
+    visitorId: window.localStorage.getItem(VISITOR_KEY),
+    path: window.location.pathname,
+    metadata,
+  });
+}
 
 function CategoryButton({ category, selected, onClick, showDescription = false }) {
   return (
@@ -68,6 +80,10 @@ export default function VehicleStartPanel({
   const selectedVehicle = selectedCategory ? getVehicleChoice(selectedCategoryId) : null;
   const categoryVehicle = vehicleChoices.find((choice) => choice.id === categoryVehicleId) ?? null;
   const weakTopic = progress?.weakTopics?.[0];
+  const hasPracticeHistory = Number(progress?.freePracticeCount || 0) > 0
+    || Number(progress?.totalIntentos || 0) > 0;
+  const showQuickFirst = !hasPracticeHistory;
+  const effectivePracticeMode = showQuickFirst ? 'random' : practiceMode;
   const priceLabel = `S/${Math.round(Number(fullExamPrice || 1200) / 100)}`;
   const canStartFullExam = fullExamIsFree || fullExamHasAccess;
   const isCheckingFullExamAccess = !fullExamIsFree && fullExamAccessLoading;
@@ -86,14 +102,137 @@ export default function VehicleStartPanel({
   };
 
   const chooseCategory = (categoryId) => {
+    const vehicle = getVehicleChoice(categoryId);
+    trackFunnelEvent('vehicle_selected', {
+      categoryId: Number(categoryId),
+      vehicleId: vehicle?.id ?? null,
+    });
     onCategoryChange?.(categoryId);
     setCategoryVehicleId(null);
   };
 
+  useEffect(() => {
+    setPracticeMode('random');
+  }, [selectedCategoryId]);
+
   const startHref = selectedCategory && startTo
-    ? `${startTo}${startTo.includes('?') ? '&' : '?'}strategy=${practiceMode}`
+    ? `${startTo}${startTo.includes('?') ? '&' : '?'}strategy=${effectivePracticeMode}`
     : null;
-  const startButtonClass = 'inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-lg border-2 border-brand bg-white px-4 text-center font-display text-lg font-black text-brand transition hover:bg-blue-50 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-brand sm:px-6 sm:text-xl';
+  const startButtonClass = cn(
+    'inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-lg border-2 border-brand px-4 text-center font-display text-lg font-black transition focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-brand sm:px-6 sm:text-xl',
+    showQuickFirst
+      ? 'bg-brand text-white shadow-[0_5px_0_#173f8f] hover:bg-blue-700'
+      : 'bg-white text-brand hover:bg-blue-50',
+  );
+  const trackPracticeMode = (nextMode, strategy = null) => {
+    trackFunnelEvent('practice_mode_selected', {
+      categoryId: Number(selectedCategoryId),
+      mode: nextMode,
+      ...(strategy ? { strategy } : {}),
+    });
+  };
+  const quickPracticeSection = selectedCategory ? (
+    <section
+      className={cn(
+        'mx-auto max-w-5xl rounded-lg border-2 p-5 sm:p-6',
+        showQuickFirst
+          ? 'mt-6 border-brand bg-blue-50 shadow-[0_8px_0_#cfe0ff]'
+          : 'mt-6 border-line bg-white',
+      )}
+      aria-labelledby="quick-practice-title"
+    >
+      <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(260px,0.7fr)] sm:items-end">
+        <div>
+          <p className={cn('text-sm font-black uppercase', showQuickFirst ? 'text-brand' : 'text-slate-500')}>
+            {showQuickFirst ? 'Tu primera meta' : 'Meta diaria · 5 preguntas'}
+          </p>
+          <h2 id="quick-practice-title" className="mt-1 font-display text-2xl font-black text-ink sm:text-3xl">
+            {showQuickFirst ? 'Empieza con 5 preguntas' : 'Completa tu práctica de hoy'}
+          </h2>
+          <p className="mt-2 max-w-2xl text-base leading-6 text-slate-600">
+            Sin cronómetro y con explicación inmediata. Termina una ronda corta antes de pasar al entrenamiento de 40 preguntas.
+          </p>
+          <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm font-bold text-slate-700" aria-label="Beneficios de la práctica corta">
+            <li className="inline-flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-success" />5 preguntas</li>
+            <li className="inline-flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-success" />Sin cronómetro</li>
+            <li className="inline-flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-success" />Corrección al instante</li>
+          </ul>
+        </div>
+
+        <div>
+          {showQuickFirst ? (
+            <div
+              className="flex min-h-14 items-center justify-center gap-2 rounded-lg bg-white px-4 text-sm font-bold text-brand"
+              aria-label="Modo de la primera práctica"
+            >
+              <Shuffle className="h-5 w-5 shrink-0" />
+              Preguntas aleatorias de tu categoría
+            </div>
+          ) : (
+            <fieldset>
+              <legend className="mb-1 font-display text-sm font-black text-ink">Elige qué practicar</legend>
+              <div className="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1">
+                <button
+                  type="button"
+                  aria-pressed={practiceMode === 'random'}
+                  onClick={() => setPracticeMode('random')}
+                  className={cn(
+                    'flex min-h-14 items-center justify-center gap-2 rounded-lg px-2 py-2 text-left transition focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-brand',
+                    practiceMode === 'random' ? 'bg-white text-brand shadow-sm' : 'text-slate-600 hover:bg-white/70',
+                  )}
+                >
+                  <Shuffle className="h-5 w-5 shrink-0" />
+                  <strong className="text-sm">Aleatorias</strong>
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={practiceMode === 'weak'}
+                  onClick={() => setPracticeMode('weak')}
+                  className={cn(
+                    'flex min-h-14 items-center justify-center gap-2 rounded-lg px-2 py-2 text-left transition focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-brand',
+                    practiceMode === 'weak' ? 'bg-white text-brand shadow-sm' : 'text-slate-600 hover:bg-white/70',
+                  )}
+                >
+                  <Target className="h-5 w-5 shrink-0" />
+                  <strong className="text-sm">Mis falladas</strong>
+                </button>
+              </div>
+            </fieldset>
+          )}
+
+          <div className="mt-3">
+            {startHref ? (
+              <Link
+                to={startHref}
+                onClick={() => trackPracticeMode('quick', effectivePracticeMode)}
+                className={startButtonClass}
+              >
+                <CircleGauge className="h-6 w-6 shrink-0" />
+                Empezar 5 preguntas
+                <ArrowRight className="h-6 w-6 shrink-0" />
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  trackPracticeMode('quick', effectivePracticeMode);
+                  onStart?.(effectivePracticeMode);
+                }}
+                className={startButtonClass}
+              >
+                <CircleGauge className="h-6 w-6 shrink-0" />
+                Empezar 5 preguntas
+                <ArrowRight className="h-6 w-6 shrink-0" />
+              </button>
+            )}
+            <p className="mt-2 text-center text-sm text-slate-600">
+              {selectedCategory.title} · {effectivePracticeMode === 'weak' ? 'solo preguntas falladas' : 'selección aleatoria'}
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  ) : null;
 
   return (
     <section className="mx-auto w-full max-w-[1280px] px-4 pb-10 pt-4 sm:px-6 lg:px-8 lg:pb-14 lg:pt-5">
@@ -119,6 +258,8 @@ export default function VehicleStartPanel({
           </div>
         </div> : null}
       </div>
+
+      {showQuickFirst ? quickPracticeSection : null}
 
       {selectedCategory && adaptiveTo ? (
         <section className="relative mx-auto mt-6 max-w-6xl overflow-hidden rounded-lg border-2 border-brand bg-brand-deep text-white shadow-[0_8px_0_#cfe0ff]" aria-labelledby="adaptive-practice-title">
@@ -156,7 +297,11 @@ export default function VehicleStartPanel({
                   Revisando acceso...
                 </button>
               ) : (
-                <Link to={adaptiveTo} className="inline-flex min-h-16 w-full items-center justify-center gap-2 rounded-lg bg-traffic-yellow px-5 text-center font-display text-xl font-black text-ink shadow-[0_5px_0_#d99b19] transition hover:bg-[#ffc94f] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-white">
+                <Link
+                  to={adaptiveTo}
+                  onClick={() => trackPracticeMode(canStartFullExam ? 'adaptive' : 'checkout')}
+                  className="inline-flex min-h-16 w-full items-center justify-center gap-2 rounded-lg bg-traffic-yellow px-5 text-center font-display text-xl font-black text-ink shadow-[0_5px_0_#d99b19] transition hover:bg-[#ffc94f] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-white"
+                >
                   {canStartFullExam ? <BrainCircuit className="h-7 w-7" /> : <LockKeyhole className="h-6 w-6" />}
                   {canStartFullExam ? 'Entrenar ahora' : 'Suscribirme'}
                   <ArrowRight className="h-6 w-6" />
@@ -295,6 +440,7 @@ export default function VehicleStartPanel({
                 ) : (
                   <Link
                     to={fullExamTo}
+                    onClick={() => trackPracticeMode(canStartFullExam ? 'exam' : 'checkout')}
                     className="inline-flex min-h-14 items-center justify-center gap-2 rounded-lg border-2 border-brand bg-white px-5 text-center font-display text-lg font-black text-brand transition hover:bg-blue-50 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-brand"
                   >
                     {canStartFullExam ? <CircleGauge className="h-7 w-7" /> : <LockKeyhole className="h-6 w-6" />}
@@ -306,68 +452,7 @@ export default function VehicleStartPanel({
             </section>
           ) : null}
 
-          <section className="mx-auto mt-6 max-w-5xl border-t border-line pt-5" aria-labelledby="quick-practice-title">
-            <div>
-              <p className="text-sm font-bold text-slate-500">Práctica corta</p>
-              <h2 id="quick-practice-title" className="font-display text-xl font-black text-ink sm:text-2xl">Practicar sin presión</h2>
-              <p className="mt-1 text-sm leading-5 text-slate-600">5 preguntas sin cronómetro. Sirve para aprender y no cambia tus estadísticas.</p>
-            </div>
-
-            <fieldset className="mt-3">
-              <legend className="mb-1 font-display text-base font-black text-ink">Elige qué practicar</legend>
-              <div className="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1">
-                <button
-                  type="button"
-                  aria-pressed={practiceMode === 'random'}
-                  onClick={() => setPracticeMode('random')}
-                  className={cn(
-                    'flex min-h-14 items-center justify-center gap-2 rounded-lg px-2 py-2 text-left transition focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-brand sm:px-4',
-                    practiceMode === 'random' ? 'bg-white text-brand shadow-sm' : 'text-slate-600 hover:bg-white/70',
-                  )}
-                >
-                  <Shuffle className="h-6 w-6 shrink-0" />
-                  <span>
-                    <strong className="block text-sm sm:text-base">Preguntas aleatorias</strong>
-                    <span className="hidden text-xs sm:block">Mezcla toda la categoría</span>
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={practiceMode === 'weak'}
-                  onClick={() => setPracticeMode('weak')}
-                  className={cn(
-                    'flex min-h-14 items-center justify-center gap-2 rounded-lg px-2 py-2 text-left transition focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-brand sm:px-4',
-                    practiceMode === 'weak' ? 'bg-white text-brand shadow-sm' : 'text-slate-600 hover:bg-white/70',
-                  )}
-                >
-                  <Target className="h-6 w-6 shrink-0" />
-                  <span>
-                    <strong className="block text-sm sm:text-base">Repasar solo mis falladas</strong>
-                    <span className="hidden text-xs sm:block">Sin mezclar preguntas nuevas</span>
-                  </span>
-                </button>
-              </div>
-            </fieldset>
-
-            <div className="mt-3">
-              {startHref ? (
-                <Link to={startHref} className={startButtonClass}>
-                  <CircleGauge className="h-6 w-6 shrink-0" />
-                  Practicar 5 preguntas
-                  <ArrowRight className="h-6 w-6 shrink-0" />
-                </Link>
-              ) : (
-                <button type="button" onClick={() => onStart?.(practiceMode)} className={startButtonClass}>
-                  <CircleGauge className="h-6 w-6 shrink-0" />
-                  Practicar 5 preguntas
-                  <ArrowRight className="h-6 w-6 shrink-0" />
-                </button>
-              )}
-              <p className="mt-1 text-center text-sm text-slate-600">
-                {selectedCategory.title} · {practiceMode === 'weak' ? 'solo preguntas falladas' : 'selección aleatoria'}
-              </p>
-            </div>
-          </section>
+          {showQuickFirst ? null : quickPracticeSection}
         </>
       ) : (
         <p className="mx-auto mt-5 max-w-2xl text-center text-base font-bold text-slate-600">

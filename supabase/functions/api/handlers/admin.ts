@@ -8,6 +8,8 @@ import { classifyTrafficSource } from '../_shared/traffic-source.ts';
 const ADMIN_ROLE = 'ADMIN';
 const PERU_OFFSET_MS = 5 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
+const ADMIN_DEVICES = ['mobile', 'desktop', 'tablet', 'unknown'] as const;
+type AdminDevice = typeof ADMIN_DEVICES[number];
 
 function startOfToday(value = new Date()) {
   const peruTime = new Date(value.getTime() - PERU_OFFSET_MS);
@@ -77,6 +79,26 @@ function uniqueVisitors(rows: any[]) {
   return new Set(rows.map(visitorKey).filter(Boolean)).size;
 }
 
+function classifyDevice(userAgent: unknown): AdminDevice | 'bot' {
+  const ua = String(userAgent || '').trim().toLowerCase();
+  if (!ua) return 'unknown';
+  if (/(bot|spider|crawler|crawl|slurp|bingpreview|headlesschrome|lighthouse|pagespeed|google-inspectiontool|facebookexternalhit|whatsapp|telegrambot|twitterbot|linkedinbot|curl|wget|python-requests|go-http-client)/.test(ua)) {
+    return 'bot';
+  }
+  if (/(ipad|tablet|kindle|silk|playbook)/.test(ua) || (ua.includes('android') && !ua.includes('mobile'))) {
+    return 'tablet';
+  }
+  if (/(iphone|ipod|android|mobile|windows phone|iemobile|opera mini)/.test(ua)) {
+    return 'mobile';
+  }
+  return 'desktop';
+}
+
+function normalizeDeviceFilter(value: unknown) {
+  const device = String(value || '').trim().toLowerCase();
+  return ADMIN_DEVICES.includes(device as AdminDevice) ? device as AdminDevice : '';
+}
+
 function normalizeRoute(value: unknown) {
   const route = String(value || '/').trim();
   try {
@@ -142,7 +164,7 @@ async function countRows(supabase: any, table: string, createdColumn = 'creado_e
 async function fetchAnalyticsRows(supabase: any, from: string) {
   const { data, error, count } = await supabase
     .from('eventos_analytics')
-    .select('visitor_id, id_usuario, tipo_evento, ruta, referrer, creado_en', { count: 'exact' })
+    .select('visitor_id, id_usuario, tipo_evento, ruta, referrer, user_agent, creado_en', { count: 'exact' })
     .gte('creado_en', from)
     .order('creado_en', { ascending: false })
     .limit(10000);
@@ -278,6 +300,52 @@ function buildTopSources(pageViews: any[]) {
     }));
 }
 
+function buildDevices(pageViews: any[]) {
+  const rows = new Map<AdminDevice, {
+    device: AdminDevice;
+    visitors: number;
+    pageViews: number;
+    identifiedUsers: Set<number>;
+  }>(ADMIN_DEVICES.map((device) => [device, {
+    device,
+    visitors: 0,
+    pageViews: 0,
+    identifiedUsers: new Set<number>(),
+  }] as const));
+  const firstDeviceByVisitor = new Map<string, AdminDevice>();
+
+  [...pageViews]
+    .sort((left, right) => new Date(left.creado_en || 0).getTime() - new Date(right.creado_en || 0).getTime())
+    .forEach((event) => {
+      const device = classifyDevice(event.user_agent);
+      if (device === 'bot') return;
+      const row = rows.get(device as AdminDevice);
+      if (!row) return;
+      row.pageViews += 1;
+      if (event.id_usuario) row.identifiedUsers.add(Number(event.id_usuario));
+      const key = visitorKey(event);
+      if (key && !firstDeviceByVisitor.has(key)) {
+        firstDeviceByVisitor.set(key, device as AdminDevice);
+      }
+    });
+
+  firstDeviceByVisitor.forEach((device) => {
+    const row = rows.get(device);
+    if (row) row.visitors += 1;
+  });
+
+  return Array.from(rows.values())
+    .filter((row) => row.pageViews > 0 || row.visitors > 0)
+    .sort((left, right) => right.visitors - left.visitors)
+    .map((row) => ({
+      device: row.device,
+      visitors: row.visitors,
+      pageViews: row.pageViews,
+      identifiedUsers: row.identifiedUsers.size,
+      share: percentage(row.visitors, firstDeviceByVisitor.size),
+    }));
+}
+
 async function buildAdminOverview(supabase: any) {
   const now = new Date();
   const today = startOfToday(now);
@@ -295,6 +363,7 @@ async function buildAdminOverview(supabase: any) {
     transactionsResult,
     membershipsResult,
     recentUsersResult,
+    cohortUsersResult,
   ] = await Promise.all([
     countRows(supabase, 'usuarios'),
     countRows(supabase, 'usuarios', 'creado_en', todayIso),
@@ -316,13 +385,19 @@ async function buildAdminOverview(supabase: any) {
       .order('creado_en', { ascending: false })
       .limit(1000),
     supabase
-      .from('usuarios')
-      .select('id, correo_electronico, nombre_usuario, primer_nombre, apellido, rol, creado_en')
-      .order('creado_en', { ascending: false })
+      .from('admin_user_summary')
+      .select('id, display_name, email, username, role, registered_at, practice_sessions, paid_amount, membership_ends_at, status, first_device, last_device, last_active_at, active_days, started_sessions, completed_sessions, attempts, returned_after_registration, first_practice_at, minutes_to_first_practice')
+      .order('registered_at', { ascending: false })
       .limit(50),
+    supabase
+      .from('admin_user_summary')
+      .select('id, started_sessions, completed_sessions, attempts, returned_after_registration')
+      .eq('role', 'USUARIO')
+      .gte('registered_at', analyticsStart.toISOString().slice(0, 19))
+      .limit(10000),
   ]);
 
-  for (const result of [sessionsResult, transactionsResult, membershipsResult, recentUsersResult]) {
+  for (const result of [sessionsResult, transactionsResult, membershipsResult, recentUsersResult, cohortUsersResult]) {
     if (result.error) throw result.error;
   }
 
@@ -330,6 +405,7 @@ async function buildAdminOverview(supabase: any) {
   const transactions = transactionsResult.data || [];
   const memberships = membershipsResult.data || [];
   const recentUsers = recentUsersResult.data || [];
+  const cohortUsers = cohortUsersResult.data || [];
   const successfulPayments = transactions.filter(isRealPayment);
   const activeMemberships = memberships.filter((membership: any) => isMembershipActive(membership, now));
   const expiringMemberships = activeMemberships.filter((membership: any) => daysRemaining(membership.fecha_fin, now) <= 7);
@@ -346,11 +422,18 @@ async function buildAdminOverview(supabase: any) {
   const practicedUnpaidUserIds = Array.from(practiceUserIds).filter((userId) => !subscribedUserIds.has(userId));
 
   const allPageViews = analytics.rows.filter((row: any) => row.tipo_evento === 'page_view');
-  const pageViewsMonth = allPageViews.filter((event: any) => new Date(event.creado_en || 0) >= monthStart);
-  const pageViewsToday = allPageViews.filter((event: any) => new Date(event.creado_en || 0) >= today);
-  const signedInPageViewsMonth = pageViewsMonth.filter((event: any) => event.id_usuario);
+  const humanPageViews = allPageViews.filter((row: any) => classifyDevice(row.user_agent) !== 'bot');
+  const botPageViews = allPageViews.filter((row: any) => classifyDevice(row.user_agent) === 'bot');
+  const humanPageViewsMonth = humanPageViews.filter((event: any) => new Date(event.creado_en || 0) >= monthStart);
+  const humanPageViewsToday = humanPageViews.filter((event: any) => new Date(event.creado_en || 0) >= today);
+  const signedInPageViewsMonth = humanPageViewsMonth.filter((event: any) => event.id_usuario);
   const { dailyRevenue, monthlyRevenue } = buildRevenueSeries(successfulPayments, today, monthStart);
-  const trafficDaily = buildTrafficSeries(allPageViews, today);
+  const trafficDaily = buildTrafficSeries(humanPageViews, today);
+  const funnelRegistered = cohortUsers.length;
+  const funnelStarted = cohortUsers.filter((user: any) => Number(user.started_sessions || 0) > 0).length;
+  const funnelCompleted = cohortUsers.filter((user: any) => Number(user.completed_sessions || 0) > 0).length;
+  const funnelRepeated = cohortUsers.filter((user: any) => Number(user.attempts || 0) > 1).length;
+  const funnelReturned = cohortUsers.filter((user: any) => user.returned_after_registration === true).length;
 
   const paymentAmountByUser = new Map<number, number>();
   successfulPayments.forEach((payment: any) => {
@@ -386,12 +469,14 @@ async function buildAdminOverview(supabase: any) {
       totalUsers,
       usersToday,
       usersThisMonth,
-      pageViewsToday: pageViewsToday.length,
-      pageViewsThisMonth: pageViewsMonth.length,
-      pageViews30Days: allPageViews.length,
-      uniqueVisitorsToday: uniqueVisitors(pageViewsToday),
-      uniqueVisitorsThisMonth: uniqueVisitors(pageViewsMonth),
-      uniqueVisitors30Days: uniqueVisitors(allPageViews),
+      pageViewsToday: humanPageViewsToday.length,
+      pageViewsThisMonth: humanPageViewsMonth.length,
+      pageViews30Days: humanPageViews.length,
+      uniqueVisitorsToday: uniqueVisitors(humanPageViewsToday),
+      uniqueVisitorsThisMonth: uniqueVisitors(humanPageViewsMonth),
+      uniqueVisitors30Days: uniqueVisitors(humanPageViews),
+      humanVisitors30Days: uniqueVisitors(humanPageViews),
+      botVisitors30Days: uniqueVisitors(botPageViews),
       signedInVisitorsThisMonth: new Set(signedInPageViewsMonth.map((row: any) => row.id_usuario)).size,
       practiceSessionsTotal: sessions.length,
       practiceSessionsToday: sessionsToday.length,
@@ -415,33 +500,57 @@ async function buildAdminOverview(supabase: any) {
       conversionFromPractice: percentage(subscribedUserIds.size, practiceUserIds.size),
       registeredToPaidConversion: percentage(realPayingUserIds.size, totalUsers),
     },
+    devices: buildDevices(humanPageViews),
+    funnel: {
+      registered: funnelRegistered,
+      started: funnelStarted,
+      completed: funnelCompleted,
+      repeated: funnelRepeated,
+      returned: funnelReturned,
+      startedRate: percentage(funnelStarted, funnelRegistered),
+      completedRate: percentage(funnelCompleted, funnelRegistered),
+      repeatedRate: percentage(funnelRepeated, funnelRegistered),
+      returnedRate: percentage(funnelReturned, funnelRegistered),
+    },
     series: {
       dailyRevenue,
       monthlyRevenue,
       trafficDaily,
     },
-    topPages: buildTopPages(allPageViews),
-    topSources: buildTopSources(allPageViews),
+    topPages: buildTopPages(humanPageViews),
+    topSources: buildTopSources(humanPageViews),
     recentUsers: recentUsers.map((user: any) => {
       const activeMembership = activeMembershipByUser.get(user.id);
       const hasPaid = realPayingUserIds.has(user.id);
       const hasPracticed = practiceUserIds.has(user.id);
       return {
         id: user.id,
-        name: [user.primer_nombre, user.apellido].filter(Boolean).join(' ') || user.nombre_usuario || user.correo_electronico,
-        email: user.correo_electronico,
-        role: user.rol || 'USUARIO',
-        registeredAt: user.creado_en,
-        practiceSessions: practiceCountByUser.get(user.id) || 0,
-        paidAmount: paymentAmountByUser.get(user.id) || 0,
-        membershipEndsAt: activeMembership?.fecha_fin || null,
-        status: activeMembership
+        name: user.display_name,
+        email: user.email,
+        role: user.role || 'USUARIO',
+        registeredAt: user.registered_at,
+        practiceSessions: Number(user.practice_sessions || practiceCountByUser.get(user.id) || 0),
+        paidAmount: Number(user.paid_amount || paymentAmountByUser.get(user.id) || 0),
+        membershipEndsAt: user.membership_ends_at || activeMembership?.fecha_fin || null,
+        status: user.status || (activeMembership
           ? 'Suscripcion activa'
           : hasPaid
           ? 'Pago anterior'
           : hasPracticed
           ? 'Practico sin pagar'
-          : 'Registro',
+          : 'Registro'),
+        firstDevice: user.first_device,
+        lastDevice: user.last_device,
+        lastActiveAt: user.last_active_at,
+        activeDays: Number(user.active_days || 0),
+        startedSessions: Number(user.started_sessions || 0),
+        completedSessions: Number(user.completed_sessions || 0),
+        attempts: Number(user.attempts || 0),
+        returnedAfterRegistration: user.returned_after_registration === true,
+        firstPracticeAt: user.first_practice_at,
+        minutesToFirstPractice: user.minutes_to_first_practice === null
+          ? null
+          : Number(user.minutes_to_first_practice),
       };
     }),
     recentPayments: successfulPayments.slice(0, 50).map((payment: any) => {
@@ -534,6 +643,7 @@ export async function handleGetAdminUsers(req: Request) {
     const size = Math.min(Math.max(Number.parseInt(url.searchParams.get('size') || '10', 10), 5), 100);
     const direction = url.searchParams.get('direction') === 'asc' ? 'asc' : 'desc';
     const search = cleanAdminSearch(url.searchParams.get('search'));
+    const device = normalizeDeviceFilter(url.searchParams.get('device'));
     const sortColumns: Record<string, string> = {
       name: 'display_name',
       email: 'email',
@@ -541,6 +651,9 @@ export async function handleGetAdminUsers(req: Request) {
       practices: 'practice_sessions',
       paid: 'paid_amount',
       registeredAt: 'registered_at',
+      device: 'first_device',
+      lastActiveAt: 'last_active_at',
+      activeDays: 'active_days',
     };
     const sort = Object.hasOwn(sortColumns, url.searchParams.get('sort') || '')
       ? String(url.searchParams.get('sort'))
@@ -553,6 +666,9 @@ export async function handleGetAdminUsers(req: Request) {
 
     if (search) {
       query = query.or(`display_name.ilike.%${search}%,email.ilike.%${search}%,username.ilike.%${search}%`);
+    }
+    if (device) {
+      query = query.eq('first_device', device);
     }
 
     const { data, error, count } = await query
@@ -577,6 +693,18 @@ export async function handleGetAdminUsers(req: Request) {
         membershipStartedAt: user.membership_started_at,
         membershipEndsAt: user.membership_ends_at,
         status: user.status,
+        firstDevice: user.first_device,
+        lastDevice: user.last_device,
+        lastActiveAt: user.last_active_at,
+        activeDays: Number(user.active_days || 0),
+        startedSessions: Number(user.started_sessions || 0),
+        completedSessions: Number(user.completed_sessions || 0),
+        attempts: Number(user.attempts || 0),
+        returnedAfterRegistration: user.returned_after_registration === true,
+        firstPracticeAt: user.first_practice_at,
+        minutesToFirstPractice: user.minutes_to_first_practice === null
+          ? null
+          : Number(user.minutes_to_first_practice),
       })),
       pagination: {
         page,
@@ -586,6 +714,7 @@ export async function handleGetAdminUsers(req: Request) {
       },
       sort: { field: sort, direction },
       search,
+      device,
     });
   } catch (error) {
     console.error('Admin users error:', error);
@@ -605,7 +734,7 @@ export async function handleExportAdminReport(req: Request) {
     if (type === 'users') {
       const { data, error } = await admin.supabase
         .from('admin_user_summary')
-        .select('id, display_name, email, role, status, practice_sessions, payment_count, paid_amount, membership_ends_at, registered_at')
+        .select('id, display_name, email, role, status, practice_sessions, payment_count, paid_amount, membership_ends_at, registered_at, first_device, last_device, last_active_at, active_days, started_sessions, completed_sessions, attempts, returned_after_registration, first_practice_at, minutes_to_first_practice')
         .order('registered_at', { ascending: false })
         .limit(10000);
       if (error) throw error;

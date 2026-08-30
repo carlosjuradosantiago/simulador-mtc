@@ -126,7 +126,7 @@ assert.doesNotMatch(routes.split('<Route element={<ProtectedRoute />}>')[1] || '
 assert.doesNotMatch(plansPage, /nunca recibimos|numero completo de tu tarjeta|formulario protegido/i);
 assert.match(vehicleStartPanel, /Simulacro completo disponible/);
 assert.match(vehicleStartPanel, /FREE_FULL_EXAM_ATTEMPTS} prácticas completas sin costo antes de suscribirte/);
-assert.match(vehicleStartPanel, /Repasar solo mis falladas/);
+assert.match(vehicleStartPanel, /Mis falladas/);
 assert.match(adaptivePracticeHandler, /NO_FAILED_QUESTIONS/);
 assert.doesNotMatch(seoGenerator, /suscripción mensual por S\/ 12/);
 for (const source of [publicHeader, publicFooter, vehicleStartPanel, seoGenerator]) {
