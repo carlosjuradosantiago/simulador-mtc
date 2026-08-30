@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { BRAND_NAME } from '../../data/brand.js';
 import { fallbackLicenseCategories, getCategoryById } from '../../data/vehicleChoices.js';
 import { useAuth } from '../../hooks/useAuth.js';
-import { getGoogleOAuthUrl } from '../../services/api.js';
+import { api, getGoogleOAuthUrl } from '../../services/api.js';
 import { cn } from '../../utils/cn.js';
 import { AUTH_INACTIVITY_NOTICE_KEY } from '../../utils/sessionInactivity.js';
 import Button from '../ui/Button.jsx';
@@ -14,6 +14,16 @@ const AUTH_CALLBACK_ORIGIN_BY_HOST = {
   'simuladormtc.com': 'https://www.simuladormtc.com',
 };
 const PENDING_GOOGLE_CATEGORY_KEY = 'simulamanejo:pending-google-category';
+const VISITOR_KEY = 'simuladormtc:visitorId';
+
+function trackAuthEvent(type, metadata) {
+  api.trackEvent({
+    type,
+    visitorId: window.localStorage.getItem(VISITOR_KEY),
+    path: window.location.pathname,
+    metadata,
+  });
+}
 
 const titleByMode = {
   login: 'Iniciar sesión',
@@ -69,6 +79,7 @@ function PasswordInput({ label, ...props }) {
 export default function AuthModal() {
   const dialogRef = useRef(null);
   const backdropPointerDownRef = useRef(false);
+  const authOpenTrackedRef = useRef(false);
   const navigate = useNavigate();
   const {
     authModal,
@@ -93,7 +104,17 @@ export default function AuthModal() {
   const [verificationEmailSent, setVerificationEmailSent] = useState(true);
 
   useEffect(() => {
-    if (!authModal.open) return undefined;
+    if (!authModal.open) {
+      authOpenTrackedRef.current = false;
+      return undefined;
+    }
+    if (!authOpenTrackedRef.current) {
+      authOpenTrackedRef.current = true;
+      trackAuthEvent('auth_opened', {
+        mode: authModal.mode ?? 'login',
+        categoryId: Number(authModal.category) || null,
+      });
+    }
     const dialog = dialogRef.current;
     if (dialog && !dialog.open) dialog.showModal();
     return () => {
@@ -135,6 +156,13 @@ export default function AuthModal() {
   };
 
   const switchMode = (nextMode) => {
+    if (nextMode === 'login' || nextMode === 'register') {
+      trackAuthEvent('auth_opened', {
+        mode: nextMode,
+        categoryId: Number(registerForm.category || authModal.category) || null,
+        source: 'mode_switch',
+      });
+    }
     setMode(nextMode);
     setError('');
     setNotice('');
@@ -210,6 +238,10 @@ export default function AuthModal() {
       setMode('verify');
       return;
     }
+    trackAuthEvent('registration_completed', {
+      categoryId: Number(registerForm.category),
+      method: 'password',
+    });
     finishAuth();
   };
 
@@ -224,6 +256,11 @@ export default function AuthModal() {
       setError(result.message);
       return;
     }
+    trackAuthEvent('registration_completed', {
+      categoryId: Number(pendingCategory) || null,
+      method: 'password',
+      emailVerified: true,
+    });
     finishAuth();
   };
 

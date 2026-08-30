@@ -224,7 +224,30 @@ export default function ResultsPage() {
       </section>
 
       <div className="mx-auto mt-6 flex max-w-3xl flex-col gap-3 sm:flex-row">
-        {learningPractice ? (
+        {quickPractice ? (
+          <div className="w-full rounded-lg border-2 border-brand bg-blue-50 p-5 text-center sm:p-6">
+            <p className="text-sm font-black uppercase text-brand">Primera meta completada</p>
+            <h2 className="mt-1 font-display text-2xl font-black text-ink">Ya terminaste tus 5 preguntas</h2>
+            <p className="mx-auto mt-2 max-w-xl leading-6 text-slate-600">
+              El siguiente paso es entrenar tus puntos débiles con una sesión guiada.
+            </p>
+            <Button
+              as={Link}
+              to={`/simulacro/${categoryId}?mode=adaptive&strategy=adaptive`}
+              size="lg"
+              className="mt-5 w-full sm:w-auto"
+              onClick={() => api.trackEvent({
+                type: 'practice_mode_selected',
+                path: window.location.pathname,
+                metadata: { categoryId, mode: 'adaptive', source: 'quick_result' },
+              })}
+            >
+              <Target className="h-6 w-6" />
+              Continuar con entrenamiento inteligente
+              <ArrowRight className="h-6 w-6" />
+            </Button>
+          </div>
+        ) : adaptivePractice ? (
           <>
             <Button
               as={Link}
@@ -235,9 +258,9 @@ export default function ResultsPage() {
               <Clock3 className="h-6 w-6" />
               Iniciar simulacro
             </Button>
-            <Button as={Link} to={`/simulacro/${categoryId}?mode=adaptive&strategy=adaptive`} variant="secondary" size="lg" className="flex-1">
+            <Button as={Link} to="/dashboard" variant="secondary" size="lg" className="flex-1">
               <Target className="h-6 w-6" />
-              Entrenamiento inteligente
+              Volver a mi meta diaria
             </Button>
           </>
         ) : (

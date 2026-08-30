@@ -30,8 +30,13 @@ start, did they finish, did they return, and when were they last active?
 
 - Keep `eventos_analytics` as the event source; do not add a duplicate table.
 - Add funnel events for vehicle selection, practice mode selection, auth open,
-  registration completion, and practice start.
-- Continue deriving completion and abandonment from `sesion_practica`.
+  verified password registration, Google auth completion, and practice start.
+- Google auth does not expose a reliable account-created flag, so
+  `google_auth_completed` records the OAuth outcome without claiming a new
+  registration.
+- Derive the admin registration, completion, abandonment, and return funnel
+  from database users, sessions, attempts, and activity rather than client
+  events.
 - Classify user agents server-side into mobile, desktop, tablet, bot, or unknown.
 - Extend the security-invoker admin summary view with first/last device, last
   activity, active days, started sessions, completed sessions, and attempts.

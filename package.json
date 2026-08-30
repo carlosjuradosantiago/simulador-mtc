@@ -15,6 +15,7 @@
     "check:admin-access": "node tools/check-admin-access.mjs",
     "check:admin-complaints": "node tools/check-admin-complaints.mjs",
     "check:admin-operations": "node tools/check-admin-operations.mjs",
+    "check:retention-analytics": "node tools/check-retention-analytics.mjs",
     "check:traffic-sources": "node tools/check-traffic-sources.mjs",
     "check:remote-environments": "node tools/check-remote-environments.mjs",
     "check:payment-security": "node tools/check-payment-security.mjs",

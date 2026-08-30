@@ -41,7 +41,7 @@ export function PaginationControls({ pagination, onPageChange, onSizeChange, dis
               value={size}
               onChange={(event) => onSizeChange(Number(event.target.value))}
               disabled={disabled}
-              className="min-h-9 rounded-md border border-line bg-white px-2 font-bold text-ink"
+              className="min-h-11 rounded-md border border-line bg-white px-2 font-bold text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
               {sizeOptions.map((option) => <option key={option} value={option}>{option} por pagina</option>)}
             </select>
@@ -49,11 +49,11 @@ export function PaginationControls({ pagination, onPageChange, onSizeChange, dis
         ) : null}
       </div>
       <div className="flex items-center justify-between gap-3 sm:justify-end">
-        <Button variant="secondary" size="sm" onClick={() => onPageChange(page - 1)} disabled={disabled || page <= 1} aria-label="Pagina anterior">
+        <Button variant="secondary" size="sm" className="min-h-11 min-w-11" onClick={() => onPageChange(page - 1)} disabled={disabled || page <= 1} aria-label="Pagina anterior">
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </Button>
         <span className="min-w-28 text-center text-sm font-bold text-slate-600">Pagina {page} de {totalPages}</span>
-        <Button variant="secondary" size="sm" onClick={() => onPageChange(page + 1)} disabled={disabled || page >= totalPages} aria-label="Pagina siguiente">
+        <Button variant="secondary" size="sm" className="min-h-11 min-w-11" onClick={() => onPageChange(page + 1)} disabled={disabled || page >= totalPages} aria-label="Pagina siguiente">
           <ChevronRight className="h-4 w-4" aria-hidden="true" />
         </Button>
       </div>

@@ -1,6 +1,7 @@
 import {
   Activity,
   Banknote,
+  Bot,
   BookOpen,
   CalendarClock,
   CircleDollarSign,
@@ -10,9 +11,12 @@ import {
   FileSpreadsheet,
   Globe2,
   MousePointerClick,
+  Monitor,
   RefreshCw,
   Search,
   ShieldCheck,
+  Smartphone,
+  Tablet,
   Target,
   TrendingUp,
   UserCheck,
@@ -49,6 +53,8 @@ const emptyMetrics = {
   uniqueVisitorsThisMonth: 0,
   uniqueVisitors30Days: 0,
   signedInVisitorsThisMonth: 0,
+  humanVisitors30Days: 0,
+  botVisitors30Days: 0,
   practiceSessionsToday: 0,
   practiceSessionsThisMonth: 0,
   timedSessionsThisMonth: 0,
@@ -83,6 +89,18 @@ const emptyOverview = {
   },
   topPages: [],
   topSources: [],
+  devices: [],
+  funnel: {
+    registered: 0,
+    started: 0,
+    completed: 0,
+    repeated: 0,
+    returned: 0,
+    startedRate: 0,
+    completedRate: 0,
+    repeatedRate: 0,
+    returnedRate: 0,
+  },
   recentUsers: [],
   recentPayments: [],
   subscriptions: [],
@@ -134,6 +152,36 @@ function formatDateTime(value) {
     minute: '2-digit',
     timeZone: 'America/Lima',
   });
+}
+
+function formatDevice(device) {
+  const labels = {
+    mobile: 'Celular',
+    desktop: 'PC',
+    tablet: 'Tablet',
+    unknown: 'Sin identificar',
+  };
+  return labels[String(device || '').toLowerCase()] || device || 'Sin identificar';
+}
+
+function DeviceIcon({ device, className = 'h-4 w-4' }) {
+  const icons = { mobile: Smartphone, desktop: Monitor, tablet: Tablet };
+  const Icon = icons[String(device || '').toLowerCase()] || Monitor;
+  return <Icon className={className} aria-hidden="true" />;
+}
+
+function formatMinutes(value) {
+  const minutes = Number(value);
+  if (!Number.isFinite(minutes)) return 'Sin primera práctica';
+  if (minutes < 1) return 'Primera práctica inmediata';
+  if (minutes < 60) return `Primera práctica en ${Math.round(minutes)} min`;
+  return `Primera práctica en ${Math.round(minutes / 60)} h`;
+}
+
+function ActivationBadge({ user }) {
+  if (Number(user.completedSessions) > 0) return <Badge variant="green">Completó práctica</Badge>;
+  if (Number(user.startedSessions) > 0) return <Badge variant="orange">Inició y abandonó</Badge>;
+  return <Badge variant="slate">Aún no inició</Badge>;
 }
 
 function MetricCard({ icon: Icon, title, value, helper, tone = 'blue', loading }) {
@@ -251,6 +299,7 @@ export default function AdminDashboardPage() {
   const [usersDirection, setUsersDirection] = useState('desc');
   const [usersSearchInput, setUsersSearchInput] = useState('');
   const [usersSearch, setUsersSearch] = useState('');
+  const [usersDevice, setUsersDevice] = useState('');
 
   const metrics = { ...emptyMetrics, ...(overview.metrics ?? {}) };
   const trafficDaily = overview.series?.trafficDaily ?? [];
@@ -283,11 +332,12 @@ export default function AdminDashboardPage() {
       sort: usersSort,
       direction: usersDirection,
       search: usersSearch,
+      device: usersDevice,
     })
       .then(setUsers)
       .catch((requestError) => setUsersError(requestError.message || 'No se pudo cargar la lista de usuarios.'))
       .finally(() => setUsersLoading(false));
-  }, [usersDirection, usersPage, usersSearch, usersSize, usersSort]);
+  }, [usersDevice, usersDirection, usersPage, usersSearch, usersSize, usersSort]);
 
   useEffect(() => {
     loadUsers();
@@ -366,13 +416,15 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const activationFunnel = { ...emptyOverview.funnel, ...(overview.funnel ?? {}) };
   const funnelRows = [
-    { label: 'Visitantes únicos', value: metrics.uniqueVisitors30Days, detail: 'últimos 30 días' },
-    { label: 'Usuarios registrados', value: metrics.totalUsers, detail: `${metrics.usersThisMonth} nuevos este mes` },
-    { label: 'Usuarios que practicaron', value: metrics.practicedUsers, detail: `${metrics.practiceSessionsThisMonth} sesiones este mes` },
-    { label: 'Con suscripción o pago', value: metrics.payingUsers, detail: `${metrics.conversionFromPractice || 0}% desde práctica` },
-    { label: 'Oportunidad de conversión', value: metrics.practicedButUnpaidUsers, detail: 'practicaron y aún no pagaron' },
+    { label: 'Registrados', value: activationFunnel.registered, rate: 100, detail: 'cohorte analizada' },
+    { label: 'Iniciaron', value: activationFunnel.started, rate: activationFunnel.startedRate, detail: 'abrieron una práctica' },
+    { label: 'Terminaron', value: activationFunnel.completed, rate: activationFunnel.completedRate, detail: 'completaron al menos una' },
+    { label: 'Repitieron', value: activationFunnel.repeated, rate: activationFunnel.repeatedRate, detail: 'hicieron otra práctica' },
+    { label: 'Regresaron', value: activationFunnel.returned, rate: activationFunnel.returnedRate, detail: 'volvieron otro día' },
   ];
+  const deviceRows = overview.devices ?? [];
 
   return (
     <div className="min-h-[calc(100vh-73px)] bg-soft">
@@ -442,7 +494,7 @@ export default function AdminDashboardPage() {
           {kpis.map((item) => <MetricCard key={item.title} {...item} loading={loading} />)}
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.65fr)]">
+        <section className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.75fr)_minmax(280px,0.75fr)]">
           <Card className="overflow-hidden shadow-sm">
             <SectionHeading
               icon={Activity}
@@ -474,23 +526,68 @@ export default function AdminDashboardPage() {
           </Card>
 
           <Card className="overflow-hidden shadow-sm">
-            <SectionHeading icon={Target} title="Embudo actual" helper="Lectura rápida de adquisición y conversión" />
-            <div className="divide-y divide-line">
-              {funnelRows.map((row, index) => (
-                <div key={row.label} className="flex items-center gap-3 px-4 py-3.5 sm:px-5">
-                  <span className={cn(
-                    'grid h-8 w-8 shrink-0 place-items-center rounded-lg text-sm font-black',
-                    index === funnelRows.length - 1 ? 'bg-amber-50 text-warning' : 'bg-slate-100 text-slate-600',
-                  )}>
-                    {index + 1}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold text-ink">{row.label}</p>
-                    <p className="truncate text-xs text-slate-500">{row.detail}</p>
+            <SectionHeading icon={Target} title="Activación" helper="Desde registro hasta retorno" />
+            <ol className="grid gap-3 px-4 py-4 sm:px-5">
+              {funnelRows.map((row) => {
+                const rate = Math.min(100, Math.max(0, Number(row.rate) || 0));
+                return (
+                  <li key={row.label}>
+                    <div className="mb-1 flex items-end justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-bold text-ink">{row.label}</p>
+                        <p className="text-xs text-slate-500">{row.detail}</p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <strong className="block text-lg font-black text-ink">{formatNumber(row.value)}</strong>
+                        <span className="text-xs font-bold text-slate-500">{rate}%</span>
+                      </div>
+                    </div>
+                    <div
+                      className="h-2 overflow-hidden rounded-full bg-slate-100"
+                      role="progressbar"
+                      aria-label={`${row.label}: ${rate}%`}
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                      aria-valuenow={rate}
+                    >
+                      <span className="block h-full rounded-full bg-brand" style={{ width: `${rate}%` }} />
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </Card>
+
+          <Card className="overflow-hidden shadow-sm">
+            <SectionHeading
+              icon={Smartphone}
+              title="Dispositivos"
+              helper="Visitantes humanos, últimos 30 días"
+              action={<Badge variant="slate"><Bot className="h-3.5 w-3.5" aria-hidden="true" />{formatNumber(metrics.botVisitors30Days)} bots</Badge>}
+            />
+            <div className="grid gap-3 px-4 py-4 sm:px-5">
+              <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2 text-sm">
+                <span className="font-bold text-emerald-800">Visitantes humanos</span>
+                <strong className="text-lg font-black text-emerald-900">{formatNumber(metrics.humanVisitors30Days)}</strong>
+              </div>
+              {deviceRows.map((row) => (
+                <div key={row.device} className="rounded-lg border border-line px-3 py-2.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="inline-flex items-center gap-2 font-bold text-ink">
+                      <DeviceIcon device={row.device} />
+                      {formatDevice(row.device)}
+                    </span>
+                    <strong className="text-lg font-black text-ink">{Number(row.share) || 0}%</strong>
                   </div>
-                  <strong className="text-xl font-black text-ink">{formatNumber(row.value)}</strong>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                    {formatNumber(row.visitors)} visitantes · {formatNumber(row.pageViews)} vistas · {formatNumber(row.identifiedUsers)} identificados
+                  </p>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
+                    <span className="block h-full rounded-full bg-success" style={{ width: `${Math.min(100, Number(row.share) || 0)}%` }} />
+                  </div>
                 </div>
               ))}
+              {!loading && !deviceRows.length ? <p className="py-5 text-center text-sm font-semibold text-slate-500">Aún no hay dispositivos identificados.</p> : null}
             </div>
           </Card>
         </section>
@@ -626,7 +723,7 @@ export default function AdminDashboardPage() {
           </div>
         </Card>
 
-        <section className="grid gap-4 2xl:grid-cols-2">
+        <section className="grid gap-4">
           <Card className="overflow-hidden shadow-sm">
             <SectionHeading
               icon={Users}
@@ -635,34 +732,58 @@ export default function AdminDashboardPage() {
               action={<Badge variant="blue">{formatNumber(users.pagination?.total)} registrados</Badge>}
             />
             <form
-              className="flex gap-2 border-b border-line p-3"
+              className="grid gap-3 border-b border-line p-3 sm:grid-cols-[minmax(240px,1fr)_180px_auto] sm:items-end"
               onSubmit={(event) => {
                 event.preventDefault();
                 setUsersPage(1);
                 setUsersSearch(usersSearchInput.trim());
               }}
             >
-              <label className="relative min-w-0 flex-1">
-                <span className="sr-only">Buscar usuario</span>
-                <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" aria-hidden="true" />
-                <input
-                  type="search"
-                  value={usersSearchInput}
-                  onChange={(event) => setUsersSearchInput(event.target.value)}
-                  placeholder="Nombre o correo"
-                  className="min-h-10 w-full rounded-lg border border-line bg-white pl-10 pr-3 text-sm focus:border-brand focus:outline-none focus:ring-4 focus:ring-blue-100"
-                />
+              <label className="grid min-w-0 gap-1 text-xs font-bold text-slate-600">
+                Buscar usuario
+                <span className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-slate-400" aria-hidden="true" />
+                  <input
+                    type="search"
+                    value={usersSearchInput}
+                    onChange={(event) => setUsersSearchInput(event.target.value)}
+                    placeholder="Nombre o correo"
+                    className="min-h-11 w-full rounded-lg border border-line bg-white pl-10 pr-3 text-sm focus:border-brand focus:outline-none focus:ring-4 focus:ring-blue-100"
+                  />
+                </span>
               </label>
-              <Button variant="secondary" size="sm" type="submit">Buscar</Button>
+              <label className="grid gap-1 text-xs font-bold text-slate-600" htmlFor="admin-users-device">
+                Dispositivo
+                <select
+                  id="admin-users-device"
+                  value={usersDevice}
+                  onChange={(event) => {
+                    setUsersDevice(event.target.value);
+                    setUsersPage(1);
+                  }}
+                  className="min-h-11 rounded-lg border border-line bg-white px-3 text-sm font-bold text-ink focus:border-brand focus:outline-none focus:ring-4 focus:ring-blue-100"
+                >
+                  <option value="">Todos</option>
+                  <option value="mobile">Celular</option>
+                  <option value="desktop">PC</option>
+                  <option value="tablet">Tablet</option>
+                  <option value="unknown">Sin identificar</option>
+                </select>
+              </label>
+              <Button variant="secondary" size="sm" type="submit" className="min-h-11">Buscar</Button>
             </form>
             {usersError ? <p className="border-b border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-danger" role="alert">{usersError}</p> : null}
-            <div className="overflow-x-auto fine-scrollbar">
-              <table className="w-full min-w-[720px] text-left text-sm">
+            <div className="hidden overflow-x-auto fine-scrollbar md:block">
+              <table className="w-full min-w-[1180px] text-left text-sm">
+                <caption className="sr-only">Usuarios registrados, activación, retención y dispositivo</caption>
                 <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                   <tr>
                     <SortableTh field="name" label="Usuario" activeField={usersSort} direction={usersDirection} onSort={sortUsers} className="pl-4" />
                     <SortableTh field="status" label="Estado" activeField={usersSort} direction={usersDirection} onSort={sortUsers} />
-                    <SortableTh field="practices" label="Prácticas" activeField={usersSort} direction={usersDirection} onSort={sortUsers} align="right" />
+                    <th className="px-3 py-3">Dispositivo</th>
+                    <SortableTh field="practices" label="Activación" activeField={usersSort} direction={usersDirection} onSort={sortUsers} />
+                    <th className="px-3 py-3">Retención</th>
+                    <th className="px-3 py-3">Última actividad</th>
                     <SortableTh field="paid" label="Pagado" activeField={usersSort} direction={usersDirection} onSort={sortUsers} align="right" />
                     <SortableTh field="registeredAt" label="Registro" activeField={usersSort} direction={usersDirection} onSort={sortUsers} className="pr-4" />
                   </tr>
@@ -680,15 +801,99 @@ export default function AdminDashboardPage() {
                         </div>
                       </td>
                       <td className="px-3 py-3"><Badge variant={statusVariant(user.status)}>{user.status}</Badge></td>
-                      <td className="px-3 py-3 text-right font-bold">{formatNumber(user.practiceSessions)}</td>
+                      <td className="px-3 py-3">
+                        <span className="inline-flex items-center gap-2 font-bold text-slate-700">
+                          <DeviceIcon device={user.firstDevice} />
+                          {formatDevice(user.firstDevice)}
+                        </span>
+                        {user.lastDevice && user.lastDevice !== user.firstDevice ? (
+                          <span className="mt-1 block text-xs text-slate-500">Último: {formatDevice(user.lastDevice)}</span>
+                        ) : null}
+                      </td>
+                      <td className="px-3 py-3">
+                        <ActivationBadge user={user} />
+                        <span className="mt-1 block text-xs font-semibold text-slate-500">
+                          {formatNumber(user.completedSessions)}/{formatNumber(user.startedSessions)} terminadas · {formatNumber(user.attempts)} intentos
+                        </span>
+                        <span className="mt-0.5 block text-xs text-slate-500">{formatMinutes(user.minutesToFirstPractice)}</span>
+                      </td>
+                      <td className="px-3 py-3">
+                        <Badge variant={user.returnedAfterRegistration ? 'green' : 'slate'}>
+                          {user.returnedAfterRegistration ? 'Regresó otro día' : 'Sin retorno'}
+                        </Badge>
+                        <span className="mt-1 block text-xs font-semibold text-slate-500">{formatNumber(user.activeDays)} días activos</span>
+                      </td>
+                      <td className="px-3 py-3 text-slate-600">{formatDateTime(user.lastActiveAt)}</td>
                       <td className="px-3 py-3 text-right font-bold">{formatPEN(user.paidAmount)}</td>
                       <td className="px-4 py-3 text-slate-500">{formatDate(user.registeredAt)}</td>
                     </tr>
                   ))}
-                  {!usersLoading && !users.items?.length ? <EmptyTableRow columns={5}>No hay usuarios que coincidan con el filtro.</EmptyTableRow> : null}
-                  {usersLoading ? <EmptyTableRow columns={5}>Cargando usuarios...</EmptyTableRow> : null}
+                  {!usersLoading && !users.items?.length ? <EmptyTableRow columns={8}>No hay usuarios que coincidan con el filtro.</EmptyTableRow> : null}
+                  {usersLoading ? <EmptyTableRow columns={8}>Cargando usuarios...</EmptyTableRow> : null}
                 </tbody>
               </table>
+            </div>
+            <div className="grid gap-3 p-3 md:hidden" aria-live="polite">
+              {(users.items ?? []).map((user) => (
+                <article key={user.id} className="rounded-xl border border-line bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="break-words font-black text-ink">{user.name}</h3>
+                      <p className="mt-0.5 break-all text-sm text-slate-600">{user.email}</p>
+                    </div>
+                    {user.role === 'ADMIN' ? <Badge variant="violet">ADMIN</Badge> : null}
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Badge variant={statusVariant(user.status)}>{user.status}</Badge>
+                    <Badge variant="blue">
+                      <DeviceIcon device={user.firstDevice} className="h-3.5 w-3.5" />
+                      {formatDevice(user.firstDevice)}
+                    </Badge>
+                    <ActivationBadge user={user} />
+                  </div>
+
+                  <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                    <div>
+                      <dt className="text-xs font-bold text-slate-500">Sesiones</dt>
+                      <dd className="mt-0.5 font-black text-ink">{formatNumber(user.completedSessions)}/{formatNumber(user.startedSessions)} terminadas</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-bold text-slate-500">Intentos</dt>
+                      <dd className="mt-0.5 font-black text-ink">{formatNumber(user.attempts)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-bold text-slate-500">Retención</dt>
+                      <dd className="mt-0.5 font-black text-ink">{formatNumber(user.activeDays)} días activos</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-bold text-slate-500">Pagado</dt>
+                      <dd className="mt-0.5 font-black text-ink">{formatPEN(user.paidAmount)}</dd>
+                    </div>
+                    <div className="col-span-2">
+                      <dt className="text-xs font-bold text-slate-500">Primera práctica</dt>
+                      <dd className="mt-0.5 font-semibold text-slate-700">{formatMinutes(user.minutesToFirstPractice)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-bold text-slate-500">Última actividad</dt>
+                      <dd className="mt-0.5 font-semibold text-slate-700">{formatDateTime(user.lastActiveAt)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-bold text-slate-500">Registro</dt>
+                      <dd className="mt-0.5 font-semibold text-slate-700">{formatDate(user.registeredAt)}</dd>
+                    </div>
+                  </dl>
+
+                  <p className={cn(
+                    'mt-4 rounded-lg px-3 py-2 text-sm font-bold',
+                    user.returnedAfterRegistration ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-600',
+                  )}>
+                    {user.returnedAfterRegistration ? 'Regresó otro día' : 'Todavía no regresó otro día'}
+                  </p>
+                </article>
+              ))}
+              {!usersLoading && !users.items?.length ? <p className="py-8 text-center text-sm font-semibold text-slate-500">No hay usuarios que coincidan con el filtro.</p> : null}
+              {usersLoading ? <p className="py-8 text-center text-sm font-semibold text-slate-500">Cargando usuarios...</p> : null}
             </div>
             <PaginationControls
               pagination={users.pagination}
