@@ -5,6 +5,7 @@ import { parseAuthFragment, safeInternalPath } from '../src/utils/navigation.js'
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const topbar = read('src/components/layout/Topbar.jsx');
 const simulator = read('src/pages/SimulatorPage.jsx');
+const routes = read('src/routes/AppRoutes.jsx');
 
 assert.equal(safeInternalPath('/dashboard'), '/dashboard');
 assert.equal(safeInternalPath('/simulacro/25?mode=quick#pregunta'), '/simulacro/25?mode=quick#pregunta');
@@ -30,5 +31,6 @@ assert.match(topbar, /<BrandLogo to="\/"/);
 assert.match(simulator, /event\.key !== 'Enter'/);
 assert.match(simulator, /window\.addEventListener\('keydown', handleEnter\)/);
 assert.match(simulator, /handlePrimaryAction\(\)/);
+assert.match(routes, /window\.scrollTo\(\{ top: 0, left: 0, behavior: 'instant' \}\)/);
 
 console.log('Safe navigation checks passed.');
