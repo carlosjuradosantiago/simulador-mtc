@@ -60,7 +60,13 @@ assert.match(hookSource, /if \(nextSessionId && nextQuestions\.length > 0\)/);
 assert.match(hookSource, /questionCount: nextQuestions\.length/);
 assert.match(hookSource, /sessionId: nextSessionId/);
 assert.match(landingSource, /category: selectedCategoryId/);
-assert.match(landingSource, /redirectTo: `\/simulacro\/\$\{selectedCategoryId\}\?mode=quick&strategy=\$\{practiceMode\}`/);
+assert.match(landingSource, /const practiceDestination = `\/simulacro\/\$\{selectedCategoryId\}\?mode=quick&strategy=\$\{practiceMode\}`/);
+assert.match(landingSource, /redirectTo: practiceDestination/);
+assert.match(landingSource, /const \{ isAuthenticated, loading, openAuthModal \} = useAuth\(\)/);
+assert.match(landingSource, /const canNavigateDirectly = loading \|\| isAuthenticated/);
+assert.match(landingSource, /if \(canNavigateDirectly\) \{\s*navigate\(practiceDestination\);\s*return;\s*\}/);
+assert.match(landingSource, /const fullExamTo = canNavigateDirectly\s*\? fullExamDestination/);
+assert.match(landingSource, /const adaptiveTo = canNavigateDirectly\s*\? adaptiveDestination/);
 assert.match(resultsSource, /Primera meta completada/);
 assert.match(resultsSource, /Continuar con entrenamiento inteligente/);
 
