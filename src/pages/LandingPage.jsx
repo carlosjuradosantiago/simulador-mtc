@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react';
 import { ArrowRight, BadgeCheck, CheckCircle2, Clock3, FileQuestion } from 'lucide-react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import VehicleStartPanel from '../components/practice/VehicleStartPanel.jsx';
-import { FREE_FULL_EXAM_ATTEMPTS, FULL_EXAM_IS_FREE } from '../data/examRules.js';
+import {
+  FREE_FULL_EXAM_ATTEMPTS,
+  FREE_QUICK_PRACTICE_ATTEMPTS,
+  FULL_EXAM_IS_FREE,
+} from '../data/examRules.js';
 import { fallbackLicenseCategories } from '../data/vehicleChoices.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { api } from '../services/api.js';
@@ -116,6 +120,8 @@ export default function LandingPage() {
         fullExamIsFree={FULL_EXAM_IS_FREE}
         fullExamPrice={planPrice}
         freeFullExamAttemptsRemaining={FULL_EXAM_IS_FREE ? 0 : FREE_FULL_EXAM_ATTEMPTS}
+        quickPracticeHasAccess
+        freeQuickPracticeAttemptsRemaining={FREE_QUICK_PRACTICE_ATTEMPTS}
       />
 
       {!FULL_EXAM_IS_FREE ? (

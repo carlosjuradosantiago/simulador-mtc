@@ -31,7 +31,7 @@ const benefits = [
   `Simulacros de ${OFFICIAL_EXAM_RULES.questionCount} preguntas por categoria`,
   `${OFFICIAL_EXAM_RULES.durationMinutes} minutos y resultado que mide tu preparacion`,
   'Analisis de errores y temas que necesitas reforzar',
-  'Practicas cortas gratuitas cuando quieras seguir aprendiendo',
+  '20 practicas cortas gratuitas de 5 preguntas antes de suscribirte',
 ];
 
 function priceLabel(priceInCents) {

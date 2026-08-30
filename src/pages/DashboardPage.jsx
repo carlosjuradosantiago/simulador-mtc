@@ -4,8 +4,10 @@ import VehicleStartPanel from '../components/practice/VehicleStartPanel.jsx';
 import { BRAND_DISCLAIMER } from '../data/brand.js';
 import {
   FREE_FULL_EXAM_ATTEMPTS,
+  FREE_QUICK_PRACTICE_ATTEMPTS,
   FULL_EXAM_IS_FREE,
   remainingFreeFullExamAttempts,
+  remainingFreeQuickPracticeAttempts,
 } from '../data/examRules.js';
 import { fallbackLicenseCategories } from '../data/vehicleChoices.js';
 import { useAuth } from '../hooks/useAuth.js';
@@ -24,6 +26,7 @@ export default function DashboardPage() {
   const [membershipLoading, setMembershipLoading] = useState(true);
   const [plan, setPlan] = useState(null);
   const [completedOfficialExams, setCompletedOfficialExams] = useState(null);
+  const [completedQuickPractices, setCompletedQuickPractices] = useState(null);
 
   useEffect(() => {
     api.getCategories().then((items) => {
@@ -38,10 +41,12 @@ export default function DashboardPage() {
       .then(([nextMembership, accessStats]) => {
         setMembership(nextMembership);
         setCompletedOfficialExams(Number(accessStats?.examCount) || 0);
+        setCompletedQuickPractices(Number(accessStats?.quickPracticeCount) || 0);
       })
       .catch(() => {
         setMembership(null);
         setCompletedOfficialExams(FREE_FULL_EXAM_ATTEMPTS);
+        setCompletedQuickPractices(FREE_QUICK_PRACTICE_ATTEMPTS);
       })
       .finally(() => setMembershipLoading(false));
   }, []);
@@ -89,6 +94,12 @@ export default function DashboardPage() {
   const fullExamHasAccess = FULL_EXAM_IS_FREE
     || Boolean(membership?.isActive)
     || freeFullExamAttemptsRemaining > 0;
+  const freeQuickPracticeAttemptsRemaining = completedQuickPractices === null || membership?.isActive
+    ? 0
+    : remainingFreeQuickPracticeAttempts(completedQuickPractices);
+  const quickPracticeHasAccess = FULL_EXAM_IS_FREE
+    || Boolean(membership?.isActive)
+    || freeQuickPracticeAttemptsRemaining > 0;
 
   return (
     <div className="min-h-[calc(100vh-73px)] bg-white">
@@ -98,7 +109,9 @@ export default function DashboardPage() {
         focusSelected={Boolean(user?.categoryConfirmed) && !choosingCategory}
         progress={progress}
         onCategoryChange={selectCategory}
-        startTo={`/simulacro/${selectedCategoryId}?mode=quick`}
+        startTo={quickPracticeHasAccess
+          ? `/simulacro/${selectedCategoryId}?mode=quick`
+          : `/checkout?category=${selectedCategoryId}`}
         adaptiveTo={fullExamHasAccess
           ? `/simulacro/${selectedCategoryId}?mode=adaptive&strategy=adaptive`
           : `/checkout?category=${selectedCategoryId}`}
@@ -111,6 +124,9 @@ export default function DashboardPage() {
         membershipEndDate={membership?.endDate}
         fullExamIsFree={FULL_EXAM_IS_FREE}
         freeFullExamAttemptsRemaining={freeFullExamAttemptsRemaining}
+        quickPracticeHasAccess={quickPracticeHasAccess}
+        quickPracticeAccessLoading={membershipLoading}
+        freeQuickPracticeAttemptsRemaining={freeQuickPracticeAttemptsRemaining}
       />
       <p className="border-t border-line px-4 py-5 text-center text-sm text-slate-500">{BRAND_DISCLAIMER}</p>
     </div>

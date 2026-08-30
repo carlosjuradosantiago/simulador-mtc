@@ -4,7 +4,9 @@ import { jsonResponse, errorResponse, unauthorizedResponse } from '../_shared/re
 import { selectPracticeQuestionIds, shuffled as shuffleItems, type PracticeSelectionMode } from '../_shared/practice-selection.ts';
 import {
   FREE_FULL_EXAM_ATTEMPTS,
+  FREE_QUICK_PRACTICE_ATTEMPTS,
   getFullPracticeAccess,
+  getQuickPracticeAccess,
   TIMED_SESSION_TYPE,
 } from '../_shared/membership-access.ts';
 
@@ -70,6 +72,18 @@ export async function handleIniciarPractica(req, idTipoExamen, idCategoria) {
           checkoutPath: `/checkout?category=${categoriaId}`,
           freeAttemptsUsed: access.completedAttempts,
           freeAttemptLimit: FREE_FULL_EXAM_ATTEMPTS,
+        }, 402);
+      }
+    } else {
+      const access = await getQuickPracticeAccess(supabase, usuarioId, Deno.env.get('FULL_EXAM_FREE_ACCESS'));
+      if (!access.allowed) {
+        return jsonResponse({
+          code: 'MEMBERSHIP_REQUIRED',
+          message: `Ya utilizaste tus ${FREE_QUICK_PRACTICE_ATTEMPTS} prácticas cortas gratuitas. Suscríbete por 1 mes para continuar.`,
+          checkoutPath: `/checkout?category=${categoriaId}`,
+          freeAttemptsUsed: access.completedAttempts,
+          freeAttemptLimit: FREE_QUICK_PRACTICE_ATTEMPTS,
+          practiceType: 'quick',
         }, 402);
       }
     }
