@@ -27,13 +27,14 @@ const examFacts = [
 ];
 
 export default function LandingPage() {
-  const { openAuthModal } = useAuth();
+  const { isAuthenticated, loading, openAuthModal } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
   const [categories, setCategories] = useState(fallbackLicenseCategories);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [planPrice, setPlanPrice] = useState(1200);
+  const canNavigateDirectly = loading || isAuthenticated;
 
   useEffect(() => {
     api.getCategories().then((items) => {
@@ -74,24 +75,33 @@ export default function LandingPage() {
 
   const startPractice = (practiceMode) => {
     if (!selectedCategoryId) return;
+    const practiceDestination = `/simulacro/${selectedCategoryId}?mode=quick&strategy=${practiceMode}`;
+    if (canNavigateDirectly) {
+      navigate(practiceDestination);
+      return;
+    }
     openAuthModal('register', {
       category: selectedCategoryId,
-      redirectTo: `/simulacro/${selectedCategoryId}?mode=quick&strategy=${practiceMode}`,
+      redirectTo: practiceDestination,
     });
   };
 
   const fullExamDestination = selectedCategoryId
     ? `/simulacro/${selectedCategoryId}?mode=exam`
     : null;
-  const fullExamTo = fullExamDestination
-    ? `/#register?category=${selectedCategoryId}&next=${encodeURIComponent(fullExamDestination)}`
-    : null;
+  const fullExamTo = canNavigateDirectly
+    ? fullExamDestination
+    : fullExamDestination
+      ? `/#register?category=${selectedCategoryId}&next=${encodeURIComponent(fullExamDestination)}`
+      : null;
   const adaptiveDestination = selectedCategoryId
     ? `/simulacro/${selectedCategoryId}?mode=adaptive&strategy=adaptive`
     : null;
-  const adaptiveTo = adaptiveDestination
-    ? `/#register?category=${selectedCategoryId}&next=${encodeURIComponent(adaptiveDestination)}`
-    : null;
+  const adaptiveTo = canNavigateDirectly
+    ? adaptiveDestination
+    : adaptiveDestination
+      ? `/#register?category=${selectedCategoryId}&next=${encodeURIComponent(adaptiveDestination)}`
+      : null;
 
   return (
     <>
