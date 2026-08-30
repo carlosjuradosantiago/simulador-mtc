@@ -109,7 +109,7 @@ export default function SubscriptionPage() {
               <span className="font-display text-5xl font-black text-ink">S/ {MONTHLY_PLAN.price}</span>
               <span className="pb-1 text-lg font-bold text-slate-500">por mes</span>
             </div>
-            <p className="mt-2 text-sm leading-6 text-slate-600">Precio final en soles. Antes de suscribirte puedes usar gratuitamente las prácticas cortas para conocer el servicio.</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Precio final en soles. Antes de suscribirte puedes completar 20 prácticas cortas gratuitas de 5 preguntas.</p>
             <Link to={actionTo} className="mt-6 inline-flex min-h-14 items-center justify-center gap-2 rounded-lg bg-brand px-6 text-lg font-black text-white shadow-[0_4px_0_#0f4eae] hover:bg-blue-700">
               {actionLabel} <ArrowRight className="h-5 w-5" aria-hidden="true" />
             </Link>

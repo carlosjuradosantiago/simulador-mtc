@@ -3,7 +3,9 @@ import { getUserFromToken } from '../_shared/auth.ts';
 import { jsonResponse, errorResponse, unauthorizedResponse } from '../_shared/response.ts';
 import {
   FREE_FULL_EXAM_ATTEMPTS,
+  FREE_QUICK_PRACTICE_ATTEMPTS,
   getFullPracticeAccess,
+  getQuickPracticeAccess,
   isFullExamFree,
 } from '../_shared/membership-access.ts';
 
@@ -231,16 +233,28 @@ export async function handleGetUserExamCount(req: Request) {
     const supabase = getSupabaseClient();
 
     const freeAccess = Deno.env.get('FULL_EXAM_FREE_ACCESS');
-    const access = await getFullPracticeAccess(supabase, user.userId, freeAccess);
+    const [access, quickAccess] = await Promise.all([
+      getFullPracticeAccess(supabase, user.userId, freeAccess),
+      getQuickPracticeAccess(supabase, user.userId, freeAccess),
+    ]);
     const remainingFreeExams = Math.max(FREE_FULL_EXAM_ATTEMPTS - access.completedAttempts, 0);
+    const remainingFreeQuickPractices = Math.max(
+      FREE_QUICK_PRACTICE_ATTEMPTS - quickAccess.completedAttempts,
+      0,
+    );
 
     return jsonResponse({
       examCount: access.completedAttempts,
       freeExamLimit: FREE_FULL_EXAM_ATTEMPTS,
       remainingFreeExams,
       canTakeExam: access.allowed,
+      quickPracticeCount: quickAccess.completedAttempts,
+      freeQuickPracticeLimit: FREE_QUICK_PRACTICE_ATTEMPTS,
+      remainingFreeQuickPractices,
+      canTakeQuickPractice: quickAccess.allowed,
       hasActiveMembership: access.hasActiveMembership,
       requiresPayment: !isFullExamFree(freeAccess) && !access.allowed,
+      quickPracticeRequiresPayment: !isFullExamFree(freeAccess) && !quickAccess.allowed,
     });
   } catch (err) {
     console.error('Get user exam count error:', err);

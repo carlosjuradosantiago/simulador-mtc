@@ -4,8 +4,11 @@ import {
   addCalendarMonths,
   filterFullPracticeAttempts,
   filterOfficialExamAttempts,
+  filterQuickPracticeAttempts,
   FREE_FULL_EXAM_ATTEMPTS as API_FREE_FULL_EXAM_ATTEMPTS,
+  FREE_QUICK_PRACTICE_ATTEMPTS as API_FREE_QUICK_PRACTICE_ATTEMPTS,
   hasFreeFullExamAttempt,
+  hasFreeQuickPracticeAttempt,
   isFullExamFree,
   isRealPayment,
   partitionAttempts,
@@ -18,9 +21,11 @@ import {
 } from '../supabase/functions/api/_shared/exam-rules.ts';
 import {
   FREE_FULL_EXAM_ATTEMPTS,
+  FREE_QUICK_PRACTICE_ATTEMPTS,
   FULL_EXAM_IS_FREE,
   OFFICIAL_EXAM_RULES,
   remainingFreeFullExamAttempts,
+  remainingFreeQuickPracticeAttempts,
 } from '../src/data/examRules.js';
 
 assert.equal(isFullExamFree(undefined), false);
@@ -29,6 +34,8 @@ assert.equal(isFullExamFree('FALSE'), false);
 assert.equal(FULL_EXAM_IS_FREE, true);
 assert.equal(API_FREE_FULL_EXAM_ATTEMPTS, 5);
 assert.equal(FREE_FULL_EXAM_ATTEMPTS, 5);
+assert.equal(API_FREE_QUICK_PRACTICE_ATTEMPTS, 20);
+assert.equal(FREE_QUICK_PRACTICE_ATTEMPTS, 20);
 assert.equal(hasFreeFullExamAttempt(0), true);
 assert.equal(hasFreeFullExamAttempt(1), true);
 assert.equal(hasFreeFullExamAttempt(4), true);
@@ -36,6 +43,12 @@ assert.equal(hasFreeFullExamAttempt(5), false);
 assert.equal(remainingFreeFullExamAttempts(0), 5);
 assert.equal(remainingFreeFullExamAttempts(4), 1);
 assert.equal(remainingFreeFullExamAttempts(5), 0);
+assert.equal(hasFreeQuickPracticeAttempt(0), true);
+assert.equal(hasFreeQuickPracticeAttempt(19), true);
+assert.equal(hasFreeQuickPracticeAttempt(20), false);
+assert.equal(remainingFreeQuickPracticeAttempts(0), 20);
+assert.equal(remainingFreeQuickPracticeAttempts(19), 1);
+assert.equal(remainingFreeQuickPracticeAttempts(20), 0);
 
 const historyFilters = [];
 const fakeQuery = {
@@ -67,6 +80,19 @@ assert.deepEqual(fullPracticeFilters, [
   ['eq', 'id_usuario', 42],
   ['in', 'tipo_intento', ['CRONOMETRADO', 'PRACTICA_ADAPTATIVA', 'PRACTICA']],
   ['eq', 'total_preguntas', 40],
+]);
+
+const quickPracticeFilters = [];
+const quickPracticeQuery = {
+  eq(column, value) {
+    quickPracticeFilters.push([column, value]);
+    return this;
+  },
+};
+assert.equal(filterQuickPracticeAttempts(quickPracticeQuery, 42), quickPracticeQuery);
+assert.deepEqual(quickPracticeFilters, [
+  ['id_usuario', 42],
+  ['tipo_intento', 'PRACTICA_CORTA'],
 ]);
 
 assert.equal(addCalendarMonths('2026-01-31T12:00:00.000Z', 1).toISOString(), '2026-02-28T12:00:00.000Z');
@@ -127,6 +153,7 @@ assert.doesNotMatch(plansPage, /nunca recibimos|numero completo de tu tarjeta|fo
 assert.match(vehicleStartPanel, /Simulacro completo disponible/);
 assert.match(vehicleStartPanel, /FREE_FULL_EXAM_ATTEMPTS} prácticas completas sin costo antes de suscribirte/);
 assert.match(vehicleStartPanel, /Mis falladas/);
+assert.match(vehicleStartPanel, /FREE_QUICK_PRACTICE_ATTEMPTS} prácticas cortas gratuitas antes de suscribirte/);
 assert.match(adaptivePracticeHandler, /NO_FAILED_QUESTIONS/);
 assert.doesNotMatch(seoGenerator, /suscripción mensual por S\/ 12/);
 for (const source of [publicHeader, publicFooter, vehicleStartPanel, seoGenerator]) {
@@ -138,8 +165,13 @@ assert.match(timedExamHandler, /freeAttemptLimit: FREE_FULL_EXAM_ATTEMPTS/);
 assert.match(adaptivePracticeHandler, /cantidadPreguntas === 40/);
 assert.match(adaptivePracticeHandler, /getFullPracticeAccess/);
 assert.match(adaptivePracticeHandler, /freeAttemptLimit: FREE_FULL_EXAM_ATTEMPTS/);
+assert.match(adaptivePracticeHandler, /getQuickPracticeAccess/);
+assert.match(adaptivePracticeHandler, /freeAttemptLimit: FREE_QUICK_PRACTICE_ATTEMPTS/);
 assert.match(dashboardPage, /freeFullExamAttemptsRemaining/);
+assert.match(dashboardPage, /quickPracticeCount/);
+assert.match(dashboardPage, /freeQuickPracticeAttemptsRemaining/);
 assert.match(landingPage, /FREE_FULL_EXAM_ATTEMPTS/);
+assert.match(landingPage, /FREE_QUICK_PRACTICE_ATTEMPTS/);
 assert.match(simulatorPage, /<Navigate to=\{`\/checkout\?category=\$\{categoria\}`\} replace \/>/);
 
 console.log('membership access checks passed');

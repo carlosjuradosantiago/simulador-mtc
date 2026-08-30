@@ -6,6 +6,7 @@ export const ADAPTIVE_SESSION_TYPE = 'PRACTICA_ADAPTATIVA';
 export const FULL_PRACTICE_SESSION_TYPES = [TIMED_SESSION_TYPE, ADAPTIVE_SESSION_TYPE, 'PRACTICA'];
 export const SIMULATED_PAYMENT_METHOD = 'simulacion';
 export const FREE_FULL_EXAM_ATTEMPTS = 5;
+export const FREE_QUICK_PRACTICE_ATTEMPTS = 20;
 
 export function isFullExamFree(value?: string | null) {
   return String(value ?? 'false').trim().toLowerCase() === 'true';
@@ -61,7 +62,19 @@ export function filterFullPracticeAttempts(query: any, userId: number) {
     .eq('total_preguntas', OFFICIAL_EXAM_QUESTION_COUNT);
 }
 
-export async function getFullPracticeAccess(supabase: any, userId: number, freeAccessValue?: string | null) {
+export function filterQuickPracticeAttempts(query: any, userId: number) {
+  return query
+    .eq('id_usuario', userId)
+    .eq('tipo_intento', QUICK_SESSION_TYPE);
+}
+
+async function getPracticeAccess(
+  supabase: any,
+  userId: number,
+  limit: number,
+  filterAttempts: (query: any, userId: number) => any,
+  freeAccessValue?: string | null,
+) {
   if (isFullExamFree(freeAccessValue)) {
     return { allowed: true, completedAttempts: 0, hasActiveMembership: false };
   }
@@ -80,7 +93,7 @@ export async function getFullPracticeAccess(supabase: any, userId: number, freeA
     return { allowed: true, completedAttempts: 0, hasActiveMembership: true };
   }
 
-  const { count, error: attemptsError } = await filterFullPracticeAttempts(
+  const { count, error: attemptsError } = await filterAttempts(
     supabase.from('intento').select('id', { count: 'exact', head: true }),
     userId,
   );
@@ -88,14 +101,38 @@ export async function getFullPracticeAccess(supabase: any, userId: number, freeA
 
   const completedAttempts = count || 0;
   return {
-    allowed: hasFreeFullExamAttempt(completedAttempts),
+    allowed: completedAttempts < limit,
     completedAttempts,
     hasActiveMembership: false,
   };
 }
 
+export async function getFullPracticeAccess(supabase: any, userId: number, freeAccessValue?: string | null) {
+  return getPracticeAccess(
+    supabase,
+    userId,
+    FREE_FULL_EXAM_ATTEMPTS,
+    filterFullPracticeAttempts,
+    freeAccessValue,
+  );
+}
+
+export async function getQuickPracticeAccess(supabase: any, userId: number, freeAccessValue?: string | null) {
+  return getPracticeAccess(
+    supabase,
+    userId,
+    FREE_QUICK_PRACTICE_ATTEMPTS,
+    filterQuickPracticeAttempts,
+    freeAccessValue,
+  );
+}
+
 export function hasFreeFullExamAttempt(completedAttempts: number) {
   return Math.max(Number(completedAttempts) || 0, 0) < FREE_FULL_EXAM_ATTEMPTS;
+}
+
+export function hasFreeQuickPracticeAttempt(completedAttempts: number) {
+  return Math.max(Number(completedAttempts) || 0, 0) < FREE_QUICK_PRACTICE_ATTEMPTS;
 }
 
 export function isRealPayment(payment: {

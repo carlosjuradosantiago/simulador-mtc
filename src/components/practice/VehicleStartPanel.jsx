@@ -12,7 +12,11 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FREE_FULL_EXAM_ATTEMPTS, OFFICIAL_EXAM_RULES } from '../../data/examRules.js';
+import {
+  FREE_FULL_EXAM_ATTEMPTS,
+  FREE_QUICK_PRACTICE_ATTEMPTS,
+  OFFICIAL_EXAM_RULES,
+} from '../../data/examRules.js';
 import { fallbackLicenseCategories, getCategoryById, getVehicleChoice, vehicleChoices } from '../../data/vehicleChoices.js';
 import { api } from '../../services/api.js';
 import { cn } from '../../utils/cn.js';
@@ -72,6 +76,9 @@ export default function VehicleStartPanel({
   membershipEndDate = null,
   fullExamIsFree = false,
   freeFullExamAttemptsRemaining = 0,
+  quickPracticeHasAccess = true,
+  quickPracticeAccessLoading = false,
+  freeQuickPracticeAttemptsRemaining = FREE_QUICK_PRACTICE_ATTEMPTS,
   focusSelected = false,
 }) {
   const [practiceMode, setPracticeMode] = useState('random');
@@ -87,6 +94,8 @@ export default function VehicleStartPanel({
   const priceLabel = `S/${Math.round(Number(fullExamPrice || 1200) / 100)}`;
   const canStartFullExam = fullExamIsFree || fullExamHasAccess;
   const isCheckingFullExamAccess = !fullExamIsFree && fullExamAccessLoading;
+  const canStartQuickPractice = fullExamIsFree || quickPracticeHasAccess;
+  const isCheckingQuickPracticeAccess = !fullExamIsFree && quickPracticeAccessLoading;
   const fullExamAccessLabel = fullExamIsFree
     ? 'Simulacro completo disponible'
     : freeFullExamAttemptsRemaining > 0
@@ -96,6 +105,17 @@ export default function VehicleStartPanel({
     : fullExamHasAccess
       ? `Acceso activo${membershipEndDate ? ` hasta ${new Date(membershipEndDate).toLocaleDateString('es-PE')}` : ''}`
       : `Suscripcion mensual ${priceLabel}`;
+  const quickPracticeAccessLabel = isCheckingQuickPracticeAccess
+    ? 'Revisando tus prácticas gratuitas...'
+    : fullExamIsFree
+      ? 'Prácticas cortas disponibles'
+      : freeQuickPracticeAttemptsRemaining > 0
+        ? freeQuickPracticeAttemptsRemaining === FREE_QUICK_PRACTICE_ATTEMPTS
+          ? `${FREE_QUICK_PRACTICE_ATTEMPTS} prácticas cortas gratuitas antes de suscribirte`
+          : `Te ${freeQuickPracticeAttemptsRemaining === 1 ? 'queda' : 'quedan'} ${freeQuickPracticeAttemptsRemaining} ${freeQuickPracticeAttemptsRemaining === 1 ? 'práctica corta gratuita' : 'prácticas cortas gratuitas'}`
+        : quickPracticeHasAccess
+          ? `Prácticas cortas incluidas${membershipEndDate ? ` hasta ${new Date(membershipEndDate).toLocaleDateString('es-PE')}` : ''}`
+          : `Alcanzaste el límite gratuito · Suscripción mensual ${priceLabel}`;
 
   const chooseVehicle = (choice) => {
     setCategoryVehicleId(choice.id);
@@ -152,6 +172,7 @@ export default function VehicleStartPanel({
           <p className="mt-2 max-w-2xl text-base leading-6 text-slate-600">
             Sin cronómetro y con explicación inmediata. Termina una ronda corta antes de pasar al entrenamiento de 40 preguntas.
           </p>
+          <p className="mt-2 text-sm font-bold text-brand">{quickPracticeAccessLabel}</p>
           <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm font-bold text-slate-700" aria-label="Beneficios de la práctica corta">
             <li className="inline-flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-success" />5 preguntas</li>
             <li className="inline-flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-success" />Sin cronómetro</li>
@@ -201,14 +222,18 @@ export default function VehicleStartPanel({
           )}
 
           <div className="mt-3">
-            {startHref ? (
+            {isCheckingQuickPracticeAccess ? (
+              <button type="button" disabled className="inline-flex min-h-14 w-full items-center justify-center rounded-lg bg-slate-200 px-5 font-bold text-slate-500">
+                Revisando acceso...
+              </button>
+            ) : startHref ? (
               <Link
                 to={startHref}
-                onClick={() => trackPracticeMode('quick', effectivePracticeMode)}
+                onClick={() => trackPracticeMode(canStartQuickPractice ? 'quick' : 'checkout', effectivePracticeMode)}
                 className={startButtonClass}
               >
-                <CircleGauge className="h-6 w-6 shrink-0" />
-                Empezar 5 preguntas
+                {canStartQuickPractice ? <CircleGauge className="h-6 w-6 shrink-0" /> : <LockKeyhole className="h-6 w-6 shrink-0" />}
+                {canStartQuickPractice ? 'Empezar 5 preguntas' : 'Suscribirme'}
                 <ArrowRight className="h-6 w-6 shrink-0" />
               </Link>
             ) : (
