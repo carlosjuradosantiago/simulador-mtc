@@ -1,8 +1,19 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import PageViewTracker from './components/analytics/PageViewTracker.jsx';
-import AuthModal from './components/auth/AuthModal.jsx';
-import { AuthProvider } from './hooks/useAuth.js';
+import { AuthProvider, useAuth } from './hooks/useAuth.js';
 import AppRoutes from './routes/AppRoutes.jsx';
+
+const AuthModal = lazy(() => import('./components/auth/AuthModal.jsx'));
+
+function AuthModalLayer() {
+  const { authModal } = useAuth();
+  return authModal.open ? (
+    <Suspense fallback={null}>
+      <AuthModal />
+    </Suspense>
+  ) : null;
+}
 
 export default function App() {
   return (
@@ -10,7 +21,7 @@ export default function App() {
       <AuthProvider>
         <PageViewTracker />
         <AppRoutes />
-        <AuthModal />
+        <AuthModalLayer />
       </AuthProvider>
     </BrowserRouter>
   );

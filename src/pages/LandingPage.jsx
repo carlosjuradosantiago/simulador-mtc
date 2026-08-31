@@ -53,21 +53,32 @@ export default function LandingPage() {
 
   useEffect(() => {
     const authRequest = parseAuthFragment(location.hash);
-    if (!authRequest) return;
+    if (!authRequest || loading) return;
+
+    if (isAuthenticated) {
+      navigate(authRequest.redirectTo, { replace: true });
+      return;
+    }
 
     openAuthModal(authRequest.mode, {
       redirectTo: authRequest.redirectTo,
       category: authRequest.category,
     });
     navigate({ pathname: location.pathname, search: location.search }, { replace: true });
-  }, [location.hash, location.pathname, location.search, navigate, openAuthModal]);
+  }, [isAuthenticated, loading, location.hash, location.pathname, location.search, navigate, openAuthModal]);
 
   useEffect(() => {
     const authMode = searchParams.get('auth');
-    if (authMode !== 'login' && authMode !== 'register') return;
+    if ((authMode !== 'login' && authMode !== 'register') || loading) return;
+
+    const redirectTo = safeInternalPath(searchParams.get('next'), '/dashboard');
+    if (isAuthenticated) {
+      navigate(redirectTo, { replace: true });
+      return;
+    }
 
     openAuthModal(authMode, {
-      redirectTo: safeInternalPath(searchParams.get('next'), '/dashboard'),
+      redirectTo,
       category: Number(searchParams.get('category')) || null,
     });
     const nextParams = new URLSearchParams(searchParams);
@@ -75,7 +86,11 @@ export default function LandingPage() {
     nextParams.delete('next');
     nextParams.delete('category');
     setSearchParams(nextParams, { replace: true });
-  }, [openAuthModal, searchParams, setSearchParams]);
+  }, [isAuthenticated, loading, navigate, openAuthModal, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (selectedCategoryId) window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [selectedCategoryId]);
 
   const startPractice = (practiceMode) => {
     if (!selectedCategoryId) return;
