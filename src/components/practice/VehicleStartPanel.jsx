@@ -357,7 +357,7 @@ export default function VehicleStartPanel({
               onClick={() => chooseVehicle(choice)}
               className={cn(
                 'relative min-w-0 rounded-lg border-2 bg-white text-center transition hover:border-blue-300 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-brand',
-                focusSelected && selectedCategory ? 'flex min-h-16 items-center gap-3 px-4 py-3 text-left' : 'flex min-h-[300px] flex-col p-4 hover:-translate-y-0.5 hover:shadow-lg sm:min-h-[330px] lg:min-h-[350px] lg:p-5',
+                focusSelected && selectedCategory ? 'flex min-h-16 items-center gap-3 px-4 py-3 text-left' : 'grid min-h-[112px] grid-cols-[128px_minmax(0,1fr)] items-center gap-x-3 p-3 text-left hover:shadow-lg sm:flex sm:min-h-[330px] sm:flex-col sm:p-4 sm:text-center sm:hover:-translate-y-0.5 lg:min-h-[350px] lg:p-5',
                 selected ? 'border-brand bg-blue-50/40 shadow-[0_8px_0_#cfe0ff]' : 'border-line',
                 selectedCategory && !selected ? (focusSelected ? 'hidden' : 'hidden md:flex') : null,
               )}
@@ -367,23 +367,23 @@ export default function VehicleStartPanel({
                   <CheckCircle2 className="h-6 w-6" />
                 </span>
               ) : null}
-              <span className={cn('items-center justify-center', focusSelected && selectedCategory ? 'hidden' : 'flex h-[205px] w-full sm:h-[220px] lg:h-[235px]')}>
+              <span className={cn('items-center justify-center', focusSelected && selectedCategory ? 'hidden' : 'col-start-1 row-span-2 row-start-1 flex h-24 w-32 sm:h-[220px] sm:w-full sm:col-auto sm:row-auto lg:h-[235px]')}>
                 <img
                   src={choice.image}
                   alt={choice.imageAlt}
-                  width="900"
-                  height="600"
+                  width="450"
+                  height="300"
                   loading={index === 0 ? 'eager' : 'lazy'}
                   fetchPriority={index === 0 ? 'high' : 'auto'}
                   className="h-full w-full object-contain"
                 />
               </span>
               {focusSelected && selectedCategory ? <CheckCircle2 className="h-6 w-6 shrink-0 text-brand" /> : null}
-              <span className={cn('block font-display font-black leading-tight text-ink', focusSelected && selectedCategory ? 'text-lg' : 'mt-1 text-2xl sm:text-3xl')}>{choice.title}</span>
+              <span className={cn('block font-display font-black leading-tight text-ink', focusSelected && selectedCategory ? 'text-lg' : 'col-start-2 row-start-1 self-end text-xl sm:col-auto sm:row-auto sm:mt-1 sm:self-auto sm:text-3xl')}>{choice.title}</span>
               <span
                 className={cn(
                   'inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 font-bold',
-                  focusSelected && selectedCategory ? 'ml-auto min-h-10 w-auto' : 'mt-auto min-h-12 w-full',
+                  focusSelected && selectedCategory ? 'ml-auto min-h-10 w-auto' : 'col-start-2 row-start-2 mt-2 min-h-11 w-full self-start sm:col-auto sm:row-auto sm:mt-auto sm:min-h-12 sm:self-auto',
                   selected ? 'bg-brand text-white' : 'bg-slate-100 text-brand',
                 )}
               >

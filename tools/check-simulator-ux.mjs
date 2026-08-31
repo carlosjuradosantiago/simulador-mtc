@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const [source, hookSource, startPanelSource, authSource, callbackSource, landingSource, resultsSource] = await Promise.all([
+const [source, hookSource, startPanelSource, authSource, callbackSource, landingSource, resultsSource, modalSource, appSource] = await Promise.all([
   readFile(new URL('../src/pages/SimulatorPage.jsx', import.meta.url), 'utf8'),
   readFile(new URL('../src/hooks/useExam.js', import.meta.url), 'utf8'),
   readFile(new URL('../src/components/practice/VehicleStartPanel.jsx', import.meta.url), 'utf8'),
@@ -9,6 +9,8 @@ const [source, hookSource, startPanelSource, authSource, callbackSource, landing
   readFile(new URL('../src/pages/AuthCallbackPage.jsx', import.meta.url), 'utf8'),
   readFile(new URL('../src/pages/LandingPage.jsx', import.meta.url), 'utf8'),
   readFile(new URL('../src/pages/ResultsPage.jsx', import.meta.url), 'utf8'),
+  readFile(new URL('../src/components/ui/Modal.jsx', import.meta.url), 'utf8'),
+  readFile(new URL('../src/App.jsx', import.meta.url), 'utf8'),
 ]);
 
 assert.doesNotMatch(source, /speechSynthesis|SpeechSynthesisUtterance|Escuchar pregunta/);
@@ -67,6 +69,17 @@ assert.match(landingSource, /const canNavigateDirectly = loading \|\| isAuthenti
 assert.match(landingSource, /if \(canNavigateDirectly\) \{\s*navigate\(practiceDestination\);\s*return;\s*\}/);
 assert.match(landingSource, /const fullExamTo = canNavigateDirectly\s*\? fullExamDestination/);
 assert.match(landingSource, /const adaptiveTo = canNavigateDirectly\s*\? adaptiveDestination/);
+assert.match(landingSource, /if \(!authRequest \|\| loading\) return;/);
+assert.match(landingSource, /if \(\(authMode !== 'login' && authMode !== 'register'\) \|\| loading\) return;/);
+assert.match(landingSource, /if \(isAuthenticated\) \{\s*navigate\(authRequest\.redirectTo, \{ replace: true \}\);\s*return;/);
+assert.match(landingSource, /if \(selectedCategoryId\) window\.scrollTo\(\{ top: 0, left: 0, behavior: 'instant' \}\)/);
+assert.match(modalSource, /previouslyFocused\.focus\(\{ preventScroll: true \}\)/);
+assert.match(startPanelSource, /width="450"/);
+assert.match(startPanelSource, /height="300"/);
+assert.match(startPanelSource, /grid-cols-\[128px_minmax\(0,1fr\)\]/);
+assert.match(startPanelSource, /h-24 w-32 sm:h-\[220px\] sm:w-full/);
+assert.match(appSource, /lazy\(\(\) => import\('\.\/components\/auth\/AuthModal\.jsx'\)\)/);
+assert.match(appSource, /authModal\.open \? \(/);
 assert.match(resultsSource, /Primera meta completada/);
 assert.match(resultsSource, /Continuar con entrenamiento inteligente/);
 

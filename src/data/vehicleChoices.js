@@ -1,6 +1,6 @@
-import carImage from '../assets/vehicles/car-a1.webp';
-import motorcycleImage from '../assets/vehicles/motorcycle-a2a.webp';
-import truckImage from '../assets/vehicles/truck-heavy.webp';
+import carImage from '../assets/vehicles/car-a1-card.webp';
+import motorcycleImage from '../assets/vehicles/motorcycle-a2a-card.webp';
+import truckImage from '../assets/vehicles/truck-heavy-card.webp';
 
 export const fallbackLicenseCategories = [
   { id: 25, title: 'A-I', name: 'Licencia A-I', vehicle: 'Auto particular', shortLabel: 'Particular', description: 'Autos, camionetas y vehículos de uso particular.' },

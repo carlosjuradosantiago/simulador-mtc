@@ -409,8 +409,8 @@ async function main() {
   assert(officialPdfDownloads.includes('href={pdf.guideHref}'), 'La página de materiales debe enlazar las guías de cada balotario');
   assert(appRoutes.includes("import LandingPage from '../pages/LandingPage.jsx';"), 'La portada debe cargarse con el bundle inicial para mejorar el LCP');
   assert(!appRoutes.includes('const LandingPage = lazy('), 'La portada no debe esperar un chunk diferido');
-  assert(home.includes('rel="preload" as="image" href="/src/assets/vehicles/car-a1.webp"'), 'index.html: la imagen LCP debe descubrirse desde el HTML inicial');
-  assert(home.includes('fetchpriority="high"'), 'index.html: el preload de la imagen LCP debe tener prioridad alta');
+  assert(home.includes('rel="preload" as="image" href="/src/assets/vehicles/car-a1-card.webp"'), 'index.html: la primera imagen visible debe descubrirse desde el HTML inicial');
+  assert(home.includes('fetchpriority="high"'), 'index.html: el preload de la primera imagen visible debe tener prioridad alta');
   assert(vehicleStartPanel.includes("fetchPriority={index === 0 ? 'high' : 'auto'}"), 'La primera imagen de vehículo debe conservar prioridad alta al renderizarse');
   const initialAppShell = home.slice(home.indexOf('<div id="root">'), home.indexOf('<noscript>'));
   assert(initialAppShell.includes('data-static-app-shell'), 'index.html: el HTML inicial no debe entregar un #root vacío');
